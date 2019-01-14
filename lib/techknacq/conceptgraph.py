@@ -8,7 +8,7 @@ import uuid
 
 # Parameters
 #deafault = 100
-WORDS_PER_CONCEPT = 500
+WORDS_PER_CONCEPT = 100
 
 
 class ConceptGraph:
@@ -94,7 +94,7 @@ class ConceptGraph:
 
     #return at least 25 most relevant docs and at most 200 most relevant docs with relevant weights > 0.6
     #return all
-    def topic_docs(self, topic_id, min_docs=1000, max_docs=5000, threshold=0.1):
+    def topic_docs(self, topic_id, min_docs=25, max_docs=200, threshold=0.6):
         """Return a sorted list of (document_id, weight) pairs for the
         documents that are most relevant to the specified topic_id,
         including the top `min_docs` most relevant, and all others above

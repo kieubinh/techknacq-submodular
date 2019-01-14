@@ -17,25 +17,25 @@ from lib.submodular.similarityscore import SimilarityScores
 
 class Submodular:
 
-    def __init__(self, readinglist, Lambda, alg=ConstantValues.LAZY_GREEDY_ALG):
+    def __init__(self, readinglist):
         self.readinglist = readinglist
-        self.Lambda = Lambda
-        self.alg = alg
+        print(readinglist)
+        #self.Lambda = Lambda
 
-    def getSubmodular(self):
-        if self.alg==ConstantValues.LAZY_GREEDY_ALG:
-            return self.lazyGreedyAlg(self.readinglist, self.Lambda)
+    def getSubmodular(self, alg=ConstantValues.LAZY_GREEDY_ALG, Lambda=1.0, method="mmr"):
+        if alg==ConstantValues.LAZY_GREEDY_ALG:
+            return self.lazyGreedyAlg(self.readinglist, Lambda, method)
         else:
             return None #other alg
 
-    def lazyGreedyAlg(self, readinglist, Lambda):
+    def lazyGreedyAlg(self, readinglist, Lambda, method):
         g=[]
         u=[]
         for doc in readinglist:
             u.append(doc)
         #print("BUDGET: "+str(budget))
         while len(u)>0 and len(g)<ConstantValues.BUDGET:
-            dock, maxK = self.findArgmax(g, u, readinglist, Lambda)
+            dock, maxK = self.findArgmax(g, u, readinglist, Lambda, method)
             #print("dock: "+dock['title'])
             #if (maxK>0):
             g.append(dock)
@@ -49,9 +49,9 @@ class Submodular:
         return g
 
 
-    def findArgmax(self, g, u, v, Lambda):
+    def findArgmax(self, g, u, v, Lambda, method):
         #bound = mmrCal(g,v, Lambda)
-        bound = self.mmrCal(g, v, Lambda)
+        bound = self.mmrCal(g, v, Lambda) if method == "mmr" else self.crlCal(g, v, Lambda)
         print("bound: "+str(bound))
         maxF = None
         argmax = None
@@ -60,7 +60,7 @@ class Submodular:
             for x in g:
                 t.append(x)
             t.append(doc)
-            ft=self.mmrCal(t, v, Lambda)
+            ft=self.mmrCal(t, v, Lambda) if method == "mmr" else self.crlCal(t, v, Lambda)
             #ft=crlCal(t, v, Lambda)
             #print("function mmr calculate: "+str(ft))
             if (maxF==None or maxF<ft):

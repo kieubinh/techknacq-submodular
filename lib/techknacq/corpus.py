@@ -172,6 +172,14 @@ class Corpus:
                              'manual': 0.0,
                              'other': 0.0}
 
+    #kieubinh add
+    def getRawDocs(self):
+        docs = []
+        ids = []
+        for id, doc in self.docs.items():
+            ids.append(id)
+            docs.append(doc.text())
+        return ids, docs
 
 class Document:
     def __init__(self, fname=None, form=None):
@@ -248,7 +256,8 @@ class Document:
                         self.sections.append(sec)
                 else:
                     sys.sterr.write('Unexpected infon value %s.\n' %
-                                    (anntoation['infons']['value']))
+                                    (annotation['infons']['value']))
+
 
 
     def read_sd(self, f, fref=None):

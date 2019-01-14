@@ -4,7 +4,7 @@ import json
 
 class Corpus:
 
-    def __init__(self, path="../../sample/"):
+    def __init__(self, path="sample/"):
         print(path)
         self.dictCorpus={}
         for filename in glob.glob(os.path.join(path, '*.json')):

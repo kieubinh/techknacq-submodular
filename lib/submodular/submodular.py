@@ -10,32 +10,41 @@
 
 from lib.submodular.constantvalues import ConstantValues
 from lib.submodular.similarityscore import SimilarityScores
+from lib.submodular.relevantdocuments import RelevantDocuments
 
 # from conceptgraph import ConceptGraph
 # from readinglist import ReadingList
 # from constantvalues import ConstantValues
 
 class Submodular:
+    docs=[]
 
     def __init__(self, readinglist):
-        self.readinglist = readinglist
-        print(readinglist)
+        releventDocs = RelevantDocuments(readinglist)
+        self.docs = releventDocs.getDocs()
+        #print(readinglist)
         #self.Lambda = Lambda
+
+    def __init__(self, relevantdocs):
+        self.docs = relevantdocs.getDocs()
+        print(self.docs)
 
     def getSubmodular(self, alg=ConstantValues.LAZY_GREEDY_ALG, Lambda=1.0, method="mmr"):
         if alg==ConstantValues.LAZY_GREEDY_ALG:
-            return self.lazyGreedyAlg(self.readinglist, Lambda, method)
+            return self.lazyGreedyAlg(self.docs, Lambda, method)
         else:
             return None #other alg
 
-    def lazyGreedyAlg(self, readinglist, Lambda, method):
+    def lazyGreedyAlg(self, Lambda, method):
+        #all elements
+        v=self.docs
+        #selected set
         g=[]
-        u=[]
-        for doc in readinglist:
-            u.append(doc)
+        #remaining set
+        u=self.docs
         #print("BUDGET: "+str(budget))
         while len(u)>0 and len(g)<ConstantValues.BUDGET:
-            dock, maxK = self.findArgmax(g, u, readinglist, Lambda, method)
+            dock, maxK = self.findArgmax(g, u, v, Lambda, method)
             #print("dock: "+dock['title'])
             #if (maxK>0):
             g.append(dock)

@@ -464,8 +464,8 @@ class Document:
             return self.sections[1]['text'][:10]
         return self.sections[0]['text'][:10]
 
-
-    def json(self, abstract=False):
+    #kieubinh changes for adding query_score defaul = 0.0
+    def json(self, abstract=False, query_score=0.0):
         """Return a JSON string representing the document."""
 
         doc = {
@@ -483,6 +483,9 @@ class Document:
             doc['sections'] = [self.sections[0]]
         else:
             doc['sections'] = self.sections
+
+        if query_score!=None:
+            doc['query_score']=str(query_score)
 
         return json.dumps(doc, indent=2, sort_keys=True, ensure_ascii=False)
 

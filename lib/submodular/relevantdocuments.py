@@ -12,6 +12,13 @@ class RelevantDocuments:
 
     rankedTfidf = []
     relevantlist=[]
+    docs=[]
+
+    def getRelevantDocs(self):
+        return self.relevantlist
+
+    def __init__(self, readinglist):
+        self.relevantlist = readinglist
 
     def __init__(self, path=None):
         # Let's create some documents.
@@ -94,18 +101,12 @@ class RelevantDocuments:
         rankedTuple = sorted(scores.items(), key=lambda x: x[1], reverse = True)
         print(rankedTuple)
         for id, score in rankedTuple:
-            releventDoc = self.convert2Entry(self.docs.get(id), query_score=score)
+            releventDoc = self.convert2Json(self.docs.get(id), query_score=score)
             #print(releventDoc)
             self.relevantlist.append(releventDoc)
 
-    def convert2Entry(self, doc, query_score=0.0):
-        #print(id+" - "+doc.id)
-        return {
-                #"id":id,
-                "doc":doc.json(),
-                "query_score":query_score
-        }
-
+    def convert2Json(self, doc, query_score=0.0):
+        return doc.json(query_score=query_score)
 
     def getTopResults(self, num_top = 50, method="tfidf"):
 
@@ -121,8 +122,10 @@ class RelevantDocuments:
         top_results = []
         if method == "tfidf":
             for entry in self.relevantlist:
-                if entry['query_score'] < threshold:
+                print(entry)
+                if float(entry['query_score']) < threshold:
                     return top_results
                 top_results.append(entry)
 
         return top_results
+

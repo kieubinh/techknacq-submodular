@@ -2,7 +2,8 @@
 
 from lib.submodular.relevantdocuments import RelevantDocuments
 
-relevantDocs = RelevantDocuments("sample/")
+relevantDocs = RelevantDocuments()
+relevantDocs.loadFromPath("sample/")
 relevantDocs.findRankedTfIdf("concept to text")
 
 scores = relevantDocs.getTopResults(10, "tfidf")

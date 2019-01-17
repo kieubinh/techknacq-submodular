@@ -28,7 +28,9 @@ class SimilarityScores:
         return self.get_cosine(vector1, vector2)
 
     def text_to_vector(self, text):
-        #print("text to vecctor: "+text)
+        # if (text == "" or text == None):
+        #     return 0
+        #print(text)
         WORD = re.compile(r'\w+')
         words = WORD.findall(text)
         return Counter(words)

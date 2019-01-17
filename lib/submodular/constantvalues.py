@@ -14,3 +14,18 @@ class ConstantValues:
 
     LAZY_GREEDY_ALG=0 #default
     COSINE = 0 #default
+
+    #method
+    Maximal_Marginal_Relevance="mmr"
+    Maximal_Concept_Relevance="mcr"
+    Query_Focused_Relevance="qfr"
+    Update_Relevance="upr"
+
+    #data path
+    SAMPLE="sample/"
+    ACL = "data/acl"
+
+    #save model
+    DICTIONARY = "acl.dict"
+    CORPUS = "acl.mm"
+    TFIDF_INDEX = "tfidf.index"

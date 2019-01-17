@@ -10,7 +10,8 @@ class ConstantValues:
     BUDGET=10
     PENALTY = 1.0
     #SIMILARITY_MEASUE='title'
-    SIMILARITY_MEASUE='abstract'
+    #SIMILARITY_MEASUE='abstract'
+    SIMILARITY_MEASUE = 'text'
 
     LAZY_GREEDY_ALG=0 #default
     COSINE = 0 #default
@@ -29,3 +30,4 @@ class ConstantValues:
     DICTIONARY = "acl.dict"
     CORPUS = "acl.mm"
     TFIDF_INDEX = "tfidf.index"
+    DOCSIMS = "docsims.json"

@@ -6,8 +6,6 @@
 #upr: Update Relevance
 
 
-
-
 from lib.submodular.constantvalues import ConstantValues
 from lib.submodular.similarityscore import SimilarityScores
 from lib.submodular.relevantdocuments import RelevantDocuments
@@ -21,6 +19,8 @@ class Submodular:
 
     def __init__(self):
         self.docs=[]
+        self.id_docs=[]
+        self.docsims=[]
 
     def loadFromList(self, readinglist):
         releventDocs = RelevantDocuments()
@@ -34,6 +34,14 @@ class Submodular:
         #print(self.docs)
 
     def getSubmodular(self, alg=ConstantValues.LAZY_GREEDY_ALG, Lambda=1.0, method="mmr", type_sim = "title"):
+        #load score
+        if (type_sim=="text"):
+            with open(ConstantValues.DOCSIMS, 'r', encoding="utf-8") as fin:
+                jsonDocSims = json.loads(fin.read())
+                self.id_docs=jsonDocSims['id']
+                self.docsims = jsonDocSims['docsims']
+                print(self.id_docs)
+                print(self.docsims)
         if alg==ConstantValues.LAZY_GREEDY_ALG:
             return self.lazyGreedyAlg(self.docs, Lambda, method, type_sim)
         else:
@@ -93,86 +101,6 @@ class Submodular:
         print("find max: " + str(maxF))
         return argmax, maxF-bound
 
-    #as paper
-    def mmrCal(self, s,v, Lambda):
-        if ConstantValues.SIMILARITY_MEASUE=='title':
-            return self.mmrCal4Title(s, v, Lambda)
-        elif ConstantValues.SIMILARITY_MEASUE=='abstract':
-            return self.mmrCal4Abstract(s, v, Lambda)
-
-    #concept reading list
-    def crlCal(self, s,v, Lambda):
-        if ConstantValues.SIMILARITY_MEASUE=='title':
-            return self.crlCal4Title(s, v, Lambda)
-        elif ConstantValues.SIMILARITY_MEASUE=='abstract':
-            return self.crlCal4Abstract(s, v, Lambda)
-
-    def crlCal4Title(self,s, v, Lambda):
-        fcover = 0
-        # print(str(len(s))+' - '+str(len(v)))
-        for doc in s:
-            fcover+=doc['score']
-        fpenalty = 0
-        for doc1 in s:
-            for doc2 in s:
-                if (doc1 != doc2):
-
-                    fpenalty += SimilarityScores(doc1['title'], doc2['title']).getScore()
-        return fcover - Lambda * fpenalty
-
-    def crlCal4Abstract(self, s, v, Lambda):
-        fcover = 0.0
-        # print(str(len(s))+' - '+str(len(v)))
-        for doc in s:
-            fcover+=doc['score']
-        fpenalty = 0.0
-        count=0
-        for doc1 in s:
-            for doc2 in s:
-                if (doc1 != doc2):
-                    abstract1 = ""
-                    abstract2 = ""
-                    for sentence in doc1['abstract']:
-                        abstract1 += sentence
-                    for sentence in doc2['abstract']:
-                        abstract2 += sentence
-                    fpenalty += SimilarityScores(abstract1, abstract2).getScore()
-                    count+=1
-        if count==0:
-            count=1
-        #return fcover - Lambda * (fpenalty/count)
-        return fcover - Lambda * fpenalty
-
-    def mmrCal4Abstract(self, s, v, Lambda):
-        fcover = 0.0
-        # print(str(len(s))+' - '+str(len(v)))
-        for doc1 in s:
-            for doc2 in v:
-                # print(str(doc2['title'])+ " "+str(doc2 in s))
-                if (doc2 not in s):
-                    abstract1=""
-                    abstract2=""
-                    for sentence in doc1['abstract']:
-                        abstract1+=sentence
-                    for sentence in doc2['abstract']:
-                        abstract2+=sentence
-                    #print("abstract1 : \n" + abstract1 + " \n abstract2: \n " + abstract2)
-                    fcover += SimilarityScores(abstract1, abstract2).getScore()
-        fpenalty = 0.0
-        for doc1 in s:
-            for doc2 in s:
-                if (doc1 != doc2):
-                    abstract1 = ""
-                    abstract2 = ""
-                    for sentence in doc1['abstract']:
-                        abstract1 += sentence
-                    for sentence in doc2['abstract']:
-                        abstract2 += sentence
-                    #print("abstract1 : \n" + abstract1 + " \n abstract2: \n " + abstract2)
-                    fpenalty += SimilarityScores(abstract1, abstract2).getScore()
-
-        return fcover - Lambda * fpenalty
-
     def calConceptSum(self, s):
         fcover = 0.0
         for doc in s:
@@ -184,6 +112,20 @@ class Submodular:
     #default = title
     def calGeneralSum(self, s, v, type_sim="title"):
         fcover = 0.0
+        if (type_sim=="text"):
+            for doc1 in s:
+                jsondoc1 = json.loads(doc1)
+                print(jsondoc1['id'])
+                print(len(self.id_docs))
+                indexDoc1 = self.id_docs.index(jsondoc1['id'])
+                for doc2 in v:
+                    if (doc2 not in s):
+                        jsondoc2 = json.loads(doc2)
+                        indexDoc2 = self.id_docs.index(jsondoc2['id'])
+                        print("doc1: "+str(indexDoc1)+" - doc2: "+str(indexDoc2))
+                        fcover+=self.docsims[indexDoc1][indexDoc2]
+            return fcover
+
         for doc1 in s:
             for doc2 in v:
                 if (doc2 not in s):
@@ -201,14 +143,23 @@ class Submodular:
         return fquery
 
     # subtract relevant selected elements
-    def calPenaltySum(self, s, type_info="title"):
-        fpenalty=0.0
+    def calPenaltySum(self, s, type_sim="title"):
+        fpenalty = 0.0
+        if (type_sim=="text"):
+            for doc1 in s:
+                indexDoc1 = self.id_docs.index(doc1['id'])
+                for doc2 in s:
+                    if (doc1 != doc2):
+                        indexDoc2 = self.id_docs.index(doc2['id'])
+                        fpenalty+=self.docsims[indexDoc1][indexDoc2]
+            return fpenalty
+
         for doc1 in s:
             for doc2 in s:
                 if (doc1 != doc2):
                     jsondoc1 = json.loads(doc1)
                     jsondoc2 = json.loads(doc2)
-                    fpenalty += SimilarityScores(jsondoc1[type_info], jsondoc2[type_info]).getScore()
+                    fpenalty += SimilarityScores(jsondoc1[type_sim], jsondoc2[type_sim]).getScore()
 
         return fpenalty
 

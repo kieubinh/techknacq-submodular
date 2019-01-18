@@ -57,12 +57,12 @@ class RelevantDocuments:
         docsims = index[corpus_tfidf].tolist()
         #print(type(docsims))
         jsonDocSims = {
-            'id':json.dumps(id_documents),
-            'docsims':json.dumps(docsims)
+            'id':id_documents,
+            'docsims':docsims
         }
         #print(jsonDocSims)
         with open(ConstantValues.DOCSIMS, 'w', encoding='utf-8') as fout:
-            fout.write(json.dumps(jsonDocSims, indent=2))
+            json.dump(jsonDocSims, fout)
         fout.close()
 
         print("Done in %.3fs" % (time() - t0))

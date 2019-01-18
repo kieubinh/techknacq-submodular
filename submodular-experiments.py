@@ -166,8 +166,8 @@ import click
 @click.argument('query', nargs=-1)
 def main(concept_graph="concept-graph-standard.json", query="statistical parsing"):
     print(concept_graph)
-    #subMMR_MCR(concept_graph, query, method="mcr", type_sim="title")
-    subQFR_UPR(ConstantValues.SAMPLE, query, method="qfr", type_sim="text")
+    # subMMR_MCR(concept_graph, query, method="mcr", type_sim="text")
+    subQFR_UPR(ConstantValues.PATH, query, method="qfr", type_sim="text")
 
 if __name__ == '__main__':
 

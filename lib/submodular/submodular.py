@@ -40,8 +40,7 @@ class Submodular:
                 jsonDocSims = json.loads(fin.read())
                 self.id_docs=jsonDocSims['id']
                 self.docsims = jsonDocSims['docsims']
-                print(self.id_docs)
-                print(self.docsims)
+                print(len(self.id_docs))
         if alg==ConstantValues.LAZY_GREEDY_ALG:
             return self.lazyGreedyAlg(self.docs, Lambda, method, type_sim)
         else:
@@ -115,14 +114,18 @@ class Submodular:
         if (type_sim=="text"):
             for doc1 in s:
                 jsondoc1 = json.loads(doc1)
-                print(jsondoc1['id'])
-                print(len(self.id_docs))
+                #not consider wiki
+                if 'wiki' in jsondoc1['id']:
+                    continue
                 indexDoc1 = self.id_docs.index(jsondoc1['id'])
                 for doc2 in v:
                     if (doc2 not in s):
                         jsondoc2 = json.loads(doc2)
+                        # not consider wiki
+                        if 'wiki' in jsondoc2['id']:
+                            continue
                         indexDoc2 = self.id_docs.index(jsondoc2['id'])
-                        print("doc1: "+str(indexDoc1)+" - doc2: "+str(indexDoc2))
+                        # print("doc1: "+str(indexDoc1)+" - doc2: "+str(indexDoc2))
                         fcover+=self.docsims[indexDoc1][indexDoc2]
             return fcover
 
@@ -147,10 +150,16 @@ class Submodular:
         fpenalty = 0.0
         if (type_sim=="text"):
             for doc1 in s:
-                indexDoc1 = self.id_docs.index(doc1['id'])
+                jsondoc1 = json.loads(doc1)
+                if 'wiki' in jsondoc1['id']:
+                    continue
+                indexDoc1 = self.id_docs.index(jsondoc1['id'])
                 for doc2 in s:
                     if (doc1 != doc2):
-                        indexDoc2 = self.id_docs.index(doc2['id'])
+                        jsondoc2 = json.loads(doc2)
+                        if 'wiki' in jsondoc2['id']:
+                            continue
+                        indexDoc2 = self.id_docs.index(jsondoc2['id'])
                         fpenalty+=self.docsims[indexDoc1][indexDoc2]
             return fpenalty
 

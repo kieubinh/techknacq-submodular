@@ -167,7 +167,7 @@ import click
 def main(concept_graph="concept-graph-standard.json", query="statistical parsing"):
     print(concept_graph)
     # subMMR_MCR(concept_graph, query, method="mcr", type_sim="text")
-    subQFR_UPR(ConstantValues.PATH, query, method="qfr", type_sim="text")
+    subQFR_UPR(ConstantValues.ACL, query, method="qfr", type_sim="text")
 
 if __name__ == '__main__':
 

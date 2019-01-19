@@ -135,12 +135,29 @@ class RelevantDocuments:
         self.bagofwords = corpora.MmCorpus(path_model+ConstantValues.CORPUS)
         self.tf_idf = models.TfidfModel(self.bagofwords)  # step 1 -- initialize a model
         #calculate document similarity
-        # corpus_tfidf = self.tf_idf[corpus]
+        corpus_tfidf = self.tf_idf[self.bagofwords]
         # index = similarities.MatrixSimilarity.load(path_model+ConstantValues.TFIDF_INDEX)
         # self.docsims = index[corpus_tfidf]
-        self.sims = similarities.Similarity(path_model, self.tf_idf[self.bagofwords], num_features=len(self.dictionary))
+        self.sims = similarities.Similarity(path_model, corpus_tfidf, num_features=len(self.dictionary))
         # index = similarities.MatrixSimilarity.load(path_model+ConstantValues.TFIDF_INDEX)
-        # self.docsims = index[self.tf_idf[self.bagofwords]]
+        # self.docsims = index[self.tf_idf[self.bagofwords]]tfidf = models.TfidfModel(raw_corpus)  # step 1 -- initialize a model
+
+        #STEP 3 : Create similarity matrix of all files
+        index = similarities.MatrixSimilarity(corpus_tfidf)
+        # index.save(path_model+ConstantValues.TFIDF_INDEX)
+        #index = similarities.MatrixSimilarity.load('/tmp/tfidf.index')
+        #self.sims = index[corpus_tfidf]
+        docsims = index[corpus_tfidf].tolist()
+
+        # print(type(docsims))
+        jsonDocSims = {
+            'id': self.id_documents,
+            'docsims': docsims
+        }
+        # print(jsonDocSims)
+        with open(ConstantValues.DOCSIMS, 'w', encoding='utf-8') as fout:
+            json.dump(jsonDocSims, fout)
+        fout.close()
 
     def findRankedTfIdf(self, query):
         #We will use NLTK to tokenize.

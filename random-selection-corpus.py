@@ -14,7 +14,5 @@ class RandomSelection:
                 if random.randrange(6)==0:
                     shutil.move(path+"/"+name, path+"/acl-part/"+name)
 
-
-
 RandomSelection()
 

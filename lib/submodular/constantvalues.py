@@ -24,7 +24,7 @@ class ConstantValues:
 
     #data path
     SAMPLE="sample/"
-    ACL = "data/acl"
+    ACL = "data/acl/acl-part/"
 
     #save model
     DICTIONARY = "acl.dict"

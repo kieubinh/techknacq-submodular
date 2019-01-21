@@ -218,7 +218,9 @@ class RelevantDocuments:
 
         for section in doc.sections:
             if 'heading' in section:
-                heading = section['heading'].lower()
+                heading = section['heading']
+                if (heading!=None):
+                    heading = heading.lower()
                 texts = section['text']
                 if (heading == "abstract"):
                     for sentence in texts:

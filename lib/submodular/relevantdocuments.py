@@ -47,23 +47,23 @@ class RelevantDocuments:
         #dictionary = corpora.Dictionary.load('tmp/acl.dict')
         #corpus = corpora.MmCorpus('tmp/acl.mm')
         #Transform text with tf-idf
-        tfidf = models.TfidfModel(raw_corpus)  # step 1 -- initialize a model
-        corpus_tfidf = tfidf[raw_corpus]
-        #STEP 3 : Create similarity matrix of all files
-        index = similarities.MatrixSimilarity(corpus_tfidf)
-        index.save(path_model+ConstantValues.TFIDF_INDEX)
-        #index = similarities.MatrixSimilarity.load('/tmp/tfidf.index')
-        #self.sims = index[corpus_tfidf]
-        docsims = index[corpus_tfidf].tolist()
-        #print(type(docsims))
-        jsonDocSims = {
-            'id':id_documents,
-            'docsims':docsims
-        }
-        #print(jsonDocSims)
-        with open(ConstantValues.DOCSIMS, 'w', encoding='utf-8') as fout:
-            json.dump(jsonDocSims, fout)
-        fout.close()
+        # tfidf = models.TfidfModel(raw_corpus)  # step 1 -- initialize a model
+        # corpus_tfidf = tfidf[raw_corpus]
+        # #STEP 3 : Create similarity matrix of all files
+        # index = similarities.MatrixSimilarity(corpus_tfidf)
+        # index.save(path_model+ConstantValues.TFIDF_INDEX)
+        # #index = similarities.MatrixSimilarity.load('/tmp/tfidf.index')
+        # #self.sims = index[corpus_tfidf]
+        # docsims = index[corpus_tfidf].tolist()
+        # #print(type(docsims))
+        # jsonDocSims = {
+        #     'id':id_documents,
+        #     'docsims':docsims
+        # }
+        # #print(jsonDocSims)
+        # with open(ConstantValues.DOCSIMS, 'w', encoding='utf-8') as fout:
+        #     json.dump(jsonDocSims, fout)
+        # fout.close()
 
         print("Done in %.3fs" % (time() - t0))
 

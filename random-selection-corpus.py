@@ -9,10 +9,12 @@ import os
 class RandomSelection:
     def __init__(self, path="data/acl"):
         for root, dirs, files in os.walk(path, topdown=False):
+            print(root)
             for name in files:
+                # print(name)
                 #get random 1/5
                 if random.randrange(6)==0:
-                    shutil.move(path+"/"+name, path+"/acl-part/"+name)
+                   shutil.move(path+"/"+name, path+"/../acl-part/"+name)
 
 RandomSelection()
 

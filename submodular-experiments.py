@@ -3,8 +3,14 @@
 import json
 from lib.submodular.submodular import Submodular
 from lib.submodular.constantvalues import ConstantValues
+lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
 
-
+def printResult(resultList):
+    print("The number of selected list is "+str(len(resultList)))
+    for doc in resultList:
+        jsonDoc = json.loads(doc)
+        print("id: "+jsonDoc['id']+" - title: "+jsonDoc['title'])
+    
 #run experiments for MMR function and MCR function
 from lib.techknacq.conceptgraph import ConceptGraph
 from lib.techknacq.readinglist import ReadingList
@@ -31,56 +37,11 @@ def subMMR_MCR(concept_graph, query, method="mmr",type_sim = "title"):
     #Lambda = 0 -> no penalty
     submodular = Submodular()
     submodular.loadFromList(rl)
-    print("Lambda = 0 -> No penalty")
-    Lambda = 0.0
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-
-    #Lambda = 0.5 -> less penalty
-    print("Lambda = 0.1")
-    Lambda = 0.1
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-    #Lambda = 1.0 -> same degree penalty
-    print("Lambda = 0.3")
-    Lambda = 0.3
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-    #Lambda = 2.0 -> double degree penalty
-    print("Lambda = 0.6")
-    Lambda = 0.6
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-    #Lambda = 3.0 -> as paper
-    print("Lambda = 1.0")
-    Lambda = 1.0
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-
-    # Lambda = 2.0 -> as paper
-    print("Lambda = 2.0")
-    Lambda = 2.0
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-
+    #run with each lambda
+    for Lambda in lambda_test:
+        print("Lambda = "+str(Lambda))
+        summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
+        printResult(summarizedlist)
 
 #run experiments for QFR method and UPR method
 from lib.submodular.relevantdocuments import RelevantDocuments
@@ -88,6 +49,7 @@ def subQFR_UPR(path, query, method="qfr", type_sim="title"):
 
     #calculate similarity score between documents and query.
     relevantDocs = RelevantDocuments()
+    relevantDocs.scroreTfIdfModel(path_raw=path)
     #relevantDocs.loadFromPath(path)
     #generate tf idf model
     relevantDocs.trainTfIdfModel(path, "acl/")
@@ -106,56 +68,11 @@ def subQFR_UPR(path, query, method="qfr", type_sim="title"):
     submodular = Submodular()
     submodular.loadFromCorpus(relevantDocs)
     alg = ConstantValues.LAZY_GREEDY_ALG
-    print("Lambda = 0 -> No penalty")
-    Lambda = 0.0
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-
-    # Lambda = 0.5 -> less penalty
-    print("Lambda = 0.1")
-    Lambda = 0.1
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-    # Lambda = 1.0 -> same degree penalty
-    print("Lambda = 0.3")
-    Lambda = 0.3
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-    # Lambda = 2.0 -> double degree penalty
-    print("Lambda = 0.6")
-    Lambda = 0.6
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-    # Lambda = 3.0 -> as paper
-    print("Lambda = 1.0")
-    Lambda = 1.0
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-
-    # Lambda = 2.0 -> as paper
-    print("Lambda = 2.0")
-    Lambda = 2.0
-    summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-    print(len(summarizedlist))
-    for doc in summarizedlist:
-        jsondoc = json.loads(doc)
-        print(jsondoc['id'])
-
+    # run with each lambda
+    for Lambda in lambda_test:
+        print("Lambda = " + str(Lambda))
+        summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
+        printResult(summarizedlist)
 
 #import os
 #def main(concept_graph=os.getcwd()+"/concept-graph-standard.json", query="statistical parsing"):
@@ -167,7 +84,7 @@ import click
 def main(concept_graph="concept-graph-standard.json", query="statistical parsing"):
     print(concept_graph)
     # subMMR_MCR(concept_graph, query, method="mcr", type_sim="text")
-    subQFR_UPR(ConstantValues.ACL, query, method="qfr", type_sim="text")
+    subQFR_UPR(ConstantValues.SAMPLE, query, method="qfr", type_sim="text")
 
 if __name__ == '__main__':
 

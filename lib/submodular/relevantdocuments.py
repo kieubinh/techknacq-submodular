@@ -5,6 +5,7 @@ from lib.submodular.constantvalues import ConstantValues
 from lib.techknacq.corpus import Corpus
 from nltk.tokenize import word_tokenize
 import json
+import numpy as np
 
 #We will use a library in Python called gensim.
 #import gensim
@@ -24,8 +25,43 @@ class RelevantDocuments:
     def loadFromList(self, readinglist):
         for doc in readinglist:
             #print(doc)
-            jsondoc = self.dict2Json(doc)
+            jsondoc = self.dict2Json(doc, abstract=True)
             self.relevantlist.append(jsondoc)
+
+    def scroreTfIdfModel(self, path_raw=ConstantValues.ACL, path_score=ConstantValues.ACL_SCORES):
+        from time import time
+        t0=time()
+        corpus = Corpus(path=path_raw)
+        id_documents, raw_documents = corpus.getRawDocs()
+        gen_docs = [[w.lower() for w in word_tokenize(text)]
+                    for text in raw_documents]
+        dictionary = corpora.Dictionary(gen_docs)
+        raw_corpus = [dictionary.doc2bow(gen_doc) for gen_doc in gen_docs]
+        tfidf = models.TfidfModel(raw_corpus)  # step 1 -- initialize a model
+        corpus_tfidf = tfidf[raw_corpus]
+
+        index = similarities.MatrixSimilarity(corpus_tfidf)
+        docsims = index[corpus_tfidf]
+        for i in range(len(id_documents)):
+            doci=corpus.docs.get(id_documents[i])
+            #json: "scores":{
+            # "ACL-xxx":0.53,"ACL-xx2":0.43,...
+            # }
+            #
+            dict_scores={}
+            for j in range(len(id_documents)):
+                namej=id_documents[j]
+                dict_scores[namej]=docsims[i][j]
+            # print(type(doci))
+            #doci['scores']=dict_scores
+            # jsondoci = self.dict2Json(doci, abstract=False)
+            def myconverter(o):
+                if isinstance(o, np.float32):
+                    return float(o)
+            with open(path_score+id_documents[i]+".json", 'w', encoding='utf-8') as fout:
+                json.dump(self.scores2Json(doci, scores=dict_scores), fout, default=myconverter)
+            fout.close()
+
 
     def trainTfIdfModel(self, path_raw=None, path_model="tmp/"):
         from time import time
@@ -47,23 +83,23 @@ class RelevantDocuments:
         #dictionary = corpora.Dictionary.load('tmp/acl.dict')
         #corpus = corpora.MmCorpus('tmp/acl.mm')
         #Transform text with tf-idf
-        # tfidf = models.TfidfModel(raw_corpus)  # step 1 -- initialize a model
-        # corpus_tfidf = tfidf[raw_corpus]
-        # #STEP 3 : Create similarity matrix of all files
-        # index = similarities.MatrixSimilarity(corpus_tfidf)
-        # index.save(path_model+ConstantValues.TFIDF_INDEX)
-        # #index = similarities.MatrixSimilarity.load('/tmp/tfidf.index')
-        # #self.sims = index[corpus_tfidf]
-        # docsims = index[corpus_tfidf].tolist()
-        # #print(type(docsims))
-        # jsonDocSims = {
-        #     'id':id_documents,
-        #     'docsims':docsims
-        # }
-        # #print(jsonDocSims)
-        # with open(ConstantValues.DOCSIMS, 'w', encoding='utf-8') as fout:
-        #     json.dump(jsonDocSims, fout)
-        # fout.close()
+        tfidf = models.TfidfModel(raw_corpus)  # step 1 -- initialize a model
+        corpus_tfidf = tfidf[raw_corpus]
+        #STEP 3 : Create similarity matrix of all files
+        index = similarities.MatrixSimilarity(corpus_tfidf)
+        index.save(path_model+ConstantValues.TFIDF_INDEX)
+        #index = similarities.MatrixSimilarity.load('/tmp/tfidf.index')
+        #self.sims = index[corpus_tfidf]
+        docsims = index[corpus_tfidf].tolist()
+        #print(type(docsims))
+        jsonDocSims = {
+            'id':id_documents,
+            'docsims':docsims
+        }
+        #print(jsonDocSims)
+        with open(ConstantValues.DOCSIMS, 'w', encoding='utf-8') as fout:
+            json.dump(jsonDocSims, fout)
+        fout.close()
 
         print("Done in %.3fs" % (time() - t0))
 
@@ -142,22 +178,22 @@ class RelevantDocuments:
         # index = similarities.MatrixSimilarity.load(path_model+ConstantValues.TFIDF_INDEX)
         # self.docsims = index[self.tf_idf[self.bagofwords]]tfidf = models.TfidfModel(raw_corpus)  # step 1 -- initialize a model
 
-        #STEP 3 : Create similarity matrix of all files
-        index = similarities.MatrixSimilarity(corpus_tfidf)
-        # index.save(path_model+ConstantValues.TFIDF_INDEX)
-        #index = similarities.MatrixSimilarity.load('/tmp/tfidf.index')
-        #self.sims = index[corpus_tfidf]
-        docsims = index[corpus_tfidf].tolist()
-
-        # print(type(docsims))
-        jsonDocSims = {
-            'id': self.id_documents,
-            'docsims': docsims
-        }
-        # print(jsonDocSims)
-        with open(ConstantValues.DOCSIMS, 'w', encoding='utf-8') as fout:
-            json.dump(jsonDocSims, fout)
-        fout.close()
+        # #STEP 3 : Create similarity matrix of all files
+        # index = similarities.MatrixSimilarity(corpus_tfidf)
+        # # index.save(path_model+ConstantValues.TFIDF_INDEX)
+        # #index = similarities.MatrixSimilarity.load('/tmp/tfidf.index')
+        # #self.sims = index[corpus_tfidf]
+        # docsims = index[corpus_tfidf].tolist()
+        #
+        # # print(type(docsims))
+        # jsonDocSims = {
+        #     'id': self.id_documents,
+        #     'docsims': docsims
+        # }
+        # # print(jsonDocSims)
+        # with open(ConstantValues.DOCSIMS, 'w', encoding='utf-8') as fout:
+        #     json.dump(jsonDocSims, fout)
+        # fout.close()
 
     def findRankedTfIdf(self, query):
         #We will use NLTK to tokenize.
@@ -187,15 +223,30 @@ class RelevantDocuments:
             #print(releventDoc)
             self.relevantlist.append(releventDoc)
 
-    def dict2Json(self, doc):
+    def dict2Json(self, doc, abstract=False):
         """Return a JSON string representing the document."""
-        abstract=""
-        for sentence in doc['abstract']:
-            abstract+=sentence
-        doc['abstract']=abstract
+        if (abstract):
+            str_abstract=""
+            for sentence in doc['abstract']:
+                str_abstract+=sentence
+            doc['abstract']=str_abstract
         return json.dumps(doc, indent=2, sort_keys=True, ensure_ascii=False)
 
-    def convert2Json(self, doc, query_score=0.0):
+    def scores2Json(self, doc, scores=None):
+        # ACL corpus
+        return {
+            'id': doc.id,
+            'authors': doc.authors,
+            'title': doc.title,
+            'year': doc.year,
+            'book': doc.book,
+            'url': doc.url,
+            'references': sorted(list(doc.references)),
+            'scores':scores
+        }
+
+
+    def convert2Json(self, doc, query_score=None, scores=None):
         """Return a JSON string representing the document."""
 
         #ACL corpus
@@ -206,7 +257,7 @@ class RelevantDocuments:
             'year': doc.year,
             'book': doc.book,
             'url': doc.url,
-            'references': sorted(list(doc.references))
+            'references': sorted(list(doc.references)),
         }
 
         # if abstract:

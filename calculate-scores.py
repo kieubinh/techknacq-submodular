@@ -4,7 +4,7 @@ from lib.submodular.relevantdocuments import RelevantDocuments
 
 def main():
     relevantDocs = RelevantDocuments()
-    relevantDocs.scroreTfIdfModel(path_raw=ConstantValues.ACL_PART, path_score=ConstantValues.ACL_SCORES)
+    relevantDocs.scroreTfIdfModel(path_raw=ConstantValues.ACL, path_score=ConstantValues.ACL_SCORES)
 
 if __name__ == '__main__':
 

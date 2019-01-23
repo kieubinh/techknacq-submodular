@@ -49,11 +49,11 @@ def subQFR_UPR(path, query, method="qfr", type_sim="title"):
 
     #calculate similarity score between documents and query.
     relevantDocs = RelevantDocuments()
-    relevantDocs.scroreTfIdfModel(path_raw=path)
-    #relevantDocs.loadFromPath(path)
+    # relevantDocs.scroreTfIdfModel(path_raw=path)
+    relevantDocs.loadFromPath(path)
     #generate tf idf model
-    relevantDocs.trainTfIdfModel(path, "acl/")
-    relevantDocs.loadFromTfIdfModel(path, "acl/")
+    # relevantDocs.trainTfIdfModel(path, "acl/")
+    # relevantDocs.loadFromTfIdfModel(path, "acl/")
 
     relevantDocs.findRankedTfIdf(query)
 
@@ -84,7 +84,7 @@ import click
 def main(concept_graph="concept-graph-standard.json", query="statistical parsing"):
     print(concept_graph)
     # subMMR_MCR(concept_graph, query, method="mcr", type_sim="text")
-    subQFR_UPR(ConstantValues.SAMPLE, query, method="qfr", type_sim="text")
+    subQFR_UPR(ConstantValues.ACL_SCORES, query, method="qfr", type_sim="text")
 
 if __name__ == '__main__':
 

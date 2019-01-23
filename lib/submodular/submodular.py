@@ -35,12 +35,12 @@ class Submodular:
 
     def getSubmodular(self, alg=ConstantValues.LAZY_GREEDY_ALG, Lambda=1.0, method="mmr", type_sim = "title"):
         #load score
-        if (type_sim=="text"):
-            with open(ConstantValues.DOCSIMS, 'r', encoding="utf-8") as fin:
-                jsonDocSims = json.loads(fin.read())
-                self.id_docs=jsonDocSims['id']
-                self.docsims = jsonDocSims['docsims']
-                print(len(self.id_docs))
+        # if (type_sim=="text"):
+        #     with open(ConstantValues.DOCSIMS, 'r', encoding="utf-8") as fin:
+        #         jsonDocSims = json.loads(fin.read())
+        #         self.id_docs=jsonDocSims['id']
+        #         self.docsims = jsonDocSims['docsims']
+        #         print(len(self.id_docs))
         if alg==ConstantValues.LAZY_GREEDY_ALG:
             return self.lazyGreedyAlg(self.docs, Lambda, method, type_sim)
         else:
@@ -114,19 +114,19 @@ class Submodular:
         if (type_sim=="text"):
             for doc1 in s:
                 jsondoc1 = json.loads(doc1)
+                # print(jsondoc1)
                 #not consider wiki
-                if 'wiki' in jsondoc1['id']:
+                if 'wiki' in jsondoc1['info']['id']:
                     continue
-                indexDoc1 = self.id_docs.index(jsondoc1['id'])
                 for doc2 in v:
                     if (doc2 not in s):
                         jsondoc2 = json.loads(doc2)
                         # not consider wiki
-                        if 'wiki' in jsondoc2['id']:
+                        if 'wiki' in jsondoc2['info']['id']:
                             continue
-                        indexDoc2 = self.id_docs.index(jsondoc2['id'])
+                        indexDoc2 = jsondoc2['info']['id']
                         # print("doc1: "+str(indexDoc1)+" - doc2: "+str(indexDoc2))
-                        fcover+=self.docsims[indexDoc1][indexDoc2]
+                        fcover+=jsondoc1['scores'][indexDoc2]
             return fcover
 
         for doc1 in s:
@@ -151,16 +151,16 @@ class Submodular:
         if (type_sim=="text"):
             for doc1 in s:
                 jsondoc1 = json.loads(doc1)
-                if 'wiki' in jsondoc1['id']:
+                if 'wiki' in jsondoc1['info']['id']:
                     continue
-                indexDoc1 = self.id_docs.index(jsondoc1['id'])
+                # indexDoc1 = self.id_docs.index(jsondoc1['id'])
                 for doc2 in s:
                     if (doc1 != doc2):
                         jsondoc2 = json.loads(doc2)
-                        if 'wiki' in jsondoc2['id']:
+                        if 'wiki' in jsondoc2['info']['id']:
                             continue
-                        indexDoc2 = self.id_docs.index(jsondoc2['id'])
-                        fpenalty+=self.docsims[indexDoc1][indexDoc2]
+                        indexDoc2 = jsondoc2['info']['id']
+                        fpenalty+=jsondoc1['scores'][indexDoc2]
             return fpenalty
 
         for doc1 in s:

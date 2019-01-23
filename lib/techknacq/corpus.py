@@ -215,6 +215,10 @@ class Document:
         self.sections = j.get('sections', [])
         self.roles = {}
         self.corpus = None
+        #kieubinh add some features
+        self.abstract = self.get_abstract()
+        if 'scores' in j:
+            self.scores = j.get('scores')
 
         if fname and form == 'text':
             st = SentTokenizer()

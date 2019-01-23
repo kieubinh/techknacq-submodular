@@ -11,6 +11,7 @@ import numpy as np
 #import gensim
 #print(dir(gensim))
 from gensim import corpora, models, similarities
+from operator import itemgetter
 
 class RelevantDocuments:
 
@@ -114,14 +115,15 @@ class RelevantDocuments:
         #read corpus and calculate tf-idf
         corpus = Corpus(path=path)
         self.docs = corpus.docs
+        # print(self.docs['acl-P10-2049'].title)
         self.id_documents, self.raw_documents = corpus.getRawDocs()
 
-        print(self.id_documents)
+        # print(self.id_documents)
         print("Number of documents:", self.docs.__len__())
 
         gen_docs = [[w.lower() for w in word_tokenize(text)]
                     for text in self.raw_documents]
-        print(len(gen_docs))
+        # print(len(gen_docs))
 
         # #fix for docs
         # gen_docs = [[w.lower() for w in word_tokenize(doc.text())]
@@ -234,52 +236,54 @@ class RelevantDocuments:
 
     def scores2Json(self, doc, scores=None):
         # ACL corpus
+        # abstract=""
+        # # print(doc.sections[0])
+        # for section in doc.sections:
+        #
+        #     if 'heading' in section:
+        #         heading = section['heading']
+        #         if (heading!=None):
+        #             heading = heading.lower()
+        #             texts = section['text']
+        #             if "abstract" in heading:
+        #                 for sentence in texts:
+        #                     abstract += sentence
+        #
+        #                 break
+        # # print(abstract)
         return {
-            'id': doc.id,
-            'authors': doc.authors,
-            'title': doc.title,
-            'year': doc.year,
-            'book': doc.book,
-            'url': doc.url,
+            'info':{
+                'id': doc.id,
+                'authors': doc.authors,
+                'title': doc.title,
+                'year': doc.year,
+                'book': doc.book,
+                'url': doc.url
+            },
             'references': sorted(list(doc.references)),
+            'sections':doc.sections,
             'scores':scores
         }
 
-
     def convert2Json(self, doc, query_score=None, scores=None):
         """Return a JSON string representing the document."""
-
         #ACL corpus
         cvdoc = {
-            'id': doc.id,
-            'authors': doc.authors,
-            'title': doc.title,
-            'year': doc.year,
-            'book': doc.book,
-            'url': doc.url,
+            'info':{
+                'id': doc.id,
+                'authors': doc.authors,
+                'title': doc.title,
+                'year': doc.year,
+                'book': doc.book,
+                'url': doc.url
+            },
+            'abstract':doc.abstract,
             'references': sorted(list(doc.references)),
+            'sections':doc.sections,
+            'scores':doc.scores
         }
 
-        # if abstract:
-        #     doc['sections'] = [self.sections[0]]
-        # else:
-        #     doc['sections'] = self.sections
-        cvdoc['sections'] = doc.sections
-        abstract = ""
 
-        for section in doc.sections:
-            if 'heading' in section:
-                heading = section['heading']
-                if (heading!=None):
-                    heading = heading.lower()
-                texts = section['text']
-                if (heading == "abstract"):
-                    for sentence in texts:
-                        abstract += sentence
-
-                    break
-        # print(abstract)
-        cvdoc['abstract'] = abstract
         if query_score != None:
             cvdoc['query_score'] = str(query_score)
 

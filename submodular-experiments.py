@@ -9,7 +9,7 @@ def printResult(resultList):
     print("The number of selected list is "+str(len(resultList)))
     for doc in resultList:
         jsonDoc = json.loads(doc)
-        print("id: "+jsonDoc['id']+" - title: "+jsonDoc['title'])
+        print("id: "+jsonDoc['info']['id']+" - title: "+jsonDoc['info']['title'])
     
 #run experiments for MMR function and MCR function
 from lib.techknacq.conceptgraph import ConceptGraph

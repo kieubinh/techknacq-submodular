@@ -455,7 +455,10 @@ class Document:
 
     def get_abstract(self):
         """Return the (probable) abstract for the document."""
-
+        #fix json has not heading
+        if self.sections==None or len(self.sections)==0:
+            return ""
+        
         if self.sections[0].get('heading', '') == 'Abstract':
             return self.sections[0]['text'][:10]
         if len(self.sections) > 1 and \

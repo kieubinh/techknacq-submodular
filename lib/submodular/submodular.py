@@ -126,7 +126,8 @@ class Submodular:
                             continue
                         indexDoc2 = jsondoc2['info']['id']
                         # print("doc1: "+str(indexDoc1)+" - doc2: "+str(indexDoc2))
-                        fcover+=jsondoc1['scores'][indexDoc2]
+                        if indexDoc2 in jsondoc2['scores']:
+                            fcover+=jsondoc1['scores'][indexDoc2]
             return fcover
 
         for doc1 in s:
@@ -160,7 +161,8 @@ class Submodular:
                         if 'wiki' in jsondoc2['info']['id']:
                             continue
                         indexDoc2 = jsondoc2['info']['id']
-                        fpenalty+=jsondoc1['scores'][indexDoc2]
+                        if indexDoc2 in jsondoc2['scores']:
+                            fpenalty+=jsondoc1['scores'][indexDoc2]
             return fpenalty
 
         for doc1 in s:

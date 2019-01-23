@@ -219,7 +219,7 @@ class RelevantDocuments:
             scores[self.id_documents[i]]=self.sims[query_doc_tf_idf][i]
 
         rankedTuple = sorted(scores.items(), key=lambda x: x[1], reverse = True)
-        print(rankedTuple)
+        # print(rankedTuple)
         for id, score in rankedTuple:
             releventDoc = self.convert2Json(self.docs.get(id), query_score=score)
             #print(releventDoc)

@@ -217,8 +217,7 @@ class Document:
         self.corpus = None
         #kieubinh add some features
         self.abstract = self.get_abstract()
-        if 'scores' in j:
-            self.scores = j.get('scores')
+        self.scores=j.get('scores',{})
 
         if fname and form == 'text':
             st = SentTokenizer()

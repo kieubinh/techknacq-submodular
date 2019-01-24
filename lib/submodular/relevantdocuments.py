@@ -283,7 +283,7 @@ class RelevantDocuments:
             'scores':scores
         }
 
-    def convert2Json(self, doc, query_score=None, scores=None):
+    def convert2Json(self, doc, query_score=None):
         """Return a JSON string representing the document."""
         #ACL corpus
         cvdoc = {
@@ -300,8 +300,9 @@ class RelevantDocuments:
             'sections':doc.sections,
             'scores':doc.scores
         }
+
         if query_score != None:
-            cvdoc['query_score'] = str(query_score)
+            cvdoc['query_score'] = float(query_score)
 
         return json.dumps(cvdoc, indent=2, sort_keys=True, ensure_ascii=False)
 

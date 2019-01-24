@@ -92,9 +92,9 @@ class ConceptGraph:
 
         return edges
 
-    #return at least 25 most relevant docs and at most 200 most relevant docs with relevant weights > 0.6
+    #return at least 25 most relevant docs and at most 200 most relevant docs with relevant weights > 0.6 -> 0.5
     #return all
-    def topic_docs(self, topic_id, min_docs=25, max_docs=200, threshold=0.6):
+    def topic_docs(self, topic_id, min_docs=25, max_docs=200, threshold=0.5, source='all'):
         """Return a sorted list of (document_id, weight) pairs for the
         documents that are most relevant to the specified topic_id,
         including the top `min_docs` most relevant, and all others above
@@ -103,13 +103,16 @@ class ConceptGraph:
         edges = []
         for (_, doc, weight) in sorted(self.g.edges([topic_id], data='weight'),
                                        key=lambda x: x[2], reverse=True):
-            if self.g.node[doc].get('type', '') == 'document':
-                if len(edges) < min_docs:
-                    edges.append((doc, weight))
-                elif weight >= threshold:
-                    edges.append((doc, weight))
-                if len(edges) >= max_docs:
-                    break
+            # print(doc)
+            #doc = id
+            if (source=='all' or source in doc):
+                if self.g.node[doc].get('type', '') == 'document':
+                    if len(edges) < min_docs:
+                        edges.append((doc, weight))
+                    elif weight >= threshold:
+                        edges.append((doc, weight))
+                    if len(edges) >= max_docs:
+                        break
         return edges
 
 

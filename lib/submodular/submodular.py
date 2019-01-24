@@ -135,7 +135,7 @@ class Submodular:
                 if (doc2 not in s):
                     jsondoc1 = json.loads(doc1)
                     jsondoc2 = json.loads(doc2)
-                    fcover+= SimilarityScores(jsondoc1[type_sim], jsondoc2[type_sim]).getScore()
+                    fcover+= SimilarityScores(jsondoc1['info'][type_sim], jsondoc2['info'][type_sim]).getScore()
         return fcover
 
     # add query relevance
@@ -170,7 +170,7 @@ class Submodular:
                 if (doc1 != doc2):
                     jsondoc1 = json.loads(doc1)
                     jsondoc2 = json.loads(doc2)
-                    fpenalty += SimilarityScores(jsondoc1[type_sim], jsondoc2[type_sim]).getScore()
+                    fpenalty += SimilarityScores(jsondoc1['info'][type_sim], jsondoc2['info'][type_sim]).getScore()
 
         return fpenalty
 

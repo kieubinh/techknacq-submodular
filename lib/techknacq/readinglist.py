@@ -10,7 +10,7 @@ from nltk.stem.lancaster import LancasterStemmer
 
 # Parameters
 
-THRESHOLD = .5
+THRESHOLD = .005
 MAX_MATCHES = 6
 MAX_DEPTH = 4
 BASE_DOC_NUM = 8
@@ -101,10 +101,10 @@ class ReadingList:
             roles = DEFAULT_DOC_PREFS
 
         # 1. Find the most relevant documents for the topic.
+        #kieubinh change, only select acl source
+        docs = self.cg.topic_docs(c,source='acl')
 
-        docs = self.cg.topic_docs(c)
-
-        #print("most relevant documents for the topic "+c+" -> size of docs "+str(len(docs)))
+        # print("most relevant documents for the topic "+c+" -> size of docs "+str(len(docs)))
 
         # 2. Stable sort documents by pedagogical role preference:
         #    ped_score = 1.0 * role1 + 0.85 * role2 + 0.7 * role3 +

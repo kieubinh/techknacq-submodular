@@ -26,7 +26,7 @@ class RelevantDocuments:
     def loadFromList(self, readinglist):
         for doc in readinglist:
             #print(doc)
-            jsondoc = self.dict2Json(doc, abstract=True)
+            jsondoc = self.readinglist2Json(doc, abstract=True)
             self.relevantlist.append(jsondoc)
 
     def scroreTfIdfModel(self, path_raw=ConstantValues.ACL, path_score=ConstantValues.ACL_SCORES):
@@ -225,14 +225,31 @@ class RelevantDocuments:
             #print(releventDoc)
             self.relevantlist.append(releventDoc)
 
-    def dict2Json(self, doc, abstract=False):
+    def readinglist2Json(self, doc, abstract=False):
         """Return a JSON string representing the document."""
         if (abstract):
             str_abstract=""
-            for sentence in doc['abstract']:
+            para = doc.get('abstract',[])
+            for sentence in para:
                 str_abstract+=sentence
             doc['abstract']=str_abstract
-        return json.dumps(doc, indent=2, sort_keys=True, ensure_ascii=False)
+        cvdoc= {
+            'info':{
+                'id': doc.get('id',''),
+                'authors': doc.get('authors',[]),
+                'title': doc.get('title',''),
+                'year': doc.get('year',''),
+                'book': doc.get('book',''),
+                'url': doc.get('url',''),
+                'abstract': doc.get('abstract', ''),
+            },
+            'references': doc.get('references',[]),
+            'score':doc.get('score',0.0)
+            # 'sections':doc.sections,
+            # 'scores':scores
+        }
+
+        return json.dumps(cvdoc, indent=2, sort_keys=True, ensure_ascii=False)
 
     def scores2Json(self, doc, scores=None):
         # ACL corpus
@@ -258,7 +275,8 @@ class RelevantDocuments:
                 'title': doc.title,
                 'year': doc.year,
                 'book': doc.book,
-                'url': doc.url
+                'url': doc.url,
+                'abstract':doc.abstract
             },
             'references': sorted(list(doc.references)),
             'sections':doc.sections,
@@ -275,15 +293,13 @@ class RelevantDocuments:
                 'title': doc.title,
                 'year': doc.year,
                 'book': doc.book,
-                'url': doc.url
+                'url': doc.url,
+                'abstract': doc.abstract,
             },
-            'abstract':doc.abstract,
             'references': sorted(list(doc.references)),
             'sections':doc.sections,
             'scores':doc.scores
         }
-
-
         if query_score != None:
             cvdoc['query_score'] = str(query_score)
 

@@ -17,10 +17,10 @@ Output: data/acl-part/*.json
 3. QFR - subQFR_UPR (method="qfr")
 4. UPR - subQFR_UPR (method="upr")
 Parameters:
-- path: with mmr and mrc -> concept-graph
-- method: 4 submodular functions
-- type-sim: type of information for calculating similarity score: "title", "abstract", "text"
-- Lambda: submodular = coverage - Lambda * redundancy
+  - path: with mmr and mrc -> concept-graph
+  - method: 4 submodular functions
+  - type-sim: type of information for calculating similarity score: "title", "abstract", "text"
+  - Lambda: submodular = coverage - Lambda * redundancy
 
 # To do
 - Improving the running time: parallel? other submodular algorithm?

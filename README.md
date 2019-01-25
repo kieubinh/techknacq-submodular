@@ -1,4 +1,7 @@
-# TechKnAcq-Submodular Tool (originated from TechKnAcq toolkit: https://github.com/ISI-TechKnAcq/techknacq-tk) supports novice researchers finding out a concept more quickly by recommending a reading list based on relevent concepts, diversity and redudancy of documents.
+# TechKnAcq-Submodular Tool (originated from TechKnAcq toolkit: https://github.com/ISI-TechKnAcq/techknacq-tk) 
+
+# This tool supports novice researchers finding out a concept more quickly by recommending a reading list based on relevent concepts, diversity and redudancy of documents.
+
 # Done
 - calculate-scores.py: calculating similarity scores between documents and storing a tag "scores" in json files with document info (id, title, year, abstract...) and text info (sections).
 Input: data/acl/*.json

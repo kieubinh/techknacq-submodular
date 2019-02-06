@@ -104,7 +104,7 @@ class Submodular:
         fcover = 0.0
         for doc in s:
             jsondoc = json.loads(doc)
-            fcover += float(jsondoc['score'])
+            fcover += float(jsondoc.get('score',0.0))
         return fcover
 
     # add general relevance
@@ -122,12 +122,13 @@ class Submodular:
                     if (doc2 not in s):
                         jsondoc2 = json.loads(doc2)
                         # not consider wiki
-                        if 'wiki' in jsondoc2['info']['id']:
+                        indexDoc2 = jsondoc2['info'].get('id', '')
+                        if (indexDoc2 == '') or ('wiki' in indexDoc2):
                             continue
-                        indexDoc2 = jsondoc2['info']['id']
-                        # print("doc1: "+str(indexDoc1)+" - doc2: "+str(indexDoc2))
-                        if indexDoc2 in jsondoc2['scores']:
-                            fcover+=jsondoc1['scores'][indexDoc2]
+                        if 'scores' not in jsondoc2:
+                            continue
+                        # if indexDoc2 in jsondoc2['scores']:
+                        fcover += jsondoc1['scores'].get(indexDoc2, 0.0)
             return fcover
 
         for doc1 in s:
@@ -135,7 +136,9 @@ class Submodular:
                 if (doc2 not in s):
                     jsondoc1 = json.loads(doc1)
                     jsondoc2 = json.loads(doc2)
-                    fcover+= SimilarityScores(jsondoc1['info'][type_sim], jsondoc2['info'][type_sim]).getScore()
+                    if ('info' not in jsondoc1) or ('info' not in jsondoc2):
+                        continue
+                    fcover += SimilarityScores(jsondoc1['info'].get(type_sim,''), jsondoc2['info'].get(type_sim,'')).getScore()
         return fcover
 
     # add query relevance
@@ -143,7 +146,7 @@ class Submodular:
         fquery = 0.0
         for doc in s:
             jsondoc = json.loads(doc)
-            fquery+= float(jsondoc['query_score'])
+            fquery+= float(jsondoc.get('query_score',0.0))
         return fquery
 
     # subtract relevant selected elements
@@ -158,11 +161,13 @@ class Submodular:
                 for doc2 in s:
                     if (doc1 != doc2):
                         jsondoc2 = json.loads(doc2)
-                        if 'wiki' in jsondoc2['info']['id']:
+                        indexDoc2 = jsondoc2['info'].get('id','')
+                        if (indexDoc2=='') or ('wiki' in indexDoc2):
                             continue
-                        indexDoc2 = jsondoc2['info']['id']
-                        if indexDoc2 in jsondoc2['scores']:
-                            fpenalty+=jsondoc1['scores'][indexDoc2]
+                        if 'scores' not in jsondoc2:
+                            continue
+                        # if indexDoc2 in jsondoc2['scores']:
+                        fpenalty+=jsondoc1['scores'].get(indexDoc2,0.0)
             return fpenalty
 
         for doc1 in s:
@@ -170,7 +175,9 @@ class Submodular:
                 if (doc1 != doc2):
                     jsondoc1 = json.loads(doc1)
                     jsondoc2 = json.loads(doc2)
-                    fpenalty += SimilarityScores(jsondoc1['info'][type_sim], jsondoc2['info'][type_sim]).getScore()
+                    if ('info' not in jsondoc1) or ('info' not in jsondoc2):
+                        continue
+                    fpenalty += SimilarityScores(jsondoc1['info'].get(type_sim,''), jsondoc2['info'].get(type_sim,'')).getScore()
 
         return fpenalty
 

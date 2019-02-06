@@ -78,11 +78,11 @@ def subQFR_UPR(path, query, method="qfr", type_sim="title"):
 #import os
 #def main(concept_graph=os.getcwd()+"/concept-graph-standard.json", query="statistical parsing"):
 
-import click
-@click.command()
-@click.argument('path', type=click.Path(exists=True))
-@click.argument('query', nargs=-1)
-def main(path="concept-graph-standard.json", query="statistical parsing"):
+# import click
+# @click.command()
+# @click.argument('path', type=click.Path(exists=True))
+# @click.argument('query', nargs=-1)
+def main(path="data/acl-score-part/", query="Towards Robust Linguistic Analysis Using OntoNotes"):
     print(path)
     # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")
     subQFR_UPR(path, query, method="qfr", type_sim="text")

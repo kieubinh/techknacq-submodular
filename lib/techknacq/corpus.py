@@ -173,6 +173,18 @@ class Corpus:
                              'other': 0.0}
 
     #kieubinh add
+    #return papers with the number of references more than threshold=5
+    def getHighReference(self, threshold=5):
+        highRef={}
+        for id, doc in self.docs.items():
+            # print(id+"- "+str(doc.getReferences()))
+            if doc.getReferences()>=threshold:
+                highRef[id]=doc.getReferences()
+
+        import operator  # Importing operator module
+        return sorted(highRef.items(), key = operator.itemgetter(1),reverse = True)
+
+    #kieubinh add
     def getRawDocs(self):
         docs = []
         ids = []
@@ -225,6 +237,10 @@ class Document:
         elif fname and form == 'sd':
             self.read_sd(fname)
 
+    #kieubinh add
+    def getReferences(self):
+        print("len: "+str(len(self.references)))
+        return len(self.references)
 
     def read_bioc_json(self, j):
         """Read a document from a JSON-formatted BioC representation.

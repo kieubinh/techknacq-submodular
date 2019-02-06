@@ -1,5 +1,5 @@
 
-
+import click
 import json
 from lib.submodular.submodular import Submodular
 from lib.submodular.constantvalues import ConstantValues
@@ -46,12 +46,12 @@ def subMMR_MCR(concept_graph, query, method="mmr",type_sim = "title"):
 
 #run experiments for QFR method and UPR method
 from lib.submodular.relevantdocuments import RelevantDocuments
-def subQFR_UPR(path, query, method="qfr", type_sim="title"):
+def subQFR_UPR(path, query, method="qfr", type_sim="title", year=10000):
 
     #calculate similarity score between documents and query.
     relevantDocs = RelevantDocuments()
     # relevantDocs.scroreTfIdfModel(path_raw=path)
-    relevantDocs.loadFromPath(path)
+    relevantDocs.loadFromPath(path, year)
     #generate tf idf model
     # relevantDocs.trainTfIdfModel(path, "acl/")
     # relevantDocs.loadFromTfIdfModel(path, "acl/")
@@ -78,14 +78,14 @@ def subQFR_UPR(path, query, method="qfr", type_sim="title"):
 #import os
 #def main(concept_graph=os.getcwd()+"/concept-graph-standard.json", query="statistical parsing"):
 
-# import click
+
 # @click.command()
 # @click.argument('path', type=click.Path(exists=True))
 # @click.argument('query', nargs=-1)
-def main(path="data/acl-score-select/", query="Towards Robust Linguistic Analysis Using OntoNotes"):
+def main(path="data/acl-score-select/", query="Towards Robust Linguistic Analysis Using OntoNotes", year=2013):
     print(path)
     # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")
-    subQFR_UPR(path, query, method="qfr", type_sim="text")
+    subQFR_UPR(path, query, method="qfr", type_sim="text", year=year)
 
 if __name__ == '__main__':
 

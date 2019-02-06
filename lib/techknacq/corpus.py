@@ -20,7 +20,7 @@ from nltk import bigrams
 from lib.techknacq.lx import SentTokenizer, StopLexicon, find_short_long_pairs
 
 class Corpus:
-    def __init__(self, path=None, pool=None):
+    def __init__(self, path=None, pool=None, year=10000):
         self.docs = {}
 
         if path and os.path.isfile(path):
@@ -36,7 +36,9 @@ class Corpus:
 
             docnames = (str(f) for f in Path(path).iterdir() if f.is_file())
             for doc in pool.imap(Document, docnames):
-                if doc:
+                #kieubinh change
+                #only add doc.year <= year
+                if int(doc.year)<=year:
                     self.add(doc)
             print('Read %d documents.' % len(self.docs))
 

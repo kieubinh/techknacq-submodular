@@ -104,7 +104,7 @@ class RelevantDocuments:
 
         print("Done in %.3fs" % (time() - t0))
 
-    def loadFromPath(self, path=None):
+    def loadFromPath(self, path=None, year=10000):
         # Let's create some documents.
         # raw_documents = ["I'm taking the show on the road.",
         #                 "My socks are a force multiplier.",
@@ -113,7 +113,7 @@ class RelevantDocuments:
         #            "I make my own fun."]
 
         #read corpus and calculate tf-idf
-        corpus = Corpus(path=path)
+        corpus = Corpus(path=path, year=year)
         self.docs = corpus.docs
         # print(self.docs['acl-P10-2049'].title)
         self.id_documents, self.raw_documents = corpus.getRawDocs()

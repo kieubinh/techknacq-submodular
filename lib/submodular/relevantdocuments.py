@@ -23,6 +23,16 @@ class RelevantDocuments:
     def getRelevantDocs(self):
         return self.relevantlist
 
+    def getRelevantDocsByYear(self, year=10000):
+        relevantlist = []
+        for doc in self.relevantlist:
+            jsondoc = json.loads(doc)
+            # print(jsondoc)
+            # print(jsondoc['info'].get('year','0'))
+            if int(jsondoc['info'].get('year','0'))<=year:
+                relevantlist.append(doc)
+        return relevantlist
+
     def loadFromList(self, readinglist):
         for doc in readinglist:
             #print(doc)

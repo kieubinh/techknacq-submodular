@@ -3,8 +3,25 @@ import click
 import json
 from lib.submodular.submodular import Submodular
 from lib.submodular.constantvalues import ConstantValues
+from lib.submodular.retrievedinfo import RetrievedInformation
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
-lambda_test=[1.0, 5.0, 10.0]
+lambda_test=[0.5, 1.0, 2.0]
+
+def print2File(article, resultList, Lambda):
+    articleId = article['info']['id']
+    output=[]
+    for doc in resultList:
+        jsonDoc = json.loads(doc)
+        output.append(jsonDoc['info']['id'])
+    jsondoc = {
+        'info': {
+            'id': articleId
+        },
+        'output': output,
+    }
+    with open(articleId+"-"+str(Lambda)+"-output.json", 'w', encoding='utf-8') as fout:
+        json.dump(jsondoc, fout)
+    fout.close()
 
 def printResult(resultList):
     print("The number of selected list is "+str(len(resultList)))
@@ -75,6 +92,65 @@ def subQFR_UPR(path, query, method="qfr", type_sim="title", year=10000):
         summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
         printResult(summarizedlist)
 
+import os
+import io
+import sys
+
+def loadInput(corpusInputPath="sample-high/"):
+    corpusInput = []
+    for root, dirs, files in os.walk(corpusInputPath, topdown=False):
+        for nameFile in files:
+            if "json" in nameFile:
+                try:
+                    data = json.load(io.open(root + "/" + nameFile, 'r', encoding='utf-8'))
+                    corpusInput.append(data)
+                    # print(nameId)
+
+                except Exception as e:
+                    print('Error reading JSON document:', nameFile, file=sys.stderr)
+                    print(e, file=sys.stderr)
+                    sys.exit(1)
+    return corpusInput
+
+def recommendRefByQfr(corpusPath, corpusInputPath,type_sim="text"):
+    #load corpus
+    relevantDocs = RelevantDocuments()
+    relevantDocs.loadFromPath(corpusPath)
+
+    #load input
+    inputDocs = loadInput(corpusInputPath)
+    for article in inputDocs:
+
+        retrievedInfo = RetrievedInformation(article)
+        # retrievedInfo.loadInforFromTitle(article)
+        query = retrievedInfo.getQuery()
+        print(article['info']['id']+" : "+query)
+        year = int(article['info']['year'])
+
+        relevantDocs.findRankedTfIdf(query)
+
+        # scores = relevantDocs.getTopResults(10, "tfidf")
+        # print(scores)
+        #
+        # print(relevantDocs.getResultsByThreshold(0.01, "tfidf"))
+
+        # run algorithm for submodular
+        # before summarization
+        print("Before Submodular: ")
+        submodular = Submodular()
+        submodular.loadFromCorpusByYear(relevantDocs, year)
+
+        #get all for baseline
+        print2File(article, submodular.getDocs(), 1000)
+
+        #use submodular to select
+        alg = ConstantValues.LAZY_GREEDY_ALG
+        # run with each lambda
+        for Lambda in lambda_test:
+            print("Lambda = " + str(Lambda))
+            summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method="qfr", type_sim=type_sim)
+            print2File(article, summarizedlist, Lambda)
+
 #import os
 #def main(concept_graph=os.getcwd()+"/concept-graph-standard.json", query="statistical parsing"):
 
@@ -88,5 +164,6 @@ def main(path="data/acl-score-select/", query="Towards Robust Linguistic Analysi
     subQFR_UPR(path, query, method="qfr", type_sim="text", year=year)
 
 if __name__ == '__main__':
-
-    main()
+    recommendRefByQfr(corpusPath="data/acl-select/", corpusInputPath="sample-high/", type_sim="title")
+    # recommendRefByAll(corpusPath="data/acl-select/", corpusInputPath="sample-high/")
+    # main()

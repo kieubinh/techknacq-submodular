@@ -29,9 +29,16 @@ class Submodular:
         #print(readinglist)
         #self.Lambda = Lambda
 
-    def loadFromCorpus(self, relevantdocs):
-        self.docs = relevantdocs.getRelevantDocs()
+    def loadFromCorpus(self, relevantdocs, year):
+        self.docs = relevantdocs.getRelevantDocsByYear(year)
         #print(self.docs)
+
+    def loadFromCorpusByYear(self, relevantdocs, year):
+        self.docs = relevantdocs.getRelevantDocsByYear(year)
+        #print(self.docs)
+
+    def getDocs(self):
+        return self.docs
 
     def getSubmodular(self, alg=ConstantValues.LAZY_GREEDY_ALG, Lambda=1.0, method="mmr", type_sim = "title"):
         #load score

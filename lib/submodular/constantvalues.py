@@ -34,3 +34,7 @@ class ConstantValues:
     CORPUS = "acl.mm"
     TFIDF_INDEX = "tfidf.index"
     DOCSIMS = "docsims.json"
+
+    #evaluation
+    OUTPUT_KEY = "output"
+    ANSWER_KEY = "references"

@@ -164,6 +164,6 @@ def main(path="data/acl-score-select/", query="Towards Robust Linguistic Analysi
     subQFR_UPR(path, query, method="qfr", type_sim="text", year=year)
 
 if __name__ == '__main__':
-    recommendRefByQfr(corpusPath="data/acl-select/", corpusInputPath="sample-high/", type_sim="title")
+    recommendRefByQfr(corpusPath="data/acl/", corpusInputPath="sample-high/", type_sim="title")
     # recommendRefByAll(corpusPath="data/acl-select/", corpusInputPath="sample-high/")
     # main()

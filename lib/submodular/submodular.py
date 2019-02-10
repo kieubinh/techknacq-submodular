@@ -40,7 +40,7 @@ class Submodular:
     def getDocs(self):
         return self.docs
 
-    def getSubmodular(self, alg=ConstantValues.LAZY_GREEDY_ALG, Lambda=1.0, method="mmr", type_sim = "title"):
+    def getSubmodular(self, alg=ConstantValues.LAZY_GREEDY_ALG, Lambda=1.0, method="mmr", type_sim = "title", year=10000):
         #load score
         # if (type_sim=="text"):
         #     with open(ConstantValues.DOCSIMS, 'r', encoding="utf-8") as fin:
@@ -49,18 +49,23 @@ class Submodular:
         #         self.docsims = jsonDocSims['docsims']
         #         print(len(self.id_docs))
         if alg==ConstantValues.LAZY_GREEDY_ALG:
-            return self.lazyGreedyAlg(self.docs, Lambda, method, type_sim)
+            return self.lazyGreedyAlg(self.docs, Lambda, method, type_sim, year)
         else:
             return None #other alg
 
-    def lazyGreedyAlg(self, v, Lambda, method, type_sim):
+    def lazyGreedyAlg(self, v, Lambda, method, type_sim, year):
         #all elements
         #selected set
         g=[]
         #remaining set
         u=[]
+        # print(year)
         for doc in v:
-            u.append(doc)
+            # print(type(doc))
+            jsonDoc = json.loads(doc)
+            #check year
+            if int(jsonDoc['info'].get('year','0'))<=year:
+                u.append(doc)
         #print("BUDGET: "+str(budget))
         while len(u)>0 and len(g)<ConstantValues.BUDGET:
             dock, maxK = self.findArgmax(g, u, v, Lambda, method, type_sim)
@@ -73,7 +78,7 @@ class Submodular:
                     #print("remove dock: "+str(dock))
                     u.pop(i)
                     break
-            print("len: "+str(len(g))+" "+str(len(u)))
+            # print("len: "+str(len(g))+" "+str(len(u)))
         return g
 
     #switch respective method
@@ -90,7 +95,7 @@ class Submodular:
 
     def findArgmax(self, g, u, v, Lambda, method, type_sim):
         bound=self.calMethod(g, v, Lambda, method, type_sim)
-        print("bound: "+str(bound))
+        # print("bound: "+str(bound))
         maxF = None
         argmax = None
         for doc in u:
@@ -104,7 +109,7 @@ class Submodular:
                 maxF=ft
                 argmax=doc
 
-        print("find max: " + str(maxF))
+        # print("find max: " + str(maxF))
         return argmax, maxF-bound
 
     def calConceptSum(self, s):

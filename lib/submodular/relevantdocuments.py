@@ -317,7 +317,7 @@ class RelevantDocuments:
         else:
             cvdoc['query_score'] = 0.0
 
-        return cvdoc
+        return json.dumps(cvdoc, indent=2, sort_keys=True, ensure_ascii=False)
 
     def getTopResults(self, num_top = 50, method="tfidf"):
 

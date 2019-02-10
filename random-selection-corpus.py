@@ -3,7 +3,11 @@
 import random
 import shutil
 import os
+import io
+import json
+from lib.submodular.constantvalues import ConstantValues
 
+answer=[]
 # from pathlib import Path
 selectList=[
     "acl-C10-2158",
@@ -240,7 +244,7 @@ def randomMove(path_input="data/acl-score/", path_output="data/acl-score-part/",
             if random.randrange(maxRange)==0:
                shutil.move(path_input+name, path_output+name)
 
-def selectMove(path_input="data/acl-score/", path_output="data/acl-score-select/", seList=selectList):
+def selectFiles(path_input="data/acl-score/", path_output="data/acl-score-select/", seList=selectList, method="move"):
     jsonList = []
     for name in seList:
         jsonList.append(name+".json")
@@ -252,7 +256,11 @@ def selectMove(path_input="data/acl-score/", path_output="data/acl-score-select/
             # print(name)
             #get random 1/5
             if (name in jsonList):
-               shutil.move(path_input+name, path_output+name)
+                if (method=="move"):
+                    shutil.move(path_input+name, path_output+name)
+                elif (method=="copy"):
+                    shutil.copy(path_input+name, path_output+name)
+
 
 import sys
 
@@ -266,8 +274,32 @@ def main(path_input="data/acl/", path_output="data/acl-select/", oneOf=5):
 
     print(path_input+" - "+path_output+" "+str(oneOf))
     # randomMove(path_input, path_output, oneOf)
-    selectMove(path_input, path_output, selectList)
+    selectFiles(path_input, path_output, selectList, method="move")
 
+def makeCorpus(corpusPath="data/acl/", selectPath="data/acl-select/", inputPath="sample-high/"):
+    for root, dirs, files in os.walk(inputPath, topdown=False):
+        for nameFile in files:
+            # must be json
+            if "json" in nameFile:
+                # print(nameFile)
+                # file = open(root+"/"+nameFile, encoding="utf-8")
+                try:
+                    data = json.load(io.open(root + "/" + nameFile, 'r', encoding='utf-8'))
+                    nameId = data['info'].get('id', '')
+                    print(nameId)
+                    if len(nameId) > 0:
+                        # print(data[ConstantValues.ANSWER_KEY])
+                        if ConstantValues.ANSWER_KEY in data:
+                            refList = data.get(ConstantValues.ANSWER_KEY, [])
+                            for ref in refList:
+                                if ref not in answer:
+                                    answer.append(ref)
+                except Exception as e:
+                    print('Error reading JSON document:', nameFile, file=sys.stderr)
+                    print(e, file=sys.stderr)
+                    sys.exit(1)
+    print("length of answer list: "+str(len(answer)))
+    selectFiles(corpusPath, selectPath, answer, method="copy")
 
 if __name__ == '__main__':
-    main()
+    makeCorpus("data/acl/", "data/acl-select/", "sample-high/")

@@ -49,9 +49,11 @@ class Evaluation:
                         sys.exit(1)
 
     def calPre(self):
-        avgPre = 0.0
+        sumPre = 0.0
+        count=0
         for name in self.output.keys():
             print(name)
-            avgPre+=self.precision(self.output[name], self.answer[name])
+            count+=1
+            sumPre+=self.precision(self.output[name], self.answer[name])
 
-        return avgPre
+        return float(sumPre/count)

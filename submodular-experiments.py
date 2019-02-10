@@ -5,7 +5,7 @@ from lib.submodular.submodular import Submodular
 from lib.submodular.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
-lambda_test=[0.5, 1.0, 2.0]
+lambda_test=[0.5]
 
 def print2File(article, resultList, Lambda):
     articleId = article['info']['id']
@@ -164,6 +164,6 @@ def main(path="data/acl-score-select/", query="Towards Robust Linguistic Analysi
     subQFR_UPR(path, query, method="qfr", type_sim="text", year=year)
 
 if __name__ == '__main__':
-    recommendRefByQfr(corpusPath="data/acl/", corpusInputPath="sample-high/", type_sim="title")
+    recommendRefByQfr(corpusPath="data/acl-select/", corpusInputPath="sample-high/", type_sim="title")
     # recommendRefByAll(corpusPath="data/acl-select/", corpusInputPath="sample-high/")
     # main()

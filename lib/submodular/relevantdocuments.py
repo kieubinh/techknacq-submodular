@@ -12,6 +12,7 @@ import numpy as np
 #print(dir(gensim))
 from gensim import corpora, models, similarities
 from operator import itemgetter
+import sys
 
 class RelevantDocuments:
 
@@ -27,7 +28,7 @@ class RelevantDocuments:
         relevantlist = []
         for doc in self.relevantlist:
             jsondoc = json.loads(doc)
-            # print(jsondoc)
+            # print(jsondoc['query_score'])
             # print(jsondoc['info'].get('year','0'))
             if int(jsondoc['info'].get('year','0'))<=year:
                 relevantlist.append(doc)
@@ -313,8 +314,10 @@ class RelevantDocuments:
 
         if query_score != None:
             cvdoc['query_score'] = float(query_score)
+        else:
+            cvdoc['query_score'] = 0.0
 
-        return json.dumps(cvdoc, indent=2, sort_keys=True, ensure_ascii=False)
+        return cvdoc
 
     def getTopResults(self, num_top = 50, method="tfidf"):
 

@@ -28,7 +28,8 @@ def print2File(article, resultList, Lambda, resultPath=""):
             break
     jsondoc = {
         'info': {
-            'id': articleId
+            'id': articleId,
+            'count':count
         },
         'output': output,
     }
@@ -235,8 +236,8 @@ def main(method):
     if "qfr" in method:
         recommendRefByQfr(corpusPath="data/acl-select/", corpusInputPath="sample-high/", type_sim="title")
     if "cg" in method:
-        recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corpusInputPath="sample-high/",
-                               resultPath="results/acl-cg/")
+        recommendRefByConceptGraph(concept_graph="conceptgraph-19-01-19.json", corpusInputPath="sample-high/",
+                               resultPath="results/uts/acl-cg/")
 
     #test case
     # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")

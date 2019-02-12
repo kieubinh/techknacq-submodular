@@ -9,7 +9,8 @@ lambda_test=[1.0]
 
 def print2File(article, resultList, Lambda, resultPath=""):
     articleId = article['info']['id']
-    # year = int(article['info'].get('year','10000'))
+    year = int(article['info'].get('year','10000'))
+    # print(year)
     output=[]
     count=0
 
@@ -17,15 +18,19 @@ def print2File(article, resultList, Lambda, resultPath=""):
         # print(doc['id'])
         if Lambda==-1:
             docid = doc['id']
+            docyear = int(doc.get('year','0'))
         else:
             jsonDoc = json.loads(doc)
             docid=jsonDoc['info']['id']
-        # if int(jsonDoc['info']['year'])<=year:
-        output.append(docid)
-        count+=1
-        # print(jsonDoc['query_score'])
-        if count>ConstantValues.BUDGET:
-            break
+            docyear = int(jsonDoc['info'].get('year','0'))
+
+        # print(docyear)
+        if docyear<=year:
+            output.append(docid)
+            count+=1
+            # print(jsonDoc['query_score'])
+            if count>=ConstantValues.BUDGET:
+                break
     jsondoc = {
         'info': {
             'id': articleId,
@@ -207,7 +212,7 @@ def recommendRefByTop(corpusPath, corpusInputPath, resultPath):
         # get relevant top for baseline
         print2File(article, submodular.getDocs(), ConstantValues.BUDGET, resultPath)
 
-def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corpusInputPath="sample-high/", resultPath="results/acl-top50/"):
+def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corpusInputPath="sample-high/", resultPath="results/acl-top50/", subMethod = "mmr", type_sim="title"):
     # load corpus
     # relevantDocs = RelevantDocuments()
     # relevantDocs.loadFromPath(corpusPath)
@@ -219,7 +224,7 @@ def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corp
         # retrievedInfo.loadInforFromTitle(article)
         query = retrievedInfo.getQuery()
         print(article['info']['id'] + " : " + query)
-        subMMR_MCR(concept_graph=concept_graph, query=query, method="mmr", type_sim="title", article=article, resultPath=resultPath)
+        subMMR_MCR(concept_graph=concept_graph, query=query, method=subMethod, type_sim=type_sim, article=article, resultPath=resultPath)
 
 
 #import os
@@ -227,18 +232,27 @@ def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corp
 
 
 @click.command()
-@click.argument('method', nargs=-1)
-# @click.argument('query', nargs=-1)
-def main(method):
-    print(method)
-    if "top" in method:
-        recommendRefByTop(corpusPath="data/acl/", corpusInputPath="sample-high/", resultPath="results/acl-top50/")
-    if "qfr" in method:
+@click.argument('resultpath', type=click.Path())
+@click.argument('parameters', nargs=-1)
+def main(resultpath="results/acl-cg/", parameters="cg mmr title"):
+    print(parameters)
+    print(resultpath)
+    if "top" in parameters:
+        recommendRefByTop(corpusPath="data/acl/", corpusInputPath="sample-high/", resultPath=resultpath)
+    if "qfr" in parameters:
         recommendRefByQfr(corpusPath="data/acl-select/", corpusInputPath="sample-high/", type_sim="title")
-    if "cg" in method:
+    if "cg" in parameters:
+        #default
+        subMethod = "mmr"
+        type_sim="title"
+        if "mcr" in parameters:
+            subMethod="mcr"
+        if "abstract" in parameters:
+            type_sim="abstract"
+        if "text" in parameters:
+            type_sim="text"
         recommendRefByConceptGraph(concept_graph="conceptgraph-19-01-19.json", corpusInputPath="sample-high/",
-                               resultPath="results/uts/acl-cg/")
-
+                               resultPath=resultpath, subMethod = subMethod, type_sim=type_sim)
     #test case
     # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")
     # subQFR_UPR(path, query, method="qfr", type_sim="text", year=year)

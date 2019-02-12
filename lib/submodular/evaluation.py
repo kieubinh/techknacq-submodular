@@ -8,7 +8,7 @@ class Evaluation:
     def __init__(self):
         self.output = {}
         self.answer = {}
-    def precision(self, output_ids=[], ground_ids=[]):
+    def calFscore(self, output_ids=[], ground_ids=[]):
         if len(output_ids)==0:
             print("No output list!")
             return 0.0
@@ -19,8 +19,14 @@ class Evaluation:
         for id in output_ids:
             if id in ground_ids:
                 countTrue+=1
-        print("pre: "+str(countTrue)+"/"+str(len(ground_ids)))
-        return float(countTrue/len(ground_ids))
+        print("#correct: "+str(countTrue)+"/total output: "+str(len(output_ids))+"/total ground truth: "+str(len(ground_ids)))
+        pre = 1.0*countTrue/len(ground_ids)
+        recall = 1.0*countTrue/len(output_ids)
+        if (countTrue==0):
+            fscore=0.0
+        else:
+            fscore = 2.0*pre*recall/(pre+recall)
+        return pre, recall, fscore
 
 
     #json file: {'output':[]} and {'answer':[]}
@@ -48,12 +54,24 @@ class Evaluation:
                         print(e, file=sys.stderr)
                         sys.exit(1)
 
-    def calPre(self):
-        sumPre = 0.0
-        count=0
+    def calAvgFscore(self):
+        sumPre = sumRecall = sumFscore = 0.0
         for name in self.output.keys():
             print(name)
-            count+=1
-            sumPre+=self.precision(self.output[name], self.answer[name])
+            pre, recall, fscore = self.calFscore(self.output[name], self.answer[name])
+            sumPre+=pre
+            sumRecall+=recall
+            sumFscore+=fscore
 
-        return float(sumPre/count)
+        self.avgPre = float(sumPre/len(self.answer.keys()))
+        self.avgRecall = float(sumRecall/len(self.answer.keys()))
+        self.avgFscore = float(sumFscore / len(self.answer.keys()))
+
+    def getAvgPrecision(self):
+        return self.avgPre
+
+    def getAvgRecall(self):
+        return self.avgRecall
+
+    def getAvgFscore(self):
+        return self.avgFscore

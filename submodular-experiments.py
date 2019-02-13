@@ -5,7 +5,7 @@ from lib.submodular.submodular import Submodular
 from lib.submodular.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
-lambda_test=[1.0]
+lambda_test=[0.5, 1.0, 2.0, 5.0]
 
 def print2File(article, resultList, Lambda, resultPath=""):
     articleId = article['info']['id']

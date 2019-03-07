@@ -1,7 +1,7 @@
 #Author: Binh Kieu Th
 #Target: submodular functions for generating reading lists
 #mmr: Maximal Marginal Relevance
-#crl: Maximal Concept Relevance
+#mcr: Maximal Concept Relevance
 #qfr: Query-Focused Relevance
 #upr: Update Relevance
 

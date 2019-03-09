@@ -238,7 +238,7 @@ def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPat
     print(parameters)
     print(resultpath)
     if "top" in parameters:
-        recommendRefByTop(corpusPath="data/acl-part/", corpusInputPath=corpusInputPath, resultPath=resultpath)
+        recommendRefByTop(corpusPath="data/acl/", corpusInputPath=corpusInputPath, resultPath=resultpath)
     if "qfr" in parameters:
         recommendRefByQfr(corpusPath="data/acl-select/", corpusInputPath=corpusInputPath, type_sim="title")
     if "cg" in parameters:

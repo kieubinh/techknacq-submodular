@@ -5,7 +5,7 @@ from lib.submodular.submodular import Submodular
 from lib.submodular.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
-lambda_test=[0.5, 1.0, 2.0, 5.0]
+lambda_test=[]
 
 def print2File(article, resultList, Lambda, resultPath=""):
     articleId = article['info']['id']
@@ -234,13 +234,13 @@ def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corp
 @click.command()
 @click.argument('resultpath', type=click.Path())
 @click.argument('parameters', nargs=-1)
-def main(resultpath="results/acl-cg/", parameters="cg mmr title"):
+def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="sample-high/"):
     print(parameters)
     print(resultpath)
     if "top" in parameters:
-        recommendRefByTop(corpusPath="data/acl/", corpusInputPath="sample-high/", resultPath=resultpath)
+        recommendRefByTop(corpusPath="data/acl/", corpusInputPath=corpusInputPath, resultPath=resultpath)
     if "qfr" in parameters:
-        recommendRefByQfr(corpusPath="data/acl-select/", corpusInputPath="sample-high/", type_sim="title")
+        recommendRefByQfr(corpusPath="data/acl-select/", corpusInputPath=corpusInputPath, type_sim="title")
     if "cg" in parameters:
         #default
         subMethod = "mmr"
@@ -251,7 +251,7 @@ def main(resultpath="results/acl-cg/", parameters="cg mmr title"):
             type_sim="abstract"
         if "text" in parameters:
             type_sim="text"
-        recommendRefByConceptGraph(concept_graph="conceptgraph-19-01-19.json", corpusInputPath="sample-high/",
+        recommendRefByConceptGraph(concept_graph="conceptgraph-19-01-19.json", corpusInputPath=corpusInputPath,
                                resultPath=resultpath, subMethod = subMethod, type_sim=type_sim)
     #test case
     # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")

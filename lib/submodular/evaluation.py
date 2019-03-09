@@ -63,9 +63,9 @@ class Evaluation:
             sumRecall+=recall
             sumFscore+=fscore
 
-        self.avgPre = float(sumPre/len(self.answer.keys()))
-        self.avgRecall = float(sumRecall/len(self.answer.keys()))
-        self.avgFscore = float(sumFscore / len(self.answer.keys()))
+        self.avgPre = float(sumPre/len(self.output.keys()))
+        self.avgRecall = float(sumRecall/len(self.output.keys()))
+        self.avgFscore = float(sumFscore / len(self.output.keys()))
 
     def getAvgPrecision(self):
         return self.avgPre

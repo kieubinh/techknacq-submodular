@@ -69,7 +69,7 @@ class Submodular:
         #print("BUDGET: "+str(budget))
         while len(u)>0 and len(g)<ConstantValues.BUDGET:
             dock, maxK = self.findArgmax(g, u, v, Lambda, method, type_sim)
-            #print("dock: "+dock['title'])
+            # print("dock: "+dock['title'])
             #if (maxK>0):
             g.append(dock)
             #u.remove(dock)
@@ -90,12 +90,12 @@ class Submodular:
             result = self.calMCR(g, v, Lambda, type_sim)
         if method==ConstantValues.Query_Focused_Relevance:
             result = self.calQFR(g, v, Lambda, type_sim)
-
+        # print(result)
         return result
 
     def findArgmax(self, g, u, v, Lambda, method, type_sim):
         bound=self.calMethod(g, v, Lambda, method, type_sim)
-        # print("bound: "+str(bound))
+        print("bound: "+str(bound))
         maxF = None
         argmax = None
         for doc in u:
@@ -109,7 +109,7 @@ class Submodular:
                 maxF=ft
                 argmax=doc
 
-        # print("find max: " + str(maxF))
+        print("find max: " + str(maxF))
         return argmax, maxF-bound
 
     def calConceptSum(self, s):
@@ -126,7 +126,7 @@ class Submodular:
         if (type_sim=="text"):
             for doc1 in s:
                 jsondoc1 = json.loads(doc1)
-                # print(jsondoc1)
+
                 #not consider wiki
                 if 'wiki' in jsondoc1['info']['id']:
                     continue
@@ -167,6 +167,7 @@ class Submodular:
         if (type_sim=="text"):
             for doc1 in s:
                 jsondoc1 = json.loads(doc1)
+                # print(jsondoc1)
                 if 'wiki' in jsondoc1['info']['id']:
                     continue
                 # indexDoc1 = self.id_docs.index(jsondoc1['id'])
@@ -211,6 +212,8 @@ class Submodular:
         #             fpenalty+= SimilarityScores(doc1['title'], doc2['title']).getScore()
         fcover = self.calGeneralSum(s, v, type_sim)
         fpenalty = self.calPenaltySum(s, type_sim)
+        # print(fcover)
+        # print(fpenalty)
         return fcover - Lambda * fpenalty
 
     #function 2: Maximal Concept Relevance
@@ -229,6 +232,8 @@ class Submodular:
         #             fpenalty+= SimilarityScores(doc1['title'], doc2['title']).getScore()
         fcover = self.calConceptSum(s)
         fpenalty = self.calPenaltySum(s, type_sim)
+        # print("fcover: "+str(fcover))
+        # print("fpenalty: "+str(fpenalty))
         return fcover - Lambda * fpenalty
 
     #function 3: Query-Focused Relevance

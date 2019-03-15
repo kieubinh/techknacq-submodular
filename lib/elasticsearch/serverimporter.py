@@ -5,35 +5,39 @@
 # 3. generate citation graph
 
 import json
-from datetime import datetime
+import os
+import io
+import sys
+# from datetime import datetime
 from elasticsearch import Elasticsearch
-es = Elasticsearch([{'host': 'localhost', 'port': '9200'}])
 
-
-with open("acl-A00-1002.json", 'r', encoding='utf-8') as fin:
-        jsontest = json.loads(fin.read())
-        # print(jsontest)
-        # fout.close()
-
-# es.indices.create(index='acl', ignore=400)
-es.index(index='acl3', ignore=400, doc_type='json', id=2, body=jsontest)
-# print(res['acl'])
-
-res = es.search(index="acl2", body={"references": {"match_all": {"acl"}}})
-print("Got %d Hits:" % res['hits']['total'])
-print(res)
-
-
+# res = es.search(index="acl", body={"query": {"match_all": {"acl"}}})
+# print("Got %d Hits:" % res['hits']['total'])
+# print(res)
 class ServerImporter:
-    def __init__(self, corpusPath=None):
-        self.corpus_path=corpusPath
 
     #input: json document
     #output: a query in order to update into elasticsearch
-    def jsonParser(self, jsonDoc):
-        equery=""
+    def jsonParser(self, corpusPath="data/acl/"):
+        es = Elasticsearch([{'host': 'localhost', 'port': '9200'}])
 
-        return equery
+        for root, dirs, files in os.walk(corpusPath, topdown=False):
+            for nameFile in files:
+                # must be json
+                if "json" in nameFile:
+                    # print(nameFile)
+                    nameId = nameFile[:nameFile.find('.json')]
+                    print(nameId)
+                    # file = open(root+"/"+nameFile, encoding="utf-8")
+                    try:
+                        jsondata = json.load(io.open(root + "/" + nameFile, 'r', encoding='utf-8'))
+                        # es.indices.create(index='acl', ignore=400)
+                        es.index(index='data/acl/', ignore=400, doc_type='json', id=nameFile, body=jsondata)
+                        # print(res['acl'])
+                    except Exception as e:
+                        print('Error reading JSON document:', nameFile, file=sys.stderr)
+                        print(e, file=sys.stderr)
+                        sys.exit(1)
 
     # input: xml document
     # output: a query in order to update into elasticsearch
@@ -42,3 +46,6 @@ class ServerImporter:
 
         return equery
 
+
+if __name__ == '__main__':
+    ServerImporter().jsonParser("data/acl/")

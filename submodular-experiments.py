@@ -264,7 +264,7 @@ def recommendRefByElasticSearch(indexServer="acl2014", corpusInputPath="Jardine2
 #qfr: recommendRefByQfr
 #cg: recommendRefByConceptGraph - standard, mmr, mcr (methods)
 #es: using elasticsearch similarity score
-def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="Jardine2014/"):
+def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="sample-high/"):
     print(parameters)
     print(resultpath)
     if "es" in parameters:

@@ -43,11 +43,18 @@ def print2File(article, resultList, Lambda, resultPath=""):
         json.dump(jsondoc, fout)
     fout.close()
 
-def printResult(resultList):
-    print("The number of selected list is "+str(len(resultList)))
-    for doc in resultList:
-        jsonDoc = json.loads(doc)
-        print("id: "+jsonDoc['info']['id']+" - title: "+jsonDoc['info']['title'])
+def printResult(articleId, output, Lambda=-1, resultPath=""):
+    jsondoc = {
+        'info': {
+            'id': articleId,
+            'count': len(output)
+        },
+        'output': output,
+    }
+    print(resultPath + articleId + "-" + str(Lambda) + "-output.json")
+    with open(resultPath + articleId + "-" + str(Lambda) + "-output.json", 'w', encoding='utf-8') as fout:
+        json.dump(jsondoc, fout)
+    fout.close()
     
 #run experiments for MMR function and MCR function
 from lib.techknacq.conceptgraph import ConceptGraph
@@ -121,7 +128,7 @@ def subQFR_UPR(path, query, method="qfr", type_sim="title", year=10000):
     for Lambda in lambda_test:
         print("Lambda = " + str(Lambda))
         summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-        printResult(summarizedlist)
+        printResult(articleId="subQFR_UPR"+query, output=summarizedlist, Lambda=Lambda)
 
 import os
 import io
@@ -226,6 +233,24 @@ def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corp
         print(article['info']['id'] + " : " + query)
         subMMR_MCR(concept_graph=concept_graph, query=query, method=subMethod, type_sim=type_sim, article=article, resultPath=resultPath)
 
+from lib.elasticsearch.serverconnecter import ServerConnecter
+def recommendRefByElasticSearch(indexServer="acl2014", corpusInputPath="Jardine2014/", resultpath="results/es-top/"):
+    inputDocs = loadInput(corpusInputPath)
+    for article in inputDocs:
+        retrievedInfo = RetrievedInformation(article)
+        # retrievedInfo.loadInforFromTitle(article)
+        query = retrievedInfo.getQuery()
+        print(article['info']['id'] + " : " + query)
+        year = int(article['info']['year'])
+        connecter = ServerConnecter()
+        resultlist = connecter.queryByDSL(index=indexServer,queryStr=query, year=year, budget=ConstantValues.BUDGET)
+        output=[]
+        for (key, value) in resultlist.items():
+            output.append(key)
+        printResult(articleId=article['info']['id'], output=output, resultPath=resultpath)
+
+
+
 
 #import os
 #def main(concept_graph=os.getcwd()+"/concept-graph-standard.json", query="statistical parsing"):
@@ -234,9 +259,16 @@ def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corp
 @click.command()
 @click.argument('resultpath', type=click.Path())
 @click.argument('parameters', nargs=-1)
+#parameters:
+#top: recommendRefByTop
+#qfr: recommendRefByQfr
+#cg: recommendRefByConceptGraph - standard, mmr, mcr (methods)
+#es: using elasticsearch similarity score
 def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="Jardine2014/"):
     print(parameters)
     print(resultpath)
+    if "es" in parameters:
+        recommendRefByElasticSearch(indexServer="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
     if "top" in parameters:
         recommendRefByTop(corpusPath="data/acl/", corpusInputPath=corpusInputPath, resultPath=resultpath)
     if "qfr" in parameters:

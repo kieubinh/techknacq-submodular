@@ -1,4 +1,4 @@
-#Author: Binh Kieu Th
+#Author: Binh Kieu Thanh
 #Target:
 # 1. import ACL data into elasticsearch
 # 2. calculate similarity score between 2 documents

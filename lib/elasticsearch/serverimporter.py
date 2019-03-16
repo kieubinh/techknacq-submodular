@@ -27,12 +27,14 @@ class ServerImporter:
                 if "json" in nameFile:
                     # print(nameFile)
                     nameId = nameFile[:nameFile.find('.json')]
-                    print(nameId)
+                    # print(nameId)
                     # file = open(root+"/"+nameFile, encoding="utf-8")
                     try:
                         jsondata = json.load(io.open(root + "/" + nameFile, 'r', encoding='utf-8'))
                         # es.indices.create(index='acl', ignore=400)
-                        es.index(index='data/acl/', ignore=400, doc_type='json', id=nameFile, body=jsondata)
+                        print(nameId)
+                        # print(jsondata)
+                        es.index(index='data/acl', ignore=400, doc_type='json', id=nameId, body=jsondata)
                         # print(res['acl'])
                     except Exception as e:
                         print('Error reading JSON document:', nameFile, file=sys.stderr)
@@ -48,4 +50,4 @@ class ServerImporter:
 
 
 if __name__ == '__main__':
-    ServerImporter().jsonParser("data/acl/")
+    ServerImporter().jsonParser("data/acl-test/")

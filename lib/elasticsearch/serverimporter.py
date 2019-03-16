@@ -34,7 +34,7 @@ class ServerImporter:
                         # es.indices.create(index='acl', ignore=400)
                         print(nameId)
                         # print(jsondata)
-                        es.index(index='data/acl', ignore=400, doc_type='json', id=nameId, body=jsondata)
+                        es.index(index='acl2014', ignore=400, doc_type='json', id=nameId, body=jsondata)
                         # print(res['acl'])
                     except Exception as e:
                         print('Error reading JSON document:', nameFile, file=sys.stderr)

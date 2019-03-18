@@ -1,6 +1,15 @@
+#KieuBinh change
+#au: author
+#cg: concept graph
+#top: tf-idf top 50
+#es: elasticsearch
+#mmr
+#mcr
+
 
 import click
 import json
+
 from lib.submodular.submodular import Submodular
 from lib.submodular.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
@@ -272,6 +281,28 @@ def recommendRefByElasticSearch(indexServer="acl2014", corpusInputPath="Jardine2
             output.append(key)
         printResult(articleId=article['info']['id'], output=output, resultPath=resultpath)
 
+def recommendRefByAuthors(indexServer="acl2014", corpusInputPath="inputs/", resultpath="results/acl-authors/"):
+    inputDocs = loadInput(corpusInputPath)
+    for article in inputDocs:
+        retrievedInfo = RetrievedInformation(article)
+        # retrievedInfo.loadInforFromTitle(article)
+        query = retrievedInfo.getQuery()
+        year = retrievedInfo.getYear()
+        authors = retrievedInfo.getAuthors()
+        articleId = retrievedInfo.getId()
+        print(articleId + " : " + query+" "+str(year)+" "+str(authors))
+        refDocs=[]
+        for author in authors:
+            server = ServerConnecter()
+            auDocs = server.searchDocsByAuthor(index=indexServer, author=author, year=year)
+            for (doc, score) in auDocs.items():
+                print(doc)
+                if (doc!=articleId):
+                    reflist = server.getReflist(index=indexServer, id=doc)
+                    for refid in reflist:
+                        if refid not in refDocs:
+                            refDocs.append(refid)
+        printResult(articleId, refDocs, -1, resultPath=resultpath)
 
 
 
@@ -290,6 +321,9 @@ def recommendRefByElasticSearch(indexServer="acl2014", corpusInputPath="Jardine2
 def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="Jardine2014/"):
     print(parameters)
     print(resultpath)
+    #authors
+    if "au" in parameters:
+        recommendRefByAuthors(indexServer="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
     if "es" in parameters:
         recommendRefByElasticSearch(indexServer="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
     if "top" in parameters:

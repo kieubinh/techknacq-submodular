@@ -9,6 +9,28 @@ class ServerConnecter:
     def __init__(self):
         self.es=Elasticsearch()
 
+    def getReflist(self, index="acl2014", doc_type="json", id=None):
+        if id==None:
+            return []
+        res = self.es.get(index=index, doc_type=doc_type, id=id)
+        return res.get('references',[])
+
+    def searchDocsByAuthor(self, index="acl2014", author=None, year=0):
+        if author==None:
+            return []
+        print(author)
+        s = Search(using=self.es, index=index).query(Q('match', query=author, fields=['info.authors']))
+        print(s.count)
+        response = s[:100].execute()
+        resultsDocs ={}
+        for h in response:
+            if h.info.year<=year:
+                resultsDocs[h.meta.id] = h.meta.score
+                # print('%s with year %i returned with score %f' % (
+                #     h.meta.id, h.info.year, h.meta.score))
+
+        return resultsDocs
+
     def getTermVector(self, index="acl2014", doc_type="json", docid=None):
         vector= self.es.termvectors(index=index, doc_type=doc_type, id=docid)
         print(vector)

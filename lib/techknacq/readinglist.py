@@ -36,20 +36,13 @@ ADVANCED_DOC_PREFS = [
     'empirical', 'tutorial', 'resource', 'manual', 'survey', 'reference',
     'other'
 ]
-#kieubinh analyzes code
+
 class ReadingList:
 
-    readinglist=[]
-
-    #input: concept graph (json format), query (string)
-    #output: a list of ACL papers
     def __init__(self, cg, query, user_model=None, docs=True):
         self.cg = cg
-        #tokenize of query by ' ' or '-' and lower this
-        self.query = word_tokenize(' '.join(query).replace('-', ' ').lower())
+        self.readinglist = []
 
-
-        #default user model -> beginer
         self.query = word_tokenize(' '.join(query).replace('-', ' ').lower())
 
         self.user_model = user_model
@@ -58,7 +51,6 @@ class ReadingList:
             for c in cg.concepts():
                 self.user_model[c] = BEGINNER
 
-        #stemmer query words
         self.stemmer = LancasterStemmer()
         self.query_words = [(x, self.stemmer.stem(x))
                             for x in self.query]
@@ -66,7 +58,6 @@ class ReadingList:
         self.covered_concepts = set()
         self.covered_documents = set()
         self.covered_titles = set()
-        #score match?
         self.relevance = {c: self.score_match(c) for c in cg.concepts()}
         self.rl = []
 
@@ -74,23 +65,10 @@ class ReadingList:
 
         for c, score in sorted(self.relevance.items(), key=lambda x: x[1],
                                reverse=True)[:MAX_MATCHES]:
-            #each concept -> depth-first traveral to find
-            #print("matched concept "+c+" with score "+str(score))
             entry = self.traverse(c, score)
             if entry:
                 self.rl.append(entry)
-                #WHY BREAK ???????????????????????????????????????????????????????????
                 break
-
-        #print(len(self.rl))
-
-        # for c, score in sorted(self.relevance.items(), key=lambda x: x[1], reverse=True)[:MAX_MATCHES]:
-        #     print("matched concept " + c + " with score " + str(score))
-        #     entry = self.coverage(c)
-        #     if entry:
-        #         self.rl.append(entry)
-
-
 
 
     def best_docs(self, c, roles=None):
@@ -101,10 +79,9 @@ class ReadingList:
             roles = DEFAULT_DOC_PREFS
 
         # 1. Find the most relevant documents for the topic.
-        #kieubinh change, only select acl source
-        docs = self.cg.topic_docs(c,source='acl')
-
-        # print("most relevant documents for the topic "+c+" -> size of docs "+str(len(docs)))
+        # docs = self.cg.topic_docs(c)
+        # kieubinh change, only select acl source
+        docs = self.cg.topic_docs(c, source='acl')
 
         # 2. Stable sort documents by pedagogical role preference:
         #    ped_score = 1.0 * role1 + 0.85 * role2 + 0.7 * role3 +
@@ -181,9 +158,6 @@ class ReadingList:
         #
         # Documents to print before any dependencies:
         #
-
-        #print("intro-docs : "+str(num_intro_docs)+ " - "+str(len(intro_docs)))
-        #print("advanced-docs : "+str(num_advanced_docs)+ " - "+str(len(advanced_docs)))
 
         for doc_id, doc_weight in intro_docs:
             if num_intro_docs == 0:
@@ -286,22 +260,6 @@ class ReadingList:
         if form == 'html':
             print('</dl>')
 
-    def convert2List(self, rl=None, depth=1):
-        if rl is None:
-            rl = self.rl
-
-        for entry in rl:
-
-            for doc in entry['documents1']:
-                self.readinglist.append(doc)
-
-            self.convert2List(entry['subconcepts'], depth + 1)
-
-            for doc in entry['documents2']:
-                self.readinglist.append(doc)
-
-    def getReadinglist(self):
-        return self.readinglist
 
     def print_doc(self, doc_id, depth, form='text'):
         if form == 'html':
@@ -340,6 +298,7 @@ class ReadingList:
                   self.cg.g.node[doc_id]['book'] + '\t' +
                   self.cg.g.node[doc_id]['url'])
         else:
+            print(doc_id)
             print(authors + ':')
             print(title)
 
@@ -386,3 +345,22 @@ class ReadingList:
 
         return sum(matches.values()) * len(matches)/len(self.query_words) + \
                bonus
+
+    def convert2List(self, rl=None, depth=1):
+        if rl is None:
+            rl = self.rl
+
+        for entry in rl:
+
+            for doc in entry['documents1']:
+                if doc not in self.readinglist:
+                    self.readinglist.append(doc)
+
+            self.convert2List(entry['subconcepts'], depth + 1)
+
+            for doc in entry['documents2']:
+                if doc not in self.readinglist:
+                    self.readinglist.append(doc)
+
+    def getReadinglist(self):
+        return self.readinglist

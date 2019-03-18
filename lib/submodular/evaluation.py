@@ -9,12 +9,15 @@ class Evaluation:
         self.output = {}
         self.answer = {}
     def calFscore(self, output_ids=[], ground_ids=[]):
+        # print(len(output_ids))
         if len(output_ids)==0:
             print("No output list!")
-            return 0.0
+            print("#correct: 0/total output: " + str(len(output_ids)) + "/total ground truth: " + str(len(ground_ids)))
+
+            return 0.0, 0.0, 0.0
         if len(ground_ids)==0:
             print("No ground true list!")
-            return 1.0
+            return 1.0, 1.0, 1.0
         countTrue=0
         for id in output_ids:
             if id in ground_ids:

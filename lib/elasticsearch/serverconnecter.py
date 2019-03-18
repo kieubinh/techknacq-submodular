@@ -36,8 +36,8 @@ class ServerConnecter:
         for h in response:
             if h.info.year<=year:
                 selectedDocs[h.meta.id] = h.meta.score
-                print('%s with year %i returned with score %f' % (
-                    h.meta.id, h.info.year, h.meta.score))
+                # print('%s with year %i returned with score %f' % (
+                #     h.meta.id, h.info.year, h.meta.score))
             if (len(selectedDocs)>=budget):
                 return selectedDocs
         return selectedDocs

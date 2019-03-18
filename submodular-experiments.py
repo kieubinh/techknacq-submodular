@@ -7,7 +7,7 @@ from lib.submodular.retrievedinfo import RetrievedInformation
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
 lambda_test=[1.0]
 
-def print2File(article, resultList, Lambda, resultPath=""):
+def print2File(article, resultList, Lambda, resultPath="", budget=ConstantValues.BUDGET):
     articleId = article['info']['id']
     year = int(article['info'].get('year','10000'))
     # print(year)
@@ -18,6 +18,7 @@ def print2File(article, resultList, Lambda, resultPath=""):
         # print(doc['id'])
         if Lambda==-1:
             docid = doc['id']
+            # print(doc)
             docyear = int(doc.get('year','0'))
         else:
             jsonDoc = json.loads(doc)
@@ -29,7 +30,7 @@ def print2File(article, resultList, Lambda, resultPath=""):
             output.append(docid)
             count+=1
             # print(jsonDoc['query_score'])
-            if count>=ConstantValues.BUDGET:
+            if count>=budget:
                 break
     jsondoc = {
         'info': {
@@ -219,7 +220,27 @@ def recommendRefByTop(corpusPath, corpusInputPath, resultPath):
         # get relevant top for baseline
         print2File(article, submodular.getDocs(), ConstantValues.BUDGET, resultPath)
 
-def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corpusInputPath="sample-high/", resultPath="results/acl-top50/", subMethod = "mmr", type_sim="title"):
+#input: query (in article)
+#output: reading list by Gordon 2017
+def readinglistConceptGraph(concept_graph="conceptgraph-19-01-19.json", query="concept-to-text generation", article="acl-000-0000", resultPath="results/acl-cg-standard/"):
+    querylist = []
+    querylist.append(query)
+    cg = ConceptGraph(click.format_filename(concept_graph))
+    learner_model = {}
+    for c in cg.concepts():
+        learner_model[c] = ConstantValues.BEGINNER
+    r = ReadingList(cg, querylist, learner_model)
+    # print reading list
+    # r.print()
+
+    # summarise the reading list
+
+    # convert r into list of papers
+    r.convert2List()
+    rl = r.getReadinglist()
+    print2File(article, rl, -1, resultPath, budget=50000)
+
+def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corpusInputPath="sample-high/", resultPath="results/acl-top50/", subMethod = "all", type_sim="title"):
     # load corpus
     # relevantDocs = RelevantDocuments()
     # relevantDocs.loadFromPath(corpusPath)
@@ -227,11 +248,13 @@ def recommendRefByConceptGraph(concept_graph="concept-graph-standard.json", corp
     # load input
     inputDocs = loadInput(corpusInputPath)
     for article in inputDocs:
-        retrievedInfo = RetrievedInformation(article)
+        query = RetrievedInformation(article).getQuery()
         # retrievedInfo.loadInforFromTitle(article)
-        query = retrievedInfo.getQuery()
         print(article['info']['id'] + " : " + query)
-        subMMR_MCR(concept_graph=concept_graph, query=query, method=subMethod, type_sim=type_sim, article=article, resultPath=resultPath)
+        if subMethod == "all":
+            readinglistConceptGraph(concept_graph=concept_graph, query=query, article=article, resultPath=resultPath)
+        else:
+            subMMR_MCR(concept_graph=concept_graph, query=query, method=subMethod, type_sim=type_sim, article=article, resultPath=resultPath)
 
 from lib.elasticsearch.serverconnecter import ServerConnecter
 def recommendRefByElasticSearch(indexServer="acl2014", corpusInputPath="Jardine2014/", resultpath="results/es-top/"):
@@ -264,7 +287,7 @@ def recommendRefByElasticSearch(indexServer="acl2014", corpusInputPath="Jardine2
 #qfr: recommendRefByQfr
 #cg: recommendRefByConceptGraph - standard, mmr, mcr (methods)
 #es: using elasticsearch similarity score
-def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="sample-high/"):
+def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="Jardine2014/"):
     print(parameters)
     print(resultpath)
     if "es" in parameters:
@@ -274,15 +297,21 @@ def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPat
     if "qfr" in parameters:
         recommendRefByQfr(corpusPath="data/acl-select/", corpusInputPath=corpusInputPath, type_sim="title")
     if "cg" in parameters:
-        #default
-        subMethod = "mmr"
-        type_sim="title"
+        #default standard reading list from concept graph
+        subMethod = "all"
+
         if "mcr" in parameters:
             subMethod="mcr"
+        if "mmr" in parameters:
+            subMethod="mmr"
+
+        #default type sim = title
+        type_sim = "title"
         if "abstract" in parameters:
             type_sim="abstract"
         if "text" in parameters:
             type_sim="text"
+            #conceptgraph-19-01-19.json
         recommendRefByConceptGraph(concept_graph="conceptgraph-19-01-19.json", corpusInputPath=corpusInputPath,
                                resultPath=resultpath, subMethod = subMethod, type_sim=type_sim)
     #test case

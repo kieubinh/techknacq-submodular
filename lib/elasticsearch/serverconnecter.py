@@ -1,13 +1,18 @@
 
 import json
 from elasticsearch import Elasticsearch
-from elasticsearch_dsl import Search, Q, Range
+from elasticsearch_dsl import Search, Q
+from lib.utils import Utils
 # from elasticsearch_dsl.query import MultiMatch, Match
-
 
 class ServerConnecter:
     def __init__(self):
         self.es=Elasticsearch()
+
+    def getTermVector(self, index="acl2014", doc_type="json", docid=None):
+        vector= self.es.termvectors(index=index, doc_type=doc_type, id=docid)
+        print(vector)
+        return vector
 
     def queryByDSL(self, index="acl2014",queryStr="", year=10000, budget=50):
         # fil = Q('range', body=' { "info.year": { "lte": 2000 }} ')
@@ -70,4 +75,6 @@ class ServerConnecter:
             print(hit['_score'], hit['_source']['info']['id'])
 
 if __name__ == '__main__':
-    ServerConnecter().queryByDSL(index="acl2014", queryStr="concept-to-text generation", year=2000)
+    sc = ServerConnecter()
+    # sc.queryByDSL(index="acl2014", queryStr="concept-to-text generation", year=2000)
+    sc.getTermVector(index="acl2014", doc_type="json", docid="acl-A00-1001")

@@ -2,8 +2,14 @@
 #provide general functions
 
 import math
+import re
+from collections import Counter
 
 class Utils:
+    def text_to_vector(text):
+        WORD = re.compile(r'\w+')
+        words = WORD.findall(text)
+        return Counter(words)
 
     def get_cosine(vec1, vec2):
         intersection = set(vec1.keys()) & set(vec2.keys())

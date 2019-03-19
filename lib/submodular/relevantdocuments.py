@@ -1,7 +1,7 @@
 #tf-idf
 #concept scores
 
-from lib.submodular.constantvalues import ConstantValues
+from lib.constantvalues import ConstantValues
 from lib.techknacq.corpus import Corpus
 from nltk.tokenize import word_tokenize
 import json
@@ -11,8 +11,7 @@ import numpy as np
 #import gensim
 #print(dir(gensim))
 from gensim import corpora, models, similarities
-from operator import itemgetter
-import sys
+
 
 class RelevantDocuments:
 

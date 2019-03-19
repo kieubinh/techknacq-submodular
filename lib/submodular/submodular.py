@@ -6,7 +6,7 @@
 #upr: Update Relevance
 
 
-from lib.submodular.constantvalues import ConstantValues
+from lib.constantvalues import ConstantValues
 from lib.submodular.similarityscore import SimilarityScores
 from lib.submodular.relevantdocuments import RelevantDocuments
 import json

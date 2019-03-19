@@ -7,6 +7,7 @@ class ConstantValues:
     INTERMEDIATE = 4
     ADVANCED = 3
 
+    MAX_SUBMODULARITY = 200
     BUDGET=50
     PENALTY = 1.0
     #SIMILARITY_MEASUE='title'

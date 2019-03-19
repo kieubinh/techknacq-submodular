@@ -1,6 +1,6 @@
 import os
 import json
-from lib.submodular.constantvalues import ConstantValues
+from lib.constantvalues import ConstantValues
 import io
 import sys
 

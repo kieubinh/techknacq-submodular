@@ -1,5 +1,5 @@
-from lib.elasticsearch.serverimporter import ServerImporter
-from lib.submodular.constantvalues import ConstantValues
+from lib.elasticsearch.esimporter import ServerImporter
+from lib.constantvalues import ConstantValues
 from lib.submodular.relevantdocuments import RelevantDocuments
 
 def calSim():

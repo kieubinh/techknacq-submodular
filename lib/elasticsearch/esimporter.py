@@ -14,7 +14,7 @@ from elasticsearch import Elasticsearch
 # res = es.search(index="acl", body={"query": {"match_all": {"acl"}}})
 # print("Got %d Hits:" % res['hits']['total'])
 # print(res)
-class ServerImporter:
+class ElasticsearchImporter:
 
     #input: json document
     #output: a query in order to update into elasticsearch
@@ -50,4 +50,4 @@ class ServerImporter:
 
 
 if __name__ == '__main__':
-    ServerImporter().jsonParser("data/acl-test/")
+    ElasticsearchImporter().jsonParser("data/acl-test/")

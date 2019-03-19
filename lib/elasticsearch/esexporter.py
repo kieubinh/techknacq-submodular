@@ -1,26 +1,39 @@
-
+import sys
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search, Q
 from lib.submodular.retrievedinfo import RetrievedInformation
 
 # from elasticsearch_dsl.query import MultiMatch, Match
 
-class ServerConnecter:
-    def __init__(self):
-        self.es=Elasticsearch()
+class ElasticsearchExporter:
+    def __init__(self, index="acl2014", doc_type="json"):
+        try:
+            self.es=Elasticsearch()
+            self.index = index
+            self.doc_type = doc_type
+        except Exception as e:
+            print('Error connection with elasticsearch')
+            sys.exit(1)
 
-    def getReflist(self, index="acl2014", doc_type="json", id=None):
+    def calQuerySimilarity(self, query=None):
+        q = Q('bool',
+              must=[Q('multi_match', query=query, fields=['info.title', 'sections.text', 'sections.heading'])])
+        s = Search(using=self.es, index=self.index).query(q)
+        print(s.count())
+        response = s.scan()
+
+    def getReflist(self, id=None):
         if id==None:
             return []
-        res = self.es.get(index=index, doc_type=doc_type, id=id)
+        res = self.es.get(index=self.index, doc_type=self.doc_type, id=id)
         print(res['_source'].get('references',[]))
         return res['_source'].get('references',[])
 
-    def searchDocsByAuthor(self, index="acl2014", author=None, year=0):
+    def searchDocsByAuthor(self, author=None, year=0):
         if author==None:
             return []
         # print(author)
-        res = self.es.search(index=index, body={"query": {
+        res = self.es.search(index=self.index, body={"query": {
                 "bool": {
                     "must": [
                         {
@@ -50,25 +63,25 @@ class ServerConnecter:
 
         return resultsDocs
 
-    def getTermVector(self, index="acl2014", doc_type="json", docid=None):
-        vector= self.es.termvectors(index=index, doc_type=doc_type, id=docid)
+    def getTermVector(self, docid=None):
+        vector = self.es.termvectors(index=self.index, doc_type=self.doc_type, id=docid)
         print(vector)
         return vector
 
-    def queryByDSL(self, index="acl2014",queryStr="", year=10000, budget=50):
+    def queryByDSL(self,queryStr="", year=10000, budget=50):
         # fil = Q('range', body=' { "info.year": { "lte": 2000 }} ')
         q = Q('bool', must=[Q('multi_match', query=queryStr, fields=['info.title', 'sections.text', 'sections.heading'])])
         # filter = Q()
         # r = Range({ "@info.year": { "lte": 2010 }})
-        s = Search(using=self.es, index=index).query(q)
+        s = Search(using=self.es, index=self.index).query(q)
         # s.exclude('range', fileds='info.year', lte=year)
         # s.filter(filter)
-        print(q)
+        # print(q)
         # s.query(q)
-        # print(s.count())
+        print(s.count())
         # response = s.scan()
 
-        response = s[:budget*4].execute()
+        response = s[:budget*6].execute()
 
         # print(h)
         # print(response)
@@ -88,9 +101,9 @@ class ServerConnecter:
         #     print(h.info.id)
         # return response
 
-    def queryByURL(self, index="acl2014",queryStr="", year=10000):
+    def queryByURL(self, queryStr="", year=10000):
         response = self.es.search(
-            index=index,
+            index=self.index,
             body={
                 "query": {
                     "bool": {
@@ -103,11 +116,11 @@ class ServerConnecter:
                             }}
                         ],
                         "filter": [
-
                             {"range": {"info.year": {"lte": year}}}
                         ]
                     }
-                }
+                },
+                "stored_fields": []
             }
         )
 
@@ -116,8 +129,8 @@ class ServerConnecter:
             print(hit['_score'], hit['_source']['info']['id'])
 
 if __name__ == '__main__':
-    sc = ServerConnecter()
+    esexport = ElasticsearchExporter(index="acl2014", doc_type="json")
     # sc.queryByDSL(index="acl2014", queryStr="concept-to-text generation", year=2000)
     # sc.getTermVector(index="acl2014", doc_type="json", docid="acl-A00-1001")
-    sc.searchDocsByAuthor(index="acl2014", author="Ioannis Konstas", year=2010)
+    esexport.searchDocsByAuthor(author="Ioannis Konstas", year=2010)
 

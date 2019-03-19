@@ -54,6 +54,7 @@ def print2File(article, resultList, Lambda, resultPath="", budget=ConstantValues
     fout.close()
 
 def printResult(articleId, output, Lambda=-1, resultPath=""):
+    print("number of output: "+str(len(output)))
     jsondoc = {
         'info': {
             'id': articleId,
@@ -292,16 +293,18 @@ def recommendRefByAuthors(indexServer="acl2014", corpusInputPath="inputs/", resu
         articleId = retrievedInfo.getId()
         print(articleId + " : " + query+" "+str(year)+" "+str(authors))
         refDocs=[]
+        server = ServerConnecter()
         for author in authors:
-            server = ServerConnecter()
             auDocs = server.searchDocsByAuthor(index=indexServer, author=author, year=year)
-            for (doc, score) in auDocs.items():
-                print(doc)
-                if (doc!=articleId):
-                    reflist = server.getReflist(index=indexServer, id=doc)
+            for docId in auDocs:
+                print(docId)
+                if (docId!=articleId):
+                    reflist = server.getReflist(index=indexServer, id=docId)
+                    print(len(reflist))
                     for refid in reflist:
                         if refid not in refDocs:
                             refDocs.append(refid)
+        print(len(refDocs))
         printResult(articleId, refDocs, -1, resultPath=resultpath)
 
 
@@ -318,7 +321,7 @@ def recommendRefByAuthors(indexServer="acl2014", corpusInputPath="inputs/", resu
 #qfr: recommendRefByQfr
 #cg: recommendRefByConceptGraph - standard, mmr, mcr (methods)
 #es: using elasticsearch similarity score
-def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="Jardine2014/"):
+def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="inputs/"):
     print(parameters)
     print(resultpath)
     #authors

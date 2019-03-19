@@ -1,8 +1,8 @@
 
-import json
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search, Q
-from lib.utils import Utils
+from lib.submodular.retrievedinfo import RetrievedInformation
+
 # from elasticsearch_dsl.query import MultiMatch, Match
 
 class ServerConnecter:
@@ -13,19 +13,38 @@ class ServerConnecter:
         if id==None:
             return []
         res = self.es.get(index=index, doc_type=doc_type, id=id)
-        return res.get('references',[])
+        print(res['_source'].get('references',[]))
+        return res['_source'].get('references',[])
 
     def searchDocsByAuthor(self, index="acl2014", author=None, year=0):
         if author==None:
             return []
-        print(author)
-        s = Search(using=self.es, index=index).query(Q('match', query=author, fields=['info.authors']))
-        print(s.count)
-        response = s[:100].execute()
-        resultsDocs ={}
-        for h in response:
-            if h.info.year<=year:
-                resultsDocs[h.meta.id] = h.meta.score
+        # print(author)
+        res = self.es.search(index=index, body={"query": {
+                "bool": {
+                    "must": [
+                        {
+                        "term": {
+                            "info.authors.keyword": author
+                            }
+                        }
+                    ],
+                    }
+                },
+                "from": 0,
+                "size": 1000})
+        print("Got %d Hits:" % res['hits']['total'])
+        resultsDocs =[]
+        # print(res['hits']['hits'])
+        for h in res['hits']['hits']:
+            hit = h['_source']
+            # print(hit)
+            retrie = RetrievedInformation(hit)
+            hyear = retrie.getYear()
+            hid = retrie.getId()
+            if hyear<=year:
+                if hid not in resultsDocs:
+                    resultsDocs.append(hid)
                 # print('%s with year %i returned with score %f' % (
                 #     h.meta.id, h.info.year, h.meta.score))
 
@@ -99,4 +118,6 @@ class ServerConnecter:
 if __name__ == '__main__':
     sc = ServerConnecter()
     # sc.queryByDSL(index="acl2014", queryStr="concept-to-text generation", year=2000)
-    sc.getTermVector(index="acl2014", doc_type="json", docid="acl-A00-1001")
+    # sc.getTermVector(index="acl2014", doc_type="json", docid="acl-A00-1001")
+    sc.searchDocsByAuthor(index="acl2014", author="Ioannis Konstas", year=2010)
+

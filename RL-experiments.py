@@ -42,13 +42,19 @@ from lib.elasticsearch.esexporter import ElasticsearchExporter
 #Using ES to get relevant documents by authors,
 # then using submodular function (QFR) to get subset of these
 from lib.elasticsearch.essubmodular import ElasticsearchSubmodularity
-def recommendRLByQfrAu(corpusPath, corpusInputPath, index="acl2014", doc_type="json"):
+def recommendRLByQfrAu(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr-authors/"):
     inputDocs = loadInput(corpusInputPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
+    Lambda = 1.0
     for article in inputDocs:
-        refDocs = getReflistByAuthor(esexport=ese, article=article)
+        retrievedInfo = RetrievedInformation(article)
+        refDocs = getReflistByAuthors(esexport=ese, article=article)
         print(len(refDocs))
-        essub = ElasticsearchSubmodularity()
+        essub = ElasticsearchSubmodularity(index=index, doc_type=doc_type,
+                                           query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+                                           MAX_SIZE=1000)
+        readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
 
 
 
@@ -72,7 +78,7 @@ def recommendRLByES(indexServer="acl2014", corpusInputPath="Jardine2014/", resul
             output.append(key)
         printResult(articleId=article['info']['id'], output=output, resultPath=resultpath)
 
-def getReflistByAuthor(esexport=None, article=None):
+def getReflistByAuthors(esexport=None, article=None):
     if article==None:
         return []
     retrievedInfo = RetrievedInformation(article)
@@ -86,10 +92,10 @@ def getReflistByAuthor(esexport=None, article=None):
     for author in authors:
         auDocs = esexport.searchDocsByAuthor(author=author, year=year)
         for docId in auDocs:
-            print(docId)
+            # print(docId)
             if (docId != articleId):
                 reflist = esexport.getReflist(id=docId)
-                print(len(reflist))
+                # print(len(reflist))
                 for refid in reflist:
                     if refid not in refDocs:
                         refDocs.append(refid)
@@ -99,7 +105,7 @@ def recommendRLByAuthors(index="acl2014", corpusInputPath="inputs/", resultpath=
     inputDocs = loadInput(corpusInputPath)
     ese = ElasticsearchExporter(index=index)
     for article in inputDocs:
-        refDocs = getReflistByAuthor(esexport=ese, article=article)
+        refDocs = getReflistByAuthors(esexport=ese, article=article)
         print(len(refDocs))
         printResult(article['info']['id'], refDocs, -1, resultPath=resultpath)
 
@@ -348,14 +354,19 @@ def printResult(articleId, output, Lambda=-1, resultPath=""):
 #qfr: recommendRLByQfr
 #cg: recommendRLByConceptGraph - standard, mmr, mcr (methods)
 #es: using elasticsearch similarity score
-def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="inputs/"):
+def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="sample-high/"):
     print(parameters)
     print(resultpath)
-    #authors
-    if "au" in parameters:
-        recommendRLByAuthors(indexServer="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
+    #es -> au / not au
+    #au -> qfr / all
     if "es" in parameters:
-        recommendRLByES(indexServer="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
+        if "au" in parameters:
+            if "qfr" in parameters:
+                recommendRLByQfrAu(index="acl2014", doc_type="json", corpusInputPath=corpusInputPath, resultpath=resultpath)
+            else:
+                recommendRLByAuthors(indexServer="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
+        else:
+            recommendRLByES(indexServer="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
     if "top" in parameters:
         recommendRLByTop(corpusPath="data/acl/", corpusInputPath=corpusInputPath, resultPath=resultpath)
     if "qfr" in parameters:

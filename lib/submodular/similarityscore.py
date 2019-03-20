@@ -10,16 +10,16 @@ from collections import Counter
 
 class SimilarityScores:
 
-    def __init__(self, text1, text2, measure = 0):
-        self.text1=text1
-        self.text2=text2
-        self.measure=measure
-
-    def getScore(self):
-        if self.measure==0:
-            return self.cosineOf2Text(self.text1, self.text2)
-        else:
-            return 0.0
+    # def __init__(self, text1, text2, measure = 0):
+    #     self.text1=text1
+    #     self.text2=text2
+    #     self.measure=measure
+    #
+    # def getScore(self):
+    #     if self.measure==0:
+    #         return self.cosineOf2Text(self.text1, self.text2)
+    #     else:
+    #         return 0.0
 
     def cosineOf2Text(self, text1, text2):
         vector1 = self.text_to_vector(text1)

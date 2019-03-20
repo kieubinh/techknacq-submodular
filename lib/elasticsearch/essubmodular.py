@@ -4,8 +4,11 @@ from lib.submodular.similarityscore import SimilarityScores
 
 class ElasticsearchSubmodularity:
     #calculate all query-focused relevance
-    def __init__(self, index="acl2014", doc_type="json", query=None, year=10000, MAX_SIZE=1000):
-        self.ese = ElasticsearchExporter(index=index, doc_type=doc_type)
+    def __init__(self, esexport=None, query=None, year=10000, MAX_SIZE=1000):
+        if esexport==None:
+            print("No information about elasticsearch server")
+            return
+        self.ese = esexport
         if (query!=None) & (len(query) > 0):
             self.qsim = self.ese.queryByDSL(query=query, year= year, budget=MAX_SIZE)
         else:
@@ -118,6 +121,6 @@ class ElasticsearchSubmodularity:
         return argmax, maxF-bound
 
 if __name__ == '__main__':
-    essub = ElasticsearchSubmodularity(index="acl2014", doc_type="json", query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system", year=2014, MAX_SIZE=100)
-    es = ElasticsearchExporter(index="acl2014", doc_type="json")
-    essub.greedyAlgByCardinality(v=es.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"), Lambda=1.0, method="qfr")
+    ese = ElasticsearchExporter(index="acl2014", doc_type="json")
+    essub = ElasticsearchSubmodularity(esexport=ese, query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system", year=2014, MAX_SIZE=100)
+    essub.greedyAlgByCardinality(v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"), Lambda=1.0, method="qfr")

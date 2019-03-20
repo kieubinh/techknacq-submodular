@@ -140,7 +140,7 @@ class ElasticsearchExporter:
         # s.filter(filter)
         # print(q)
         # s.query(q)
-        print(s.count())
+        print("query DSL count: "+str(s.count()))
         # response = s.scan()
         #10000 = max window
         response = s[:budget].execute()

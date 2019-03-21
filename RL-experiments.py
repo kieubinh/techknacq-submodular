@@ -363,7 +363,7 @@ def printResult(articleId, output, Lambda=-1, resultPath=""):
 #qfr: recommendRLByQfr
 #cg: recommendRLByConceptGraph - standard, mmr, mcr (methods)
 #es: using elasticsearch similarity score
-def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="sample-high/"):
+def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="inputs/"):
     print(parameters)
     print(resultpath)
     #es -> au / not au
@@ -372,9 +372,9 @@ def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPat
     if "es" in parameters:
         if "au" in parameters:
             if "qfr" in parameters:
-                recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=corpusInputPath, resultpath=resultpath)
+                recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath="sample-high/", resultpath=resultpath)
             else:
-                recommendRLByAuthors(index="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
+                recommendRLByAuthors(index="acl2014", corpusInputPath="sample-high/", resultpath=resultpath)
         elif "qfr" in parameters:
             recommendRLByQfrEs(index="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
         else:

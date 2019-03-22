@@ -4,6 +4,7 @@ from elasticsearch_dsl import Search, Q
 from lib.submodular.retrievedinfo import RetrievedInformation
 
 # from elasticsearch_dsl.query import MultiMatch, Match
+from elasticsearch_dsl.query import MoreLikeThis
 
 class ElasticsearchExporter:
     def __init__(self, index="acl2014", doc_type="json"):
@@ -16,6 +17,48 @@ class ElasticsearchExporter:
         except Exception as e:
             print('Error connection with elasticsearch')
             sys.exit(1)
+
+    #get document similarity of docId -> {id, score}
+    def getDocSim(self, id=None, MAX_SIZE=5000):
+        if id==None:
+            return {}
+        docsim = {}
+        response = self.es.search(
+            index=self.index,
+            body={
+               "query": {
+                   "more_like_this": {
+                       'fields': ["info.title", "sections.text", "sections.heading"],
+                       "like": [
+                           {"_index": self.index,
+                            "_type": self.doc_type,
+                            "_id": id
+                            }
+                       ],
+                   }
+               },
+                "stored_fields": [],
+                "from": 0,
+                "size": MAX_SIZE
+            }
+        )
+
+        # request = Search().query(MoreLikeThis(like={'_id': id, '_index': self.index, '_type': self.doc_type},
+        #                         fields=['info.title', 'sections']))
+        # response = request.execute()
+        # print(response)
+        # print(response['hits']['total'])
+        max_score = 0.0
+        for hit in response['hits']['hits']:
+            score = hit.get('_score',0.0)
+            if score > max_score:
+                max_score = score
+            docsim[hit['_id']] = score
+            # print(hit['_score'])
+        #scale score into [0,1]
+        for (id, score) in docsim.items():
+            docsim[id]=score / max_score
+        return docsim
 
     def getAllDocsByIndex(self):
         request = Search(using=self.es, index=self.index, doc_type=self.doc_type)
@@ -47,17 +90,17 @@ class ElasticsearchExporter:
         rawtext = ""
         try:
             title = doc['info']['title']
-            rawtext+=title+"\n"
+            rawtext += title+"\n"
             sections = doc['sections']
             # print(sections)
             for sec in sections:
                 # print(sec)
                 if "heading" in sec:
-                    rawtext+=sec['heading']+"\n"
+                    rawtext += sec['heading']+"\n"
                 if "text" in sec:
                     for line in sec['text']:
-                        rawtext+=line
-                    rawtext+="\n"
+                        rawtext += line
+                    rawtext += "\n"
 
         except Exception as e:
             print('Error get information of docId: '+id)
@@ -202,6 +245,8 @@ if __name__ == '__main__':
     # esexport.searchDocsByAuthor(author="Ioannis Konstas", year=2010)
     # resDocs = esexport.queryByURL(query="Machine Translation of Very Close Languages", year=2010, budget=1000)
     # resDocs = esexport.queryByDSL(query="Machine Translation of Very Close Languages", year=2010, budget=1000)
-    esexport.getRawDocById(id="acl-C08-2022")
+    # esexport.getRawDocById(id="acl-C08-2022")
+    docsim = esexport.getDocSim(id="acl-C08-2022")
+    print(docsim)
     # print(len(resDocs))
     # print(resDocs)

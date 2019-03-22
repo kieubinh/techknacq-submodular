@@ -17,58 +17,90 @@ class ElasticsearchSubmodularity:
     # def calDocumentSimilarity(self, index="acl2014", doc_type="json"):
     #     docids = getAllDocs(index, doc_type)
 
-    def calQuerySum(self, s):
-        fquery = 0.0
-        for docId in s:
-            if docId in self.qsim:
-                fquery+=self.qsim[docId]
-        return fquery
+    def calQuerySum(self, newId=None):
+        # print(newId)
+        if newId in self.qsim:
+            return self.qsim[newId]
+        else:
+            return 0.0
 
     #s, v: list of articleId
-    def calGeneralSumByText(self, s, v):
+    #F(snew) = Sim(q, new) + Sum(new, i) - (1+lambda) * Sum(Sim(new, j)) with i belongs V\S and j!=new, j belongs S
+    def calChangeCoPe(self, newId=None, s=[], v=[], Lambda=1.0):
+        # add coverage
+        fcc = 0.0
+        # subtract relevant selected elements
+        fcp = 0.0
+        if newId == None:
+            return 0.0
+        rawdoc1 = self.ese.getRawDocById(newId)
+        #if not found text
+        if len(newId)<10:
+            return 0.0
+        # print(docId1+" : ")
+        # print(rawdoc1)
+        for docId2 in v:
+            if (docId2!=newId):
+                rawdoc2 = self.ese.getRawDocById(docId2)
+                if len(rawdoc2) < 10:
+                    continue
+                if (docId2 in s):
+                    fcp += SimilarityScores().cosineOf2Text(rawdoc1, rawdoc2)
+                else:# if (docId2 in s):
+                    fcc += SimilarityScores().cosineOf2Text(rawdoc1, rawdoc2)
 
-        fcover = 0.0
-        for docId1 in s:
-            rawdoc1 = self.ese.getRawDocById(docId1)
-            #if not found text
-            if len(rawdoc1)<10:
-                continue
-            # print(docId1+" : ")
-            # print(rawdoc1)
-            for docId2 in v:
-                if (docId2 not in s):
-                    rawdoc2 = self.ese.getRawDocById(docId2)
-                    if len(rawdoc2)<10:
-                        continue
-                    # print(docId2 + " : ")
-                    # print(rawdoc2)
-                    # if indexDoc2 in jsondoc2['scores']:
-                    fcover += SimilarityScores().cosineOf2Text(rawdoc1, rawdoc2)
-        return fcover
+        return fcc-(1+Lambda)*fcp
 
-    #subtract relevant selected elements
-    def calPenaltySumByText(self, s):
-        fpenalty = 0.0
-        for docId1 in s:
-            rawdoc1 = self.ese.getRawDocById(docId1)
-            if len(rawdoc1) < 10:
-                continue
-            for docId2 in s:
-                if (docId1 != docId2):
-                    rawdoc2 = self.ese.getRawDocById(docId2)
-                    if len(rawdoc2)<10:
-                        continue
-                    fpenalty += SimilarityScores().cosineOf2Text(rawdoc1, rawdoc2)
+        # s, v: list of articleId
+    def calChangeCoPeByEs(self, newId=None, s=[], v=[], Lambda=1.0):
+        # add coverage
+        fcc = 0.0
+        # subtract relevant selected elements
+        fcp = 0.0
+        if newId == None:
+            return 0.0
+        docsim = self.ese.getDocSim(newId)
+        # if not found any similar doc
+        if len(docsim) < 1:
+            return 0.0
+        # print(docId1+" : ")
+        for docId2 in v:
+            if (docId2 != newId):
+                #if it belongs similar document set
+                if docId2 in docsim:
+                    if (docId2 in s):
+                        fcp += docsim[docId2]
+                    else:
+                        fcc += docsim[docId2]
 
-        return fpenalty
+        return fcc-(1+Lambda)*fcp
+
+    # def calPenaltySumByText(self, newId=None, s=[]):
+    #
+    #     if newId==None:
+    #         return fpenalty
+    #     rawdoc1 = self.ese.getRawDocById(newId)
+    #     if len(rawdoc1) < 10:
+    #         return fpenalty
+    #     for docId2 in s:
+    #         if (newId != docId2):
+    #             rawdoc2 = self.ese.getRawDocById(docId2)
+    #             if len(rawdoc2)<10:
+    #                 continue
+    #             fpenalty += SimilarityScores().cosineOf2Text(rawdoc1, rawdoc2)
+    #
+    #     return fpenalty
 
     # function 3: Query-Focused Relevance
-    def calQFR(self, s, v, Lambda):
-        # fcover = self.calGeneralSumByText(s, v)
-        fquery = self.calQuerySum(s)
+    # only calculate change when add newId
+    def calQFR(self, newId, s, v, Lambda):
+        #add coverage subtract penalty
+        fcp = self.calChangeCoPeByEs(newId=newId, s=s, v=v, Lambda=Lambda)
+        fquery = self.calQuerySum(newId)
+        # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
-        fpenalty = self.calPenaltySumByText(s)
-        return fquery - Lambda * fpenalty
+        # fpenalty = self.calPenaltySumByText(newId, s)
+        return fquery + fcp
 
     #submodular algorithm
     def greedyAlgByCardinality(self, v, Lambda, method):
@@ -94,33 +126,30 @@ class ElasticsearchSubmodularity:
         return s
 
     #switch respective method
-    def calMethod(self, s, v, Lambda, method):
+    def calMethod(self, newId, s, v, Lambda, method):
         result = 0.0
         if method==ConstantValues.Query_Focused_Relevance:
-            result = self.calQFR(s, v, Lambda)
+            result = self.calQFR(newId=newId, s=s, v=v, Lambda=Lambda)
         # print(result)
         return result
 
     def findArgmax(self, s, u, v, Lambda, method):
-        bound=self.calMethod(s, v, Lambda, method)
-        print("bound: "+str(bound))
+        # bound=self.calMethod(s, v, Lambda, method)
+        # print("bound: "+str(bound))
         maxF = None
         argmax = None
-        for doc in u:
-            t=[]
-            for x in s:
-                t.append(x)
-            t.append(doc)
-            ft=self.calMethod(t, v, Lambda, method)
+        for docId in u:
+            ft=self.calMethod(docId, s, v, Lambda, method)
 
             if (maxF==None or maxF<ft):
                 maxF=ft
-                argmax=doc
+                argmax=docId
 
-        print("find max: " + str(maxF))
-        return argmax, maxF-bound
+        print("maxF: " + str(maxF))
+        print(s + [argmax])
+        return argmax, maxF
 
 if __name__ == '__main__':
     ese = ElasticsearchExporter(index="acl2014", doc_type="json")
-    essub = ElasticsearchSubmodularity(esexport=ese, query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system", year=2014, MAX_SIZE=100)
+    essub = ElasticsearchSubmodularity(esexport=ese, query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system", year=2014, MAX_SIZE=1000)
     essub.greedyAlgByCardinality(v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"), Lambda=1.0, method="qfr")

@@ -283,6 +283,27 @@ def readinglistConceptGraph(concept_graph="conceptgraph-19-01-19.json", query="c
     rl = r.getReadinglist()
     print2File(article, rl, -1, resultPath, budget=50000)
 
+#input: query (in article)
+#step 1: get relevant concepts from Gordon2016
+#step 2:
+def readinglistByConceptsEs(concept_graph="conceptgraph-19-01-19.json", query="concept-to-text generation", article="acl-000-0000", resultPath="results/acl-cg-standard/"):
+    querylist = []
+    querylist.append(query)
+    cg = ConceptGraph(click.format_filename(concept_graph))
+    learner_model = {}
+    for c in cg.concepts():
+        learner_model[c] = ConstantValues.BEGINNER
+    r = ReadingList(cg, querylist, learner_model)
+    # print reading list
+    # r.print()
+
+    # summarise the reading list
+
+    # convert r into list of papers
+    r.convert2List()
+    rl = r.getReadinglist()
+    print2File(article, rl, -1, resultPath, budget=50000)
+
 def recommendRLByConceptGraph(concept_graph="concept-graph-standard.json", corpusInputPath="sample-high/", resultPath="results/acl-top50/", subMethod = "all", type_sim="title"):
     # load corpus
     # relevantDocs = RelevantDocuments()
@@ -366,46 +387,49 @@ def printResult(articleId, output, Lambda=-1, resultPath=""):
 def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPath="inputs/"):
     print(parameters)
     print(resultpath)
-    #es -> au / not au
-    #au -> qfr / all
-    #for es
+    # es -> au / not au
+    # au -> qfr / all
+    # for es
     if "es" in parameters:
         if "au" in parameters:
             if "qfr" in parameters:
-                recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath="inputs-server/", resultpath=resultpath)
+                recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath="sample-high/", resultpath=resultpath)
             else:
                 recommendRLByAuthors(index="acl2014", corpusInputPath="sample-high/", resultpath=resultpath)
         elif "qfr" in parameters:
             recommendRLByQfrEs(index="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
         else:
             recommendRLByES(index="acl2014", corpusInputPath=corpusInputPath, resultpath=resultpath)
-    #for tf-idf
-    if "top" in parameters:
-        recommendRLByTop(corpusPath="data/acl/", corpusInputPath=corpusInputPath, resultPath=resultpath)
-    if "qfr" in parameters:
-        recommendRLByQfr(corpusPath="data/acl-select/", corpusInputPath=corpusInputPath, type_sim="title")
-    #for concept graph
-    if "cg" in parameters:
-        #default standard reading list from concept graph
-        subMethod = "all"
 
-        if "mcr" in parameters:
-            subMethod="mcr"
-        if "mmr" in parameters:
-            subMethod="mmr"
+    # for tf-idf
+    if "es" not in parameters:
+        if "top" in parameters:
+            recommendRLByTop(corpusPath="data/acl/", corpusInputPath=corpusInputPath, resultPath=resultpath)
+        if "qfr" in parameters:
+            recommendRLByQfr(corpusPath="data/acl-select/", corpusInputPath=corpusInputPath, type_sim="title")
+        # for concept graph
+        if "cg" in parameters:
+            # default standard reading list from concept graph
+            subMethod = "all"
 
-        #default type sim = title
-        type_sim = "title"
-        if "abstract" in parameters:
-            type_sim="abstract"
-        if "text" in parameters:
-            type_sim="text"
-            #conceptgraph-19-01-19.json
-        recommendRLByConceptGraph(concept_graph="conceptgraph-19-01-19.json", corpusInputPath=corpusInputPath,
-                               resultPath=resultpath, subMethod = subMethod, type_sim=type_sim)
-    #test case
+            if "mcr" in parameters:
+                subMethod="mcr"
+            if "mmr" in parameters:
+                subMethod="mmr"
+
+            # default type sim = title
+            type_sim = "title"
+            if "abstract" in parameters:
+                type_sim="abstract"
+            if "text" in parameters:
+                type_sim="text"
+                # conceptgraph-19-01-19.json
+            recommendRLByConceptGraph(concept_graph="conceptgraph-19-01-19.json", corpusInputPath=corpusInputPath,
+                                   resultPath=resultpath, subMethod = subMethod, type_sim=type_sim)
+    # test case
     # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")
     # subQFR_UPR(path, query, method="qfr", type_sim="text", year=year)
+
 
 if __name__ == '__main__':
     main()

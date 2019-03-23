@@ -372,7 +372,7 @@ def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPat
     if "es" in parameters:
         if "au" in parameters:
             if "qfr" in parameters:
-                recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath="sample-high/", resultpath=resultpath)
+                recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath="inputs-server/", resultpath=resultpath)
             else:
                 recommendRLByAuthors(index="acl2014", corpusInputPath="sample-high/", resultpath=resultpath)
         elif "qfr" in parameters:

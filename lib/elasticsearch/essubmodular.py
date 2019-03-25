@@ -5,15 +5,27 @@ from lib.submodular.similarityscore import SimilarityScores
 
 class ElasticsearchSubmodularity:
     # calculate all query-focused relevance
-    def __init__(self, esexport=None, query=None, year=10000, MAX_SIZE=1000):
+    # def __init__(self, esexport=None, query=None, year=10000, MAX_SIZE=1000):
+    #     if esexport == None:
+    #         print("No information about elasticsearch server")
+    #         return
+    #     self.ese = esexport
+    #     if (query != None) & (len(query) > 0):
+    #         self.qsim = self.ese.queryByDSL(query=query, year=year, budget=MAX_SIZE)
+    #     else:
+    #         self.qsim = {}
+
+    def __init__(self, esexport=None, v=None, qsim=None):
+        if v is None:
+            v = []
+        if qsim is None:
+            qsim={}
         if esexport == None:
             print("No information about elasticsearch server")
             return
         self.ese = esexport
-        if (query != None) & (len(query) > 0):
-            self.qsim = self.ese.queryByDSL(query=query, year=year, budget=MAX_SIZE)
-        else:
-            self.qsim = {}
+        self.qsim = qsim
+        self.v = v
 
     # def calDocumentSimilarity(self, index="acl2014", doc_type="json"):
     #     docids = getAllDocs(index, doc_type)
@@ -94,7 +106,7 @@ class ElasticsearchSubmodularity:
                     if (docId2 in s):
                         fcp += docsim[docId2]
 
-        return (-1.0) * Lambda * fcp
+        return Lambda * fcp
 
     # def calPenaltySumByText(self, newId=None, s=[]):
     #
@@ -112,11 +124,20 @@ class ElasticsearchSubmodularity:
     #
     #     return fpenalty
 
+    def calMCR(self, newId, s, v, Lambda):
+        # add coverage subtract penalty
+        fcp = self.calChangePeByEs(newId=newId, s=s, v=v, Lambda=Lambda)
+        fquery = self.calQuerySum(newId)
+        # print(newId+" - "+str(fquery)+" "+str(fcp))
+        # subtract penalty
+        # fpenalty = self.calPenaltySumByText(newId, s)
+        return fquery - fcp
+
     # function 3: Query-Focused Relevance
     # only calculate change when add newId
     def calQFR(self, newId, s, v, Lambda):
         # add coverage subtract penalty
-        fcp = self.calChangePeByEs(newId=newId, s=s, v=v, Lambda=Lambda)
+        fcp = self.calChangeCoPeByEs(newId=newId, s=s, v=v, Lambda=Lambda)
         fquery = self.calQuerySum(newId)
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
@@ -124,9 +145,9 @@ class ElasticsearchSubmodularity:
         return fquery + fcp
 
     # submodular algorithm
-    def greedyAlgByCardinality(self, v, Lambda, method):
+    def greedyAlgByCardinality(self, Lambda, method):
         # remove no information first
-        v = self.ese.removeIdNoInfor(v)
+        v = self.ese.removeIdNoInfor(self.v)
         print("V: " + str(len(v)) + " -> (submodular function) -> BUDGET = " + str(ConstantValues.BUDGET))
         # all elements = articleId
         # selected set
@@ -151,6 +172,8 @@ class ElasticsearchSubmodularity:
         result = 0.0
         if method == ConstantValues.Query_Focused_Relevance:
             result = self.calQFR(newId=newId, s=s, v=v, Lambda=Lambda)
+        elif method == ConstantValues.Maximal_Concept_Relevance:
+            result = self.calMCR(newId=newId, s=s, v=v, Lambda=Lambda)
         # print(result)
         return result
 
@@ -173,9 +196,8 @@ class ElasticsearchSubmodularity:
 
 if __name__ == '__main__':
     ese = ElasticsearchExporter(index="acl2014", doc_type="json")
-    essub = ElasticsearchSubmodularity(esexport=ese,
-                                       query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system",
-                                       year=2014, MAX_SIZE=1000)
-    essub.greedyAlgByCardinality(
-        v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"),
-        Lambda=1.0, method="qfr")
+    qsim = ese.queryByDSL(query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system",
+                                       year=2014, budget=1000)
+    essub = ElasticsearchSubmodularity(esexport=ese, v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"),
+                                       qsim=qsim)
+    essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")

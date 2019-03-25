@@ -11,9 +11,11 @@ from nltk.stem.lancaster import LancasterStemmer
 # Parameters
 
 THRESHOLD = .005
-MAX_MATCHES = 6
-MAX_DEPTH = 4
-BASE_DOC_NUM = 8
+# max size of relevant concepts
+# default: max_matches = 6, max_depth = 4, base_doc_num = 8
+MAX_MATCHES = 20
+MAX_DEPTH = 5
+BASE_DOC_NUM = 10
 
 # User model constants
 # The values are for interfacing with techknacq-server.
@@ -62,14 +64,26 @@ class ReadingList:
         self.rl = []
 
         self.docs = docs
-
+        # for c in cg.concepts():
+        #     print(c)
+        #     print(cg.g.node[c])
+        # print(self.relevance)
         for c, score in sorted(self.relevance.items(), key=lambda x: x[1],
                                reverse=True)[:MAX_MATCHES]:
+            # print(c+" - "+str(score))
             entry = self.traverse(c, score)
+            # print(entry)
             if entry:
                 self.rl.append(entry)
-                break
+                # break
 
+    def getRelevantConcepts(self, max_matches=10):
+        relConcepts = {}
+        for c, score in sorted(self.relevance.items(), key=lambda x: x[1],
+                               reverse=True)[:max_matches]:
+            # relConcepts[c] = score
+            relConcepts[self.cg.g.node[c]['name']] = score
+        return relConcepts
 
     def best_docs(self, c, roles=None):
         """Return an ordered list of the best documents for the topic
@@ -362,5 +376,6 @@ class ReadingList:
                 if doc not in self.readinglist:
                     self.readinglist.append(doc)
 
+    @property
     def getReadinglist(self):
         return self.readinglist

@@ -2,6 +2,7 @@ import sys
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search, Q
 from lib.submodular.retrievedinfo import RetrievedInformation
+from lib.constantvalues import ConstantValues
 
 # from elasticsearch_dsl.query import MultiMatch, Match
 from elasticsearch_dsl.query import MoreLikeThis
@@ -41,7 +42,8 @@ class ElasticsearchExporter:
                 "from": 0,
                 "size": MAX_SIZE
             }
-        )
+        ).params(request_timeout=ConstantValues.TIMEOUT)
+
 
         # request = Search().query(MoreLikeThis(like={'_id': id, '_index': self.index, '_type': self.doc_type},
         #                         fields=['info.title', 'sections']))
@@ -61,7 +63,7 @@ class ElasticsearchExporter:
         return docsim
 
     def getAllDocsByIndex(self):
-        request = Search(using=self.es, index=self.index, doc_type=self.doc_type)
+        request = Search(using=self.es, index=self.index, doc_type=self.doc_type).params(request_timeout=ConstantValues.TIMEOUT)
         response = request.scan()
         idList = []
         for hit in response:
@@ -146,16 +148,16 @@ class ElasticsearchExporter:
                     }
                 },
                 "from": 0,
-                "size": 1000})
+                "size": 1000}).params(request_timeout=ConstantValues.TIMEOUT)
         # print("Got %d Hits:" % res['hits']['total'])
         resultsDocs =[]
         # print(res['hits']['hits'])
         for h in res['hits']['hits']:
             hit = h['_source']
             # print(hit)
-            retrie = RetrievedInformation(hit)
-            hyear = retrie.getYear()
-            hid = retrie.getId()
+            retri = RetrievedInformation(hit)
+            hyear = retri.getYear()
+            hid = retri.getId()
             if hyear<=year:
                 if hid not in resultsDocs:
                     resultsDocs.append(hid)
@@ -169,6 +171,23 @@ class ElasticsearchExporter:
         print(vector)
         return vector
 
+    # get relevant documents based on concept list
+    def getRelevantDocsByCL(self, conceptlist={}, year=10000, max_each_matches=50):
+        # key = id, value = similarity score
+        vDocs = {}
+        for query in conceptlist.keys():
+            print(query)
+            resDocs = self.queryByDSL(query=query, year=year, budget=max_each_matches)
+            # update to vDocs
+            for docId, score_sim in resDocs.items():
+                if docId in vDocs:
+                    # vDocs[docId] = vDocs[docId] + 1.0*score_sim*score_cl
+                    vDocs[docId] = vDocs[docId] + score_sim
+                else:
+                    # vDocs[docId] = 1.0*score_sim*score_cl
+                    vDocs[docId] = score_sim
+        return vDocs
+
     def queryByDSL(self,query="", year=10000, budget=50):
         # fil = Q('range', body=' { "info.year": { "lte": 2000 }} ')
         query_bool = []
@@ -177,7 +196,7 @@ class ElasticsearchExporter:
         q = Q({'bool': {'must':query_bool}})
         # filter = Q()
         # r = Range({ "@info.year": { "lte": 2010 }})
-        s = Search(using=self.es, index=self.index, doc_type=self.doc_type).query(q)
+        s = Search(using=self.es, index=self.index, doc_type=self.doc_type).params(request_timeout=ConstantValues.TIMEOUT).query(q)
         # s.highlight_options(order='score')
         # s.exclude('range', fileds='info.year', lte=year)
         # s.filter(filter)

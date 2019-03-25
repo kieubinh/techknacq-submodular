@@ -14,8 +14,7 @@ from lib.submodular.submodular import Submodular
 from lib.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
-lambda_test=[1.0]
-
+lambda_test = [1.0]
 #------------------------------- LOADING INPUT ----------------------------------------------
 import os
 import io
@@ -50,8 +49,12 @@ def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None,
         retrievedInfo = RetrievedInformation(article)
         refDocs = getReflistByAuthors(esexport=ese, article=article)
         print(len(refDocs))
-        essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
-        readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
+        qsim = ese.queryByDSL(query=retrievedInfo.getQuery(),year=retrievedInfo.getYear(), budget=1000)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=refDocs, qsim=qsim)
+        readinglist = essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")
+
+        # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
+        # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
         printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
 
 
@@ -64,11 +67,14 @@ def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, r
     for article in inputDocs:
         retrievedInfo = RetrievedInformation(article)
         print(retrievedInfo.getId()+" "+retrievedInfo.getQuery()+" "+str(retrievedInfo.getYear()))
-        resDocs = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=ConstantValues.MAX_SUBMODULARITY)
-        print(len(resDocs))
-        essub = ElasticsearchSubmodularity(esexport=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
-                                           MAX_SIZE=1000)
-        readinglist = essub.greedyAlgByCardinality(v=resDocs, Lambda=Lambda, method="qfr")
+        vDocs = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=ConstantValues.MAX_SUBMODULARITY)
+        print(len(vDocs))
+        qsim = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, qsim=qsim)
+        readinglist = essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")
+        # essub = ElasticsearchSubmodularity(esexport=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+        #                                    MAX_SIZE=1000)
+        # readinglist = essub.greedyAlgByCardinality(v=vDocs, Lambda=Lambda, method="qfr")
         printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
 
 
@@ -102,7 +108,7 @@ def getReflistByAuthors(esexport=None, article=None):
         auDocs = esexport.searchDocsByAuthor(author=author, year=year)
         for docId in auDocs:
             # print(docId)
-            if (docId != articleId):
+            if docId != articleId:
                 reflist = esexport.getReflist(id=docId)
                 # print(len(reflist))
                 for refid in reflist:
@@ -209,7 +215,7 @@ def subMMR_MCR(concept_graph, query, method="mmr",type_sim = "title", article=No
 
     #convert r into list of papers
     r.convert2List()
-    rl = r.getReadinglist()
+    rl = r.getReadinglist
     # print(rl)
     if len(rl)<=ConstantValues.BUDGET:
         #if length <= budget
@@ -263,70 +269,13 @@ def subQFR_UPR(path, query, method="qfr", type_sim="title", year=10000):
         summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
         printResult(articleId="subQFR_UPR"+query, output=summarizedlist, Lambda=Lambda)
 
-#input: query (in article)
-#output: reading list by Gordon 2017
-def readinglistConceptGraph(concept_graph="conceptgraph-19-01-19.json", query="concept-to-text generation", article="acl-000-0000", resultPath="results/acl-cg-standard/"):
-    querylist = []
-    querylist.append(query)
-    cg = ConceptGraph(click.format_filename(concept_graph))
-    learner_model = {}
-    for c in cg.concepts():
-        learner_model[c] = ConstantValues.BEGINNER
-    r = ReadingList(cg, querylist, learner_model)
-    # print reading list
-    # r.print()
-
-    # summarise the reading list
-
-    # convert r into list of papers
-    r.convert2List()
-    rl = r.getReadinglist()
-    print2File(article, rl, -1, resultPath, budget=50000)
-
-#input: query (in article)
-#step 1: get relevant concepts from Gordon2016
-#step 2:
-def readinglistByConceptsEs(concept_graph="conceptgraph-19-01-19.json", query="concept-to-text generation", article="acl-000-0000", resultPath="results/acl-cg-standard/"):
-    querylist = []
-    querylist.append(query)
-    cg = ConceptGraph(click.format_filename(concept_graph))
-    learner_model = {}
-    for c in cg.concepts():
-        learner_model[c] = ConstantValues.BEGINNER
-    r = ReadingList(cg, querylist, learner_model)
-    # print reading list
-    # r.print()
-
-    # summarise the reading list
-
-    # convert r into list of papers
-    r.convert2List()
-    rl = r.getReadinglist()
-    print2File(article, rl, -1, resultPath, budget=50000)
-
-def recommendRLByConceptGraph(concept_graph="concept-graph-standard.json", corpusInputPath="sample-high/", resultPath="results/acl-top50/", subMethod = "all", type_sim="title"):
-    # load corpus
-    # relevantDocs = RelevantDocuments()
-    # relevantDocs.loadFromPath(corpusPath)
-
-    # load input
-    inputDocs = loadInput(corpusInputPath)
-    for article in inputDocs:
-        query = RetrievedInformation(article).getQuery()
-        # retrievedInfo.loadInforFromTitle(article)
-        print(article['info']['id'] + " : " + query)
-        if subMethod == "all":
-            readinglistConceptGraph(concept_graph=concept_graph, query=query, article=article, resultPath=resultPath)
-        else:
-            subMMR_MCR(concept_graph=concept_graph, query=query, method=subMethod, type_sim=type_sim, article=article, resultPath=resultPath)
-
 #---------------------------------- PRINT RESULT -------------------------------------------
 def print2File(article, resultList, Lambda, resultPath="", budget=ConstantValues.BUDGET):
     articleId = article['info']['id']
     year = int(article['info'].get('year','10000'))
     # print(year)
-    output=[]
-    count=0
+    output = []
+    count = 0
 
     for doc in resultList:
         # print(doc['id'])
@@ -358,8 +307,9 @@ def print2File(article, resultList, Lambda, resultPath="", budget=ConstantValues
         json.dump(jsondoc, fout)
     fout.close()
 
-def printResult(articleId, output, Lambda=-1, resultPath=""):
+def printResult(articleId, output, Lambda=-1.0, resultPath=""):
     print("number of output: "+str(len(output)))
+    # print(output)
     jsondoc = {
         'info': {
             'id': articleId,
@@ -407,25 +357,7 @@ def main(resultpath="results/acl-cg/", parameters="cg mmr title", corpusInputPat
             recommendRLByTop(corpusPath="data/acl/", corpusInputPath=corpusInputPath, resultPath=resultpath)
         if "qfr" in parameters:
             recommendRLByQfr(corpusPath="data/acl-select/", corpusInputPath=corpusInputPath, type_sim="title")
-        # for concept graph
-        if "cg" in parameters:
-            # default standard reading list from concept graph
-            subMethod = "all"
 
-            if "mcr" in parameters:
-                subMethod="mcr"
-            if "mmr" in parameters:
-                subMethod="mmr"
-
-            # default type sim = title
-            type_sim = "title"
-            if "abstract" in parameters:
-                type_sim="abstract"
-            if "text" in parameters:
-                type_sim="text"
-                # conceptgraph-19-01-19.json
-            recommendRLByConceptGraph(concept_graph="conceptgraph-19-01-19.json", corpusInputPath=corpusInputPath,
-                                   resultPath=resultpath, subMethod = subMethod, type_sim=type_sim)
     # test case
     # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")
     # subQFR_UPR(path, query, method="qfr", type_sim="text", year=year)

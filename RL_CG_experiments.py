@@ -41,7 +41,7 @@ def recommendRLByCGMCR(index="acl2014", doc_type="json", concept_graph="concept-
         querylist = [query]
         rl = ReadingList(cg, querylist, learner_model)
         # get 10 relevant concepts for the query
-        # conceptlist = rl.getRelevantConcepts(max_matches=5)
+        conceptlist = rl.getRelevantConcepts(max_matches=5)
         # add original query
         conceptlist = {}
         conceptlist[query] = 1.0
@@ -50,10 +50,10 @@ def recommendRLByCGMCR(index="acl2014", doc_type="json", concept_graph="concept-
         vlist = []
         for key in vDocs.keys():
             vlist.append(key)
-        # essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, qsim=vDocs)
-        # readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="mcr")
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, qsim=vDocs)
+        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="mcr")
 
-        RLE.printResult(articleId=retrievedInfo.getId(), output=vlist, Lambda=Lambda, resultPath=resultPath)
+        RLE.printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultPath)
 
 
 # input: query (in article)

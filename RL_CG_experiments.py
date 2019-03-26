@@ -24,7 +24,7 @@ def getlistID(year=10000, resultlist=None):
 
     return output
 
-def recommendRLByCGMCR(index="acl2014", doc_type="json", concept_graph="concept-graph-standard.json", corpusInputPath="inputs/", resultPath="results/acl-cg-mcr/"):
+def recommendRLByCGMCR(index="acl2014", doc_type="json", concept_graph="concept-graph-standard.json", corpusInputPath="inputs/", resultPath="results/acl-cg-mcr/", method="mcr"):
     # load input
     inputDocs = RLE.loadInput(corpusInputPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
@@ -43,15 +43,15 @@ def recommendRLByCGMCR(index="acl2014", doc_type="json", concept_graph="concept-
         # get 10 relevant concepts for the query
         conceptlist = rl.getRelevantConcepts(max_matches=5)
         # add original query
-        conceptlist = {}
+        # conceptlist = {}
         conceptlist[query] = 1.0
-        vDocs = ese.getRelevantDocsByCL(conceptlist, year=retrievedInfo.getYear(), max_each_matches=1000)
+        vDocs = ese.getRelevantDocsByCL(conceptlist, year=retrievedInfo.getYear(), max_each_matches=100)
         # print(vDocs)
         vlist = []
         for key in vDocs.keys():
             vlist.append(key)
         essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, qsim=vDocs)
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="mcr")
+        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method=method)
 
         RLE.printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultPath)
 
@@ -113,22 +113,25 @@ def recommendRLByCGS(concept_graph="concept-graph-standard.json", corpusInputPat
         # convert r into list of papers
         r.convert2List()
         rl = r.getReadinglist
-        RLE.print2File(article, rl, -1, resultPath=resultPath, budget=500000)
+        RLE.print2File(article, rl, -1, resultPath=resultPath, budget=50000)
 
 
 @click.command()
 @click.argument('resultpath', type=click.Path())
 @click.argument('parameters', nargs=-1)
-def main(concept_graph="concept-graph-standard.json", resultpath="results/acl-cg/", parameters="cg mmr mcr std", corpusInputPath="inputs/"):
+def main(concept_graph="concept-graph-standard.json", resultpath="results/acl-cg/", parameters="cg qfr mmr mcr std", corpusInputPath="inputs/"):
     print(resultpath)
     print(parameters)
     #mmr
     if "mmr" in parameters:
         recommendRLByCGMMR(concept_graph=concept_graph, corpusInputPath=corpusInputPath, resultPath=resultpath)
     if "mcr" in parameters:
-        recommendRLByCGMCR(concept_graph=concept_graph, corpusInputPath=corpusInputPath, resultPath=resultpath)
+        recommendRLByCGMCR(concept_graph=concept_graph, corpusInputPath=corpusInputPath, resultPath=resultpath, method="mcr")
     if "std" in parameters:
         recommendRLByCGS(concept_graph=concept_graph, corpusInputPath=corpusInputPath, resultPath=resultpath)
+
+    if "qfr" in parameters:
+        recommendRLByCGMCR(concept_graph=concept_graph, corpusInputPath=corpusInputPath, resultPath=resultpath, method="qfr")
     # # for concept graph
     # if "cg" in parameters:
     #     # default standard reading list from concept graph

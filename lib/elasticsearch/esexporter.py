@@ -42,7 +42,7 @@ class ElasticsearchExporter:
                 "from": 0,
                 "size": MAX_SIZE
             }
-        ).params(request_timeout=ConstantValues.TIMEOUT)
+        )
 
 
         # request = Search().query(MoreLikeThis(like={'_id': id, '_index': self.index, '_type': self.doc_type},

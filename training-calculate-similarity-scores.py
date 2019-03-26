@@ -1,4 +1,4 @@
-from lib.elasticsearch.esimporter import ServerImporter
+from lib.elasticsearch.esimporter import ElasticsearchImporter
 from lib.constantvalues import ConstantValues
 from lib.submodular.relevantdocuments import RelevantDocuments
 
@@ -7,7 +7,7 @@ def calSim():
     relevantDocs.scroreTfIdfModel(path_raw=ConstantValues.ACL, path_score=ConstantValues.ACL_SCORES)
 
 def testImporter():
-    ServerImporter().jsonParser("data/acl/")
+    ElasticsearchImporter().jsonParser("data/acl/")
 
 if __name__ == '__main__':
     testImporter()

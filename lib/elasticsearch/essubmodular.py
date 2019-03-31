@@ -65,7 +65,7 @@ class ElasticsearchSubmodularity:
         return fcc - (1 + Lambda) * fcp
 
     # s, v: list of articleId
-    def calChangeCoPeByEs(self, newId=None, s=[], v=[], Lambda=1.0):
+    def calDeltaCoveragePenaltyByEs(self, newId=None, s=[], v=[], Lambda=1.0):
         # add coverage
         fcc = 0.0
         # subtract relevant selected elements
@@ -99,12 +99,11 @@ class ElasticsearchSubmodularity:
         if len(docsim) < 1:
             return 0.0
         # print(docId1+" : ")
-        for docId2 in v:
-            if (docId2 != newId):
+        for docId2 in s:
+            # if (docId2 != newId):
                 # if it belongs similar document set
                 if docId2 in docsim:
-                    if (docId2 in s):
-                        fcp += docsim[docId2]
+                    fcp += docsim[docId2]
 
         return Lambda * fcp
 
@@ -137,12 +136,12 @@ class ElasticsearchSubmodularity:
     # only calculate change when add newId
     def calQFR(self, newId, s, v, Lambda):
         # add coverage subtract penalty
-        fcp = self.calChangeCoPeByEs(newId=newId, s=s, v=v, Lambda=Lambda)
-        fquery = self.calQuerySum(newId)
+        deltafcp = self.calDeltaCoveragePenaltyByEs(newId=newId, s=s, v=v, Lambda=Lambda)
+        deltafquery = self.calQuerySum(newId)
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
-        return fquery + fcp
+        return deltafquery + deltafcp
 
     # submodular algorithm
     def greedyAlgByCardinality(self, Lambda, method):

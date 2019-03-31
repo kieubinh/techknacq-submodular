@@ -10,7 +10,7 @@ class ConstantValues:
     TIMEOUT = 20
 
     MAX_SUBMODULARITY = 200
-    BUDGET=50
+    BUDGET=15
     PENALTY = 1.0
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'

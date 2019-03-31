@@ -81,3 +81,12 @@ class Evaluation:
 
     def getAvgFscore(self):
         return self.avgFscore
+
+    def getStatistics(self):
+        sumout = 0
+        sumans = 0
+        for name in self.output.keys():
+            sumout += len(self.output[name])
+            sumans += len(self.answer[name])
+        print("# average output: " +str(1.0*sumout / len(self.output)))
+        print("# average answer: " + str(1.0 * sumans / len(self.output)))

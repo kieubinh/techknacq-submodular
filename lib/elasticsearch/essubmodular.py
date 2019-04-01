@@ -15,25 +15,25 @@ class ElasticsearchSubmodularity:
     #     else:
     #         self.qsim = {}
 
-    def __init__(self, esexport=None, v=None, qsim=None):
+    def __init__(self, esexport=None, v=None, simq=None):
         if v is None:
             v = []
-        if qsim is None:
-            qsim={}
+        if simq is None:
+            simq={}
         if esexport == None:
             print("No information about elasticsearch server")
             return
         self.ese = esexport
-        self.qsim = qsim
+        self.simq = simq
         self.v = v
 
     # def calDocumentSimilarity(self, index="acl2014", doc_type="json"):
     #     docids = getAllDocs(index, doc_type)
 
-    def calQuerySum(self, newId=None):
+    def calDeltaSum(self, newId=None):
         # print(newId)
-        if newId in self.qsim:
-            return self.qsim[newId]
+        if newId in self.simq:
+            return self.simq[newId]
         else:
             return 0.0
 
@@ -65,28 +65,23 @@ class ElasticsearchSubmodularity:
         return fcc - (1 + Lambda) * fcp
 
     # s, v: list of articleId
+    # delta_fcp(S_(k+1))    =   (1-lambda) * Sum_(x_i in V\{x_(k+1)}) sim(d_x_i, d_x_(k+1))
+    #                           - (2-lambda) Sum_(x_i in S_k) sim (d_x_i, d_x_(k+1))
     def calDeltaCoveragePenaltyByEs(self, newId=None, s=[], v=[], Lambda=1.0):
-        # add coverage
-        fcc = 0.0
+
         # subtract relevant selected elements
-        fcp = 0.0
+        fsk = 0.0
         if newId == None:
             return 0.0
-        docsim = self.ese.getDocSim(newId)
-        # if not found any similar doc
-        if len(docsim) < 1:
-            return 0.0
+        # get document similarity between one and the rest of documents
+        fvk = self.simdocs[newId]['OneVsRest']
         # print(docId1+" : ")
-        for docId2 in v:
-            if (docId2 != newId):
-                # if it belongs similar document set
-                if docId2 in docsim:
-                    if (docId2 in s):
-                        fcp += docsim[docId2]
-                    else:
-                        fcc += docsim[docId2]
+        for docId in s:
+            # if it belongs similar document set
+            if docId in self.simdocs:
+                fsk += self.simdocs[newId][docId]
 
-        return fcc - (1 + Lambda) * fcp
+        return (1-Lambda) * fvk - (2-Lambda) * fsk
 
     # s, v: list of articleId
     def calChangePeByEs(self, newId=None, s=[], v=[], Lambda=1.0):
@@ -123,30 +118,48 @@ class ElasticsearchSubmodularity:
     #
     #     return fpenalty
 
+    # Vc: 300 concepts (fixed)
+    # ft(S_k) = (1- lambda) * fc(S_k) - lambda * fp(S_k)
+    # fc(S_k) = Sum_(c_i in Vc) Sum_(x_j in S_k) w(c_i, d_x_j)
+    # fp(S_k) = Sum_(x_i in S_k) Sum_(x_j in S_k) sim (d_x_i, d_x_j)
+    # delta_fc(S_(k+1)) = Sum_(c_i in Vc) w(c_i, d_x_(k+1))
+    # delta_fp(S_(k+1)) = Sum_(x_i in S_k) sim(d_i, d_x_(k+1))
     def calMCR(self, newId, s, v, Lambda):
         # add coverage subtract penalty
-        fcp = self.calChangePeByEs(newId=newId, s=s, v=v, Lambda=Lambda)
-        fquery = self.calQuerySum(newId)
+        delta_fc = self.calChangePeByEs(newId=newId, s=s, v=v, Lambda=Lambda)
+        delta_fp = self.calDeltaSum(newId)
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
-        return fquery - fcp
+        return (1 - Lambda) * delta_fc - Lambda * delta_fp
 
     # function 3: Query-Focused Relevance
     # only calculate change when add newId
-    def calQFR(self, newId, s, v, Lambda):
+    # ft(S_k) = (1-lambda) * fc(S_k) + alpha * fq(S_k) - lambda * fp(S_k)
+    # fc(S_k) = Sum_(x_i in V\S_k) Sum_(x_j in S_k) sim (d_x_i, d_x_j)
+    # fp(S_k) = Sum_(x_i in S_k) Sum_(x_j in S_k) sim (d_x_i, d_x_j)
+    # fq(S_k) = Sum_(x_i in S_k) w(q, d_x_i)
+    # fp(S_k) = Sum_(x_i in S_k) Sum_(x_j in S_k) sim (d_x_i, d_x_j)
+    # delta_fc(S_(k+1))     =   Sum_(x_i in V\{x_(k+1)}) sim(d_x_i, d_x_(k+1))
+    #                           - 2 * Sum_(x_i in S_k) sim(d_x_i, d_x_(k+1))
+    # delta_fp(S_(k+1))     =   Sum_(x_i in S_k) sim(d_x_i, d_x_(k+1))
+    # delta_fcp(S_(k+1))    =   (1-lambda) * Sum_(x_i in V\{x_(k+1)}) sim(d_x_i, d_x_(k+1))
+    #                           - (2-lambda) Sum_(x_i in S_k) sim (d_x_i, d_x_(k+1))
+    # delta_fq(S_(k+1))     =   w(q, x_(k+1)) with x_(k+1) in S_(k+1)
+    def calQFR(self, newId, s, v, Lambda, alpha=1.0):
         # add coverage subtract penalty
-        deltafcp = self.calDeltaCoveragePenaltyByEs(newId=newId, s=s, v=v, Lambda=Lambda)
-        deltafquery = self.calQuerySum(newId)
+        delta_fcp = self.calDeltaCoveragePenaltyByEs(newId=newId, s=s, v=v, Lambda=Lambda)
+        delta_fq = self.calDeltaSum(newId)
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
-        return deltafquery + deltafcp
+        return delta_fcp + alpha * delta_fq
 
     # submodular algorithm
     def greedyAlgByCardinality(self, Lambda, method):
         # remove no information first
         v = self.ese.removeIdNoInfor(self.v)
+        self.simdocs = self.ese.calSimDocs(v)
         print("V: " + str(len(v)) + " -> (submodular function) -> BUDGET = " + str(ConstantValues.BUDGET))
         # all elements = articleId
         # selected set
@@ -170,7 +183,7 @@ class ElasticsearchSubmodularity:
     def calMethod(self, newId, s, v, Lambda, method):
         result = 0.0
         if method == ConstantValues.Query_Focused_Relevance:
-            result = self.calQFR(newId=newId, s=s, v=v, Lambda=Lambda)
+            result = self.calQFR(newId=newId, s=s, v=v, Lambda=Lambda, alpha=ConstantValues.ALPHA)
         elif method == ConstantValues.Maximal_Concept_Relevance:
             result = self.calMCR(newId=newId, s=s, v=v, Lambda=Lambda)
         # print(result)
@@ -195,8 +208,8 @@ class ElasticsearchSubmodularity:
 
 if __name__ == '__main__':
     ese = ElasticsearchExporter(index="acl2014", doc_type="json")
-    qsim = ese.queryByDSL(query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system",
+    simq = ese.queryByDSL(query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system",
                                        year=2014, budget=1000)
     essub = ElasticsearchSubmodularity(esexport=ese, v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"),
-                                       qsim=qsim)
+                                       simq=simq)
     essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")

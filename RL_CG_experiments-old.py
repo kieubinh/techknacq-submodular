@@ -51,7 +51,7 @@ def recommendRLByCGMCR(index="acl2014", doc_type="json", concept_graph="concept-
         for key in vDocs.keys():
             vlist.append(key)
         # print(len(vlist))
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, qsim=vDocs)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=vDocs)
         readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="mcr")
 
         RLE.printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultPath)
@@ -86,7 +86,7 @@ def recommendRLByCGMMR(index="acl2014", doc_type="json", concept_graph="concept-
         vDocs = getlistID(year=retrievedInfo.getYear(), resultlist=rl)
         qsim = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
 
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, qsim=qsim)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=qsim)
         readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
 
         RLE.printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultPath)

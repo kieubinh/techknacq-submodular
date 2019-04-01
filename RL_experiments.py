@@ -49,8 +49,8 @@ def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None,
         retrievedInfo = RetrievedInformation(article)
         refDocs = getReflistByAuthors(esexport=ese, article=article)
         print(len(refDocs))
-        qsim = ese.queryByDSL(query=retrievedInfo.getQuery(),year=retrievedInfo.getYear(), budget=1000)
-        essub = ElasticsearchSubmodularity(esexport=ese, v=refDocs, qsim=qsim)
+        simq = ese.queryByDSL(query=retrievedInfo.getQuery(),year=retrievedInfo.getYear(), budget=1000)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=refDocs, simq=simq)
         readinglist = essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
@@ -69,8 +69,8 @@ def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, r
         print(retrievedInfo.getId()+" "+retrievedInfo.getQuery()+" "+str(retrievedInfo.getYear()))
         vDocs = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=ConstantValues.MAX_SUBMODULARITY)
         print(len(vDocs))
-        qsim = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, qsim=qsim)
+        simq = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=simq)
         readinglist = essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")
         # essub = ElasticsearchSubmodularity(esexport=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
         #                                    MAX_SIZE=1000)

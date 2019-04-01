@@ -19,6 +19,13 @@ class ElasticsearchExporter:
             print('Error connection with elasticsearch')
             sys.exit(1)
 
+    # calculate similarity matrix between 2 documents
+    def calSimDocs(self, v=None):
+        if v is None:
+            return []
+        for docId in v:
+
+
     #get document similarity of docId -> {id, score}
     def getDocSim(self, id=None, MAX_SIZE=5000):
         if id==None:

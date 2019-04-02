@@ -9,8 +9,9 @@ from elasticsearch_dsl.query import MoreLikeThis
 
 class ElasticsearchExporter:
     def __init__(self, index="acl2014", doc_type="json"):
+        self.idList = []
         try:
-            self.es=Elasticsearch()
+            self.es = Elasticsearch()
             self.index = index
             self.doc_type = doc_type
             #get all ids
@@ -22,15 +23,26 @@ class ElasticsearchExporter:
     # calculate similarity matrix between 2 documents
     def calSimDocs(self, v=None):
         if v is None:
-            return []
+            return {}
+        simdocs = {}
         for docId in v:
+            score_doc = self.findSimDocsById(id=docId)
+            simdocs[docId][ConstantValues.OneVsRest] = 0.0
+            for docId2 in v:
+                if (docId2 != docId) & (docId2 in score_doc):
+                    simdocs[docId][docId2] = score_doc[docId2]
+                    simdocs[docId][ConstantValues.OneVsRest] += score_doc[docId2]
+                else:
+                    # if no edge between docId and docId2
+                    simdocs[docId][docId2] = 0.0
 
+        return simdocs
 
-    #get document similarity of docId -> {id, score}
-    def getDocSim(self, id=None, MAX_SIZE=5000):
+    # get document similarity of docId -> {id, score}
+    def findSimDocsById(self, id=None, MAX_SIZE=5000):
         if id==None:
             return {}
-        docsim = {}
+        simdoc = {}
         response = self.es.search(
             index=self.index,
             body={
@@ -59,15 +71,15 @@ class ElasticsearchExporter:
         # print(response['hits']['total'])
         max_score = 0.0
         for hit in response['hits']['hits']:
-            score = hit.get('_score',0.0)
+            score = hit.get('_score', 0.0)
             if score > max_score:
                 max_score = score
-            docsim[hit['_id']] = score
+            simdoc[hit['_id']] = score
             # print(hit['_score'])
-        #scale score into [0,1]
-        for (id, score) in docsim.items():
-            docsim[id]=score / max_score
-        return docsim
+        # scale score into [0,1]
+        for (docid, score) in simdoc.items():
+            simdoc[docid] = score / max_score
+        return simdoc
 
     def getAllDocsByIndex(self):
         request = Search(using=self.es, index=self.index, doc_type=self.doc_type).params(request_timeout=ConstantValues.TIMEOUT)
@@ -77,6 +89,7 @@ class ElasticsearchExporter:
             if "acl" in hit.meta.id:
                 idList.append(hit.meta.id)
         self.idList = idList
+        return idList
 
     def removeIdNoInfor(self, v):
         newV = []
@@ -155,7 +168,7 @@ class ElasticsearchExporter:
                     }
                 },
                 "from": 0,
-                "size": 1000}).params(request_timeout=ConstantValues.TIMEOUT)
+                "size": 1000})
         # print("Got %d Hits:" % res['hits']['total'])
         resultsDocs =[]
         # print(res['hits']['hits'])
@@ -195,14 +208,16 @@ class ElasticsearchExporter:
                     vDocs[docId] = score_sim
         return vDocs
 
-    def queryByDSL(self,query="", year=10000, budget=50):
+    def queryByDSL(self, query="", year=10000, budget=50):
         # fil = Q('range', body=' { "info.year": { "lte": 2000 }} ')
         query_bool = []
         query_bool.append(Q('multi_match', query=query, fields=['info.title', 'sections.text', 'sections.heading']))
         query_bool.append({'range': {'info.year': {'lte': year}}})
-        q = Q({'bool': {'must':query_bool}})
+        q = Q({'bool': {'must': query_bool}})
         # filter = Q()
         # r = Range({ "@info.year": { "lte": 2010 }})
+        # print(self.index)
+        # print(self.doc_type)
         s = Search(using=self.es, index=self.index, doc_type=self.doc_type).params(request_timeout=ConstantValues.TIMEOUT).query(q)
         # s.highlight_options(order='score')
         # s.exclude('range', fileds='info.year', lte=year)
@@ -243,7 +258,6 @@ class ElasticsearchExporter:
                 "query": {
                     "bool": {
                         "must": [
-
                             {"multi_match": {
                                 "query": query,
                                 "fields": ["info.title", "sections.text", "sections.heading"]
@@ -265,14 +279,14 @@ class ElasticsearchExporter:
             print(hit['_score'])
 
 if __name__ == '__main__':
-    esexport = ElasticsearchExporter(index="acl2014", doc_type="json")
+    esexport = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)
     # sc.queryByDSL(index="acl2014", queryStr="concept-to-text generation", year=2000)
     # sc.getTermVector(index="acl2014", doc_type="json", docid="acl-A00-1001")
     # esexport.searchDocsByAuthor(author="Ioannis Konstas", year=2010)
     # resDocs = esexport.queryByURL(query="Machine Translation of Very Close Languages", year=2010, budget=1000)
     # resDocs = esexport.queryByDSL(query="Machine Translation of Very Close Languages", year=2010, budget=1000)
     # esexport.getRawDocById(id="acl-C08-2022")
-    docsim = esexport.getDocSim(id="acl-C08-2022")
-    print(docsim)
+    results = esexport.queryByDSL(query="Improved Models of Distortion Cost for Statistical Machine Translation", year=2010, budget=30)
+    print(results)
     # print(len(resDocs))
     # print(resDocs)

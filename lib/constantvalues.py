@@ -10,12 +10,15 @@ class ConstantValues:
     TIMEOUT = 20
 
     MAX_SUBMODULARITY = 200
-    BUDGET=50
+    BUDGET = 30
     Lambda = 1.0
     Alpha = 1.0
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'
     SIMILARITY_MEASUE = 'text'
+    ACL_CORPUS_INDEX = "acl_tfidf"
+    ACL_CORPUS_DOCTYPE = "doc"
+    OneVsRest = "OneVsRest"
 
     LAZY_GREEDY_ALG=0 #default
     COSINE = 0 #default

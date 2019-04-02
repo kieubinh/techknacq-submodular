@@ -1,7 +1,24 @@
 
-
-from lib.submodular.relevantdocuments import RelevantDocuments
+from lib.elasticsearch.esexporter import ElasticsearchExporter
 from lib.techknacq.corpus import Corpus
+from lib.constantvalues import ConstantValues
+import random_selection_corpus as ransel
+import random
+
+def getRandomDocs(listdocs=[], MAXSIZE=50):
+    if len(listdocs) <= MAXSIZE:
+        return listdocs
+    selected = []
+    while len(selected) < MAXSIZE:
+        x = random.randrange(len(listdocs))
+        selected.append(listdocs[x])
+        # print(selected)
+        # print(docs)
+        listdocs.remove(listdocs[x])
+    print(len(selected))
+    print(selected)
+    return selected
+
 
 import click
 @click.command()
@@ -12,9 +29,14 @@ def main(path="data/acl/"):
     # relevantDocs.scroreTfIdfModel(path_raw=path)
     # relevantDocs.loadFromPath(path)
     corpus = Corpus(path=path)
-    docs = corpus.getHighReference(threshold=30)
-    print(len(docs))
+    ese = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)
+    docIds = ese.getAllDocsByIndex()
+    # print(len(docIds))
+    docs = corpus.getHighReference(threshold=20, v=docIds)
+    # print(len(docs))
     print(docs)
+    selected_docs = getRandomDocs(listdocs=docs, MAXSIZE=100)
+    ransel.selectFiles(path, "inputs/", selected_docs, method="copy")
 
 if __name__ == '__main__':
     main()

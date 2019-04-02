@@ -1,0 +1,283 @@
+{
+  "info": {
+    "authors": [
+      "Heng Yu",
+      "Liang Huang",
+      "Haitao Mi",
+      "Kai Zhao"
+    ],
+    "book": "EMNLP",
+    "id": "acl-D13-1112",
+    "title": "Max-Violation Perceptron and Forced Decoding for Scalable MT Training",
+    "url": "https://aclweb.org/anthology/D13-1112",
+    "year": 2013
+  },
+  "references": [
+    "acl-C08-1041",
+    "acl-D07-1080",
+    "acl-D08-1010",
+    "acl-D08-1024",
+    "acl-D11-1125",
+    "acl-D13-1093",
+    "acl-J92-4003",
+    "acl-J93-2004",
+    "acl-N12-1015",
+    "acl-N12-1023",
+    "acl-N13-1025",
+    "acl-N13-1034",
+    "acl-N13-1038",
+    "acl-N13-1048",
+    "acl-P03-1021",
+    "acl-P04-1015",
+    "acl-P05-1012",
+    "acl-P05-1022",
+    "acl-P06-1096",
+    "acl-P07-1019",
+    "acl-P07-2045",
+    "acl-P08-1023",
+    "acl-P08-1067",
+    "acl-P10-1049",
+    "acl-P11-1086",
+    "acl-P12-1002",
+    "acl-P12-1031",
+    "acl-P12-1033",
+    "acl-W02-1001",
+    "acl-W03-1730"
+  ],
+  "sections": [
+    {
+      "text": [
+        "paths denote (possibly lots of) gold-standard derivations from forced decoding.",
+        "Standard update in this case is invalid as it reinforces the error of w (Huang et al., 2012).",
+        "in bins 1, 4 and 6.",
+        "So we actually use a ?softer?",
+        "version of the early update algorithm: only stop and update when there is no hope to continue.",
+        "To be more concrete, let l denote the phrase-limit then we stop where there are l consecutive bins without any y-good states, and update on the first among them."
+      ]
+    },
+    {
+      "heading": "3.3 Algorithm 2: Max-Violation Update",
+      "text": [
+        "While early update learns substantially better models than standard perceptron in the midst of inexact search, it is also well-known to be converging much slower than the latter, since each update is on a (short) prefix.",
+        "Huang et al. (2012) propose an improved method ?max-violation?",
+        "which updates at the worst mistake instead of the first, and converges much faster than early update with similar or better accuracy.",
+        "We adopt this idea here as follows: decode the whole sentence, and find the step i?",
+        "where the difference between the best y-good derivation and the best y-bad one is the biggest.",
+        "This amount of difference is called the amount of ?violation?",
+        "in Huang et al. (2012), and the place of maximum violation is intuitively the site of the biggest mistake during the search.",
+        "More formally, the update rule is:"
+      ]
+    },
+    {
+      "heading": "3.4 Previous Work: Standard and Local Updates",
+      "text": [
+        "We compare the above new update methods with the two existing ones from Liang et al. (2006).",
+        "Standard update (also known as ?bold update?",
+        "in Liang et al. (2006)) simply updates at the very end, from the best derivation in the beam towards the best gold-standard derivation (regardless of whether it survives the beam search):",
+        "Local update, however, updates towards the derivation in the final bin that is most similar to the reference y, denoted dy|x|(x, y):",
+        "where Bleu+1(?, ?)",
+        "returns the sentence-level BLEU.",
+        "Liang et al. (2006) observe that standard update performs worse than local update, which they attribute to the fact that the former often update towards a gold derivation made up of ?unreasonable?",
+        "rules.",
+        "Here we give a very different but theoretically more reasonable explanation based on the theory of Huang et al. (2012), who define an update ??",
+        "(x, d+, d?)",
+        "to be invalid if d+ scores higher than d?",
+        "(i.e., w ?",
+        "??",
+        "(x, d+, d?)",
+        "> 0, or update ?w points to the same direction as w in Fig. 4), in which case there is no ?violation?",
+        "or mistake to fix.",
+        "Perceptron is guaranteed to converge if all updates are valid.",
+        "Clearly, early and max-violation updates are valid.",
+        "But standard update is not: it is possible that at the end of search, the best y-good derivation d+|x|(x, y), though pruned earlier in the search, rankseven higher in the current model than anything in the final bin (see Figure 4).",
+        "In other words, there is no mistake at the final step, while there must be some search error in earlier steps which expels the y-good subderivation.",
+        "We will see in Section 5.3 that invalid updates due to search errors are indeed the main reason why standard update fails.",
+        "Local update, however, is always valid in that definition.",
+        "Finally, it is worth noting that in terms of implementation, standard and max-violation are the easiest, while early update is more involved."
+      ]
+    },
+    {
+      "heading": "4 Feature Design",
+      "text": [
+        "Our feature set includes the following 11 dense features: LM, four conditional and lexical translation probabilities (pc(e|f), pc(f |e), pl(e|f), pl(f |e)), length and phrase penalties, distortion cost, and three lexicalized reordering features.",
+        "All these features are inherited from Moses (Koehn et al., 2007).",
+        "... (combos of the above atomic features) ... non-local e(r0 ?",
+        "r1)[?2:] ?",
+        "id(r2)id(r1) ?",
+        "id(r2)"
+      ]
+    },
+    {
+      "heading": "4.1 Local Sparse Features: Ruleid & WordEdges",
+      "text": [
+        "We first add the rule identification feature for each rule: id(ri).",
+        "We also introduce lexicalized WordEdges features, which are shown to be very effective in parsing (Charniak and Johnson, 2005) and MT (Liu et al., 2008; He et al., 2008) literatures.",
+        "We use the following atomic features when applying a rule ri = ?c(ri), e(ri)?",
+        ": the source-side length |c(ri)|, the boundary words of both c(ri) and e(ri), and the surrounding words of c(ri) on the input sentence x.",
+        "See Figure 5 for examples.",
+        "These atomic features are concatenated to generate all kinds of combo features.",
+        "Chinese English class size budget",
+        "tures.",
+        "Class size is estimated on the small Chinese-English dataset (Sec.",
+        "5.3).",
+        "The POS tagsets are ICTCLAS for Chinese (Zhang et al., 2003) and Penn Treebank for English (Marcus et al., 1993)."
+      ]
+    },
+    {
+      "heading": "4.2 Addressing Overfitting",
+      "text": [
+        "With large numbers of lexicalized combo features we will face the overfitting problem, where some combo features found in the training data are too rare to be seen in the test data.",
+        "Thus we propose three ways to alleviate this problem.",
+        "First, we introduce various levels of backoffs for each word w (see Table 1).",
+        "We include w's Brown cluster and its prefixes of lengths 4 and 6 (Brown et al., 1992), and w's part-of-speech tag.",
+        "If w is Chinese we also include its word type (punctuations, digits, alpha, or otherwise) and (leftmost or rightmost) character.",
+        "In such a way, we significantly increase the feature coverage on unseen data.",
+        "However, if we allow arbitrary combinations, we can extract a hexalexical feature (4 Chinese + 2 English words) for a local window in Figure 5, which is unlikely to be seen at test time.",
+        "To control model complexity we introduce a feature budget for each level of backoffs, shown in the last column in Table 1.",
+        "The total budget for a combo feature is the sum of the budgets of all atomic features.",
+        "In our experiments, we only use the combo features with a total budget of 10 or less, i.e., we can only include bilexical but not trilexical features, and we can include for example combo features with one Chinese word plus two English tags (total budget: 9).",
+        "Finally, we use two methods to alleviate overfitting due to one-count rules: for large datasets, we simply remove all one-count rules, but for small datasets where out-of-vocabulary words (OOVs) abound, we use a simple leave-one-out method: when training on a sentence pair (x, y), do not use the one-count rules extracted from (x, y) itself."
+      ]
+    },
+    {
+      "heading": "4.3 Non-Local Features",
+      "text": [
+        "Following the success of non-local features in parsing (Huang, 2008) and MT (Vaswani et al., 2011), we also introduce them to capture the contextual information in MT.",
+        "Our non-local features, shown in Figure 5, include bigram rule-ids and the concatenation of a rule id with the translation history, i.e. the last two English words.",
+        "Note that we also use backoffs (Table 1) for the words included.",
+        "Experiments (Section 5.3) show that although the set of non-local features is just a tiny fraction of all features, it contributes substantially to the improvement in BLEU."
+      ]
+    },
+    {
+      "heading": "5 Experiments",
+      "text": [
+        "In order to test our approach in different language pairs, we conduct three experiments, shown in Table 2, on two significantly different language pairs (long vs. short distance reorderings), Chinese-to-English (CH-EN) and Spanish-to-English (SP-EN)."
+      ]
+    },
+    {
+      "heading": "5.1 System Preparation and Data",
+      "text": [
+        "We base our experiments on Cubit, a state-of-art phrase-based system in Python (Huang and Chiang, 2007).1 We set phrase-limit to 7 in rule extraction, and beam size to 30 and distortion limit 6 in decoding.",
+        "We compare our violation-fixing perceptron with two popular tuning methods: MERT (Och, 2003) and PRO (Hopkins and May, 2011).",
+        "For word alignments we use GIZA++-`0 (Vaswani et al., 2012) which produces sparser alignments, alleviating the garbage collection problem.",
+        "We use the SRILM toolkit (Stolcke, 2002) to train a trigram language model with modified Kneser-Ney smoothing on 1.5M English sentences.",
+        "Our dev and test sets for CHEN task are from the newswire portion of 2006 and 2008 NIST MT Evaluations (616/691 sentences, 18575/18875 words), with four references.",
+        "The dev and test sets for SP-EN task are from newstest2012 and newstest2013, with only one reference.",
+        "Below both MERT and PRO tune weights on the dev set, while our method on the training set.",
+        "Specifically, our method only uses the dev set to know when to stop training."
+      ]
+    },
+    {
+      "heading": "5.2 Forced Decoding Reachability on Chinese",
+      "text": [
+        "As mentioned in Section 2.2, we perform forced decoding to select reachable sentences from the train",
+        "age on the two CHEN training data (distortion limit: 6).",
+        "ing data; this part is done with exact search without any beam pruning.",
+        "Figure 6 shows the reachability ratio vs. sentence length on the small CHEN training data, where the ratio decreases sharply with sentence length, and increases with distortion limit.",
+        "We can see that there are a lot of long distance reorderings beyond small distortion limits.",
+        "In the extreme case of unlimited distortion, a large amount of sentences will be reachable, but at the cost of much slower decoding (O(n2V 2) in beam search decoding, andO(2nn3) in forced decoding).",
+        "In fact forced decoding is too slow in the unlimited mode that we only plot reachability for sentences up to 30 words.",
+        "Table 3 shows the statistics of forced decoding on both small and large CHEN training sets.",
+        "In the",
+        "small data-set, 21.4% sentences are fully reachable which only contains 8.8% words (since shorter sentences are more likely to be reachable).",
+        "Larger data improves reachable ratios significantly thanks to better alignment quality, but still only 12.7% words can be used.",
+        "In order to add more examples for per-ceptron training, we pick all non-trivial reachable prefix-pairs (with 5 or more Chinese words) as additional training examples (see Section 2.2).",
+        "As shown in Table 3, with prefix-pairs we can use about 1/4 of small data and 1/3 of large data for training, which is 10x and 120x bigger than the 616-sentence dev set.",
+        "After running forced decoding, we obtain gold translation lattice for each reachable sentence (or prefix) pair.",
+        "Figure 7 shows, as expected, the average number of gold derivations in these lattices grows exponentially with sentence length."
+      ]
+    },
+    {
+      "heading": "5.3 Analysis on Small Chinese-English Data",
+      "text": [
+        "Figure 8 shows the BLEU scores of different learning algorithms on the dev set.",
+        "MAXFORCE3 performs the best, peaking at iteration 13 while early update learns much slower (the first few iterations are faster than other methods due to early stopping but this difference is immaterial later).",
+        "The local and standard updates, however, underperform MERT; in particular, the latter gets worse as training goes on.",
+        "As analysized in Section 3.4, the reason why standard update (or ?bold update?",
+        "in Liang et al. (2006)) fails is that inexact search leads to many invalid updates.",
+        "This is confirmed by Figure 9, where more",
+        "than half of the updates remain invalid even at a beam of 30.",
+        "These analyses provide an alternative but theoretically more reasonable explanation to the findings of Liang et al. (2006): while they blame ?unreasonable?",
+        "gold derivations for the failure of standard update, we observe that it is the search errors that make the real difference, and that an update that respects search errors towards a gold subderivation is indeed helpful, even if that subderivation might be ?unreasonable?.",
+        "In order to speedup training, we use mini-batch parallelization of Zhao and Huang (2013) which has been shown to be much faster than previous parallelization methods.",
+        "We set the mini-batch size to 24 and train MAXFORCE with 1, 6, and 24 cores on a small subset of the our original reachable sen",
+        "ods.",
+        "Ours trains the training set while others on dev set.",
+        "tences.",
+        "The number of sentence pairs in this subset is 1,032, which contains similar number of words to our 616-sentence dev set (since reachable sentences are much shorter).",
+        "Thus, it is reasonable to compare different learning algorithms in terms of speed and performance.",
+        "Figure 10 shows that first of all, minibatch improves BLEU even in the serial setting, and when run on 24 cores, it leads to a speedup of about 7x.",
+        "It is also interesting to know that on 1 CPU, minibatch perceptron takes similar amount of time to reach the same performance as MERT and PRO.",
+        "Figure 11 compares the learning curves of MAXFORCE, MERT, and PRO.",
+        "We test PRO in three different ways: PRO-dense (dense features only), PRO-medium (dense features plus top 3K most fre",
+        "ments.",
+        "MAXFORCE with all features is +2.2 over MERT.",
+        "quent sparse features4), and PRO-large (dense features plus all sparse features).",
+        "The results show that PRO-dense performs almost the same as MERT but with a stabler learning curve while PRO-medium improves by +0.6.",
+        "However, PRO-large decreases the performance significantly, which indicates PRO is not scalable to truly sparse features.",
+        "By contrast, our method handles large-scale sparse features well and outperforms all other methods by a large margin and with a stable learning curve.",
+        "We also investigate the individual contribution from each group of features (ruleid, WordEdges, and non-local features).",
+        "So we perform experiments by adding each group incrementally.",
+        "Figure 12 shows the learning curves and Table 4 lists the counts and incremental contributions of different feature sets.",
+        "With dense features alone MAXFORCE does not do 4To prevent overfitting we remove all lexicalized features and only use Brown clusters.",
+        "It is difficult to engineer the right feature set for PRO, whereas MAXFORCE is much more robust.",
+        "large CHEN data.",
+        "Our approach is +2.3/2.0 over MERT.",
+        "well because perceptron is known to suffer from features of vastly different scales.",
+        "Adding ruleid helps, but still not enough.",
+        "WordEdges (which is the vast majority of features) improves BLEU by +2.0 points and outperforms MERT, when sparse features totally dominate dense features.",
+        "Finally, the 0.3% non-local features contribute a final +0.7 in BLEU."
+      ]
+    },
+    {
+      "heading": "5.4 Results on Large Chinese-English Data",
+      "text": [
+        "Table 5 shows all BLEU scores for different learning algorithms on the large CHEN data.",
+        "The MERT baseline on Cubit is essentially the same as Moses.",
+        "Our MAXFORCE activates 23M features on reachable sentences and prefixes in the training data, and takes 35 hours to finish 15 iterations on 24 cores, peaking at iteration 13.",
+        "It achieves significant improvements over other approaches: +2.3/+2.0 points over MERT and +1.5/+1.5 over PRO-medium on dev/test sets, respectively."
+      ]
+    },
+    {
+      "heading": "5.5 Results on Large Spanish-English Data",
+      "text": [
+        "In SP-EN translation, we first run forced decoding on the training set, and achieve a very high reachability of 55% (with the same distortion limit of 6), which is expected since the word order between Spanish and English are more similar than than between Chinese and English, and most SP-EN reorderings are local.",
+        "Table 6 shows that MAXFORCE improves the translation quality over MERT by +1.3/+1.1 BLEU on dev/test.",
+        "These gains are comparable to the improvements on the CHEN task, since it is well accepted in MT literature that a change of ?",
+        "in 1-reference BLEU is roughly equivalent to a change of 2?",
+        "with 4 references.",
+        "system algorithm # feat.",
+        "dev test"
+      ]
+    },
+    {
+      "heading": "6 Related Work",
+      "text": [
+        "Besides those discussed in Section 1, there are also some research on tuning sparse features on the training data, but they integrate those sparse features into the MT log-linear model as a single feature weight, and tune its weight on the dev set (e.g. (Liu et al., 2008; He et al., 2008; Wuebker et al., 2010; Simi-aner et al., 2012; Flanigan et al., 2013; Setiawan and Zhou, 2013; He and Deng, 2012; Gao and He, 2013)).",
+        "By contrast, our approach learns sparse features only on the training set, and use dev set as heldout to know when to stop.",
+        "Forced decoding has been used in the MT literature.",
+        "For example, open source MT systems Moses and cdec have implemented it.",
+        "Liang et al. (2012) also use the it to boost the MERT tuning by adding more y-good derivations to the standard k-best list."
+      ]
+    },
+    {
+      "heading": "7 Conclusions and Future Work",
+      "text": [
+        "We have presented a simple yet effective approach of structured learning for machine translation which scales, for the first time, to a large portion of the whole training data, and enables us to tune a rich set of sparse, lexical, and non-local features.",
+        "Our approach results in very significant BLEU gains over MERT and PRO baselines.",
+        "For future work, we will consider other translation paradigms such as hierarchical phrase-based or syntax-based MT."
+      ]
+    },
+    {
+      "heading": "Acknowledgement",
+      "text": [
+        "We thank the three anonymous reviewers for helpful suggestions.",
+        "We are also grateful to David Chiang, Dan Gildea, Yoav Goldberg, Yifan He, Abe Ittycheriah, and Hao Zhang for discussions, and Chris Callison-Burch, Philipp Koehn, Lemao Liu, and Taro Watanabe for help with datasets.",
+        "Huang, Yu, and Zhao are supported by DARPA FA8750-13-2-0041 (DEFT), a Google Faculty Research Award, and a PSC-CUNY Award, and Mi by DARPA HR0011-12-C-0015.",
+        "Yu is also supported by the China 863 State Key Project (No.",
+        "2011AA01A207).",
+        "The views and findings in this paper are those of the authors and are not endorsed by the US or Chinese governments."
+      ]
+    }
+  ]
+}

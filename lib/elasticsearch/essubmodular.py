@@ -30,7 +30,7 @@ class ElasticsearchSubmodularity:
     # def calDocumentSimilarity(self, index="acl2014", doc_type="json"):
     #     docids = getAllDocs(index, doc_type)
 
-    def calDeltaSum(self, newId=None):
+    def calDeltaQuery(self, newId=None):
         # print(newId)
         if newId in self.simq:
             return self.simq[newId]
@@ -67,40 +67,37 @@ class ElasticsearchSubmodularity:
     # s, v: list of articleId
     # delta_fcp(S_(k+1))    =   (1-lambda) * Sum_(x_i in V\{x_(k+1)}) sim(d_x_i, d_x_(k+1))
     #                           - (2-lambda) Sum_(x_i in S_k) sim (d_x_i, d_x_(k+1))
-    def calDeltaCoveragePenaltyByEs(self, newId=None, s=[], v=[], Lambda=1.0):
+    def calDeltaCoveragePenalty(self, newId=None, s=[], v=[]):
 
         # subtract relevant selected elements
-        fsk = 0.0
-        if newId == None:
+
+        if newId is None:
             return 0.0
         # get document similarity between one and the rest of documents
-        fvk = self.simdocs[newId]['OneVsRest']
+        fdck = self.simdocs[newId][ConstantValues.OneVsRest]
         # print(docId1+" : ")
-        for docId in s:
-            # if it belongs similar document set
-            if docId in self.simdocs:
-                fsk += self.simdocs[newId][docId]
+        fdpk = self.calDeltaPenalty(newId=newId, s=s, v=v)
 
-        return (1-Lambda) * fvk - (2-Lambda) * fsk
+        return fdck, fdpk
 
     # s, v: list of articleId
-    def calChangePeByEs(self, newId=None, s=[], v=[], Lambda=1.0):
+    def calDeltaPenalty(self, newId=None, s=[], v=[]):
         # subtract relevant selected elements
         fcp = 0.0
-        if newId == None:
+        if newId is None:
             return 0.0
-        docsim = self.ese.getDocSim(newId)
+        # docsim = self.ese.getDocSim(newId)
         # if not found any similar doc
-        if len(docsim) < 1:
-            return 0.0
+        # if len(docsim) < 1:
+        #     return 0.0
         # print(docId1+" : ")
         for docId2 in s:
             # if (docId2 != newId):
                 # if it belongs similar document set
-                if docId2 in docsim:
-                    fcp += docsim[docId2]
+            if docId2 in self.simdocs[newId]:
+                fcp += self.simdocs[newId][docId2]
 
-        return Lambda * fcp
+        return fcp
 
     # def calPenaltySumByText(self, newId=None, s=[]):
     #
@@ -126,8 +123,9 @@ class ElasticsearchSubmodularity:
     # delta_fp(S_(k+1)) = Sum_(x_i in S_k) sim(d_i, d_x_(k+1))
     def calMCR(self, newId, s, v, Lambda):
         # add coverage subtract penalty
-        delta_fc = self.calChangePeByEs(newId=newId, s=s, v=v, Lambda=Lambda)
-        delta_fp = self.calDeltaSum(newId)
+        # delta_fc = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v, Lambda=Lambda)
+        delta_fc = self.calDeltaQuery(newId)
+        delta_fp = self.calDeltaPenalty(newId)
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
@@ -148,12 +146,12 @@ class ElasticsearchSubmodularity:
     # delta_fq(S_(k+1))     =   w(q, x_(k+1)) with x_(k+1) in S_(k+1)
     def calQFR(self, newId, s, v, Lambda, alpha=1.0):
         # add coverage subtract penalty
-        delta_fcp = self.calDeltaCoveragePenaltyByEs(newId=newId, s=s, v=v, Lambda=Lambda)
-        delta_fq = self.calDeltaSum(newId)
+        delta_fc, delta_fp = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v)
+        delta_fq = self.calDeltaQuery(newId)
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
-        return delta_fcp + alpha * delta_fq
+        return alpha * delta_fq + (1-Lambda) * delta_fc - (2-Lambda) * delta_fp
 
     # submodular algorithm
     def greedyAlgByCardinality(self, Lambda, method):

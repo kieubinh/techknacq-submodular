@@ -19,6 +19,7 @@ from nltk import bigrams
 
 from lib.techknacq.lx import SentTokenizer, StopLexicon, find_short_long_pairs
 
+
 class Corpus:
     def __init__(self, path=None, pool=None, year=10000):
         self.docs = {}
@@ -36,9 +37,9 @@ class Corpus:
 
             docnames = (str(f) for f in Path(path).iterdir() if f.is_file())
             for doc in pool.imap(Document, docnames):
-                #kieubinh change
-                #only add doc.year <= year
-                if int(doc.year)<=year:
+                # kieubinh change
+                # only add doc.year <= year
+                if int(doc.year) <= year:
                     self.add(doc)
             print('Read %d documents.' % len(self.docs))
 
@@ -50,7 +51,7 @@ class Corpus:
         self.docs = {}
 
     def add(self, doc):
-        assert(type(doc) == Document)
+        assert (type(doc) == Document)
         doc.corpus = self
         self.docs[doc.id] = doc
 
@@ -75,7 +76,7 @@ class Corpus:
     def fix_text(self):
         for doc in self:
             doc.dehyphenate()
-            #doc.expand_short_forms()
+            # doc.expand_short_forms()
 
     def export(self, dest, abstract=False, form='json'):
         if form not in ['json', 'bioc', 'text', 'bigrams']:
@@ -103,7 +104,6 @@ class Corpus:
                              encoding='utf-8') as out:
                     out.write(d.bigrams(abstract, stop) + '\n')
 
-
     def read_roles(self, fname):
         role_annotations = {}
         for line in open(fname):
@@ -112,13 +112,13 @@ class Corpus:
             vals = line.strip().split('\t')
             doc_id = vals[0]
             role_annotations[doc_id.lower()] = \
-              {'survey': float(vals[1]),
-               'tutorial': float(vals[2]),
-               'resource': float(vals[3]),
-               'reference': float(vals[4]),
-               'empirical': float(vals[5]),
-               'manual': float(vals[6]),
-               'other': float(vals[7])}
+                {'survey': float(vals[1]),
+                 'tutorial': float(vals[2]),
+                 'resource': float(vals[3]),
+                 'reference': float(vals[4]),
+                 'empirical': float(vals[5]),
+                 'manual': float(vals[6]),
+                 'other': float(vals[7])}
         for doc in self:
             prior = None
             if doc.id.startswith('wiki-'):
@@ -174,19 +174,27 @@ class Corpus:
                              'manual': 0.0,
                              'other': 0.0}
 
-    #kieubinh add
-    #return papers with the number of references more than threshold=5
-    def getHighReference(self, threshold=5):
-        highRef={}
-        for id, doc in self.docs.items():
+    # kieubinh add
+    # return papers with the number of references more than threshold=5
+    def getHighReference(self, threshold=5, v=None):
+        if v is None:
+            v = []
+        highRef = []
+        for docId, doc in self.docs.items():
             # print(id+"- "+str(doc.getReferences()))
-            if doc.getReferences()>=threshold:
-                highRef[id]=doc.getReferences()
+            if doc.getLenRef() >= threshold:
+                count_actual = 0
+                for refId in doc.getReferences():
+                    if refId in v:
+                        count_actual += 1
+                if count_actual >= threshold:
+                    highRef.append(docId)
 
-        import operator  # Importing operator module
-        return sorted(highRef.items(), key = operator.itemgetter(1),reverse = True)
+        return highRef
+        # import operator  # Importing operator module
+        # return sorted(highRef.items(), key=operator.itemgetter(1), reverse=True)
 
-    #kieubinh add
+    # kieubinh add
     def getRawDocs(self):
         docs = []
         ids = []
@@ -194,6 +202,7 @@ class Corpus:
             ids.append(id)
             docs.append(doc.text())
         return ids, docs
+
 
 class Document:
     def __init__(self, fname=None, form=None):
@@ -229,9 +238,9 @@ class Document:
         self.sections = j.get('sections', [])
         self.roles = {}
         self.corpus = None
-        #kieubinh add some features
+        # kieubinh add some features
         self.abstract = self.get_abstract()
-        self.scores=j.get('scores',{})
+        self.scores = j.get('scores', {})
 
         if fname and form == 'text':
             st = SentTokenizer()
@@ -239,10 +248,13 @@ class Document:
         elif fname and form == 'sd':
             self.read_sd(fname)
 
-    #kieubinh add
-    def getReferences(self):
-        print("len: "+str(len(self.references)))
+    # kieubinh add
+    def getLenRef(self):
+        # print("len: "+str(len(self.references)))
         return len(self.references)
+
+    def getReferences(self):
+        return self.references
 
     def read_bioc_json(self, j):
         """Read a document from a JSON-formatted BioC representation.
@@ -266,7 +278,7 @@ class Document:
                 if annotation['infons']['value'] == 'article-title':
                     a = annotation['locations'][0]['offset']
                     b = a + annotation['locations'][0]['length']
-                    self.title = passage['text'][a:b-1]
+                    self.title = passage['text'][a:b - 1]
                 elif annotation['infons']['value'] == 'abstract':
                     a = annotation['locations'][0]['offset'] - 1
                     b = a + annotation['locations'][0]['length']
@@ -278,8 +290,6 @@ class Document:
                 else:
                     sys.sterr.write('Unexpected infon value %s.\n' %
                                     (annotation['infons']['value']))
-
-
 
     def read_sd(self, f, fref=None):
         """Read document contents from a ScienceDirect XML file."""
@@ -392,7 +402,6 @@ class Document:
             self.references = set([x.replace('PII:', 'sd-').lower() for x in
                                    re.findall('PII:[^<]+', reftext)])
 
-
     def dehyphenate(self):
         """Fix words that were split with hyphens."""
 
@@ -429,7 +438,6 @@ class Document:
                 sect['heading'] = dehyphenate_sent(sect['heading'])
             for i in range(len(sect['text'])):
                 sect['text'][i] = dehyphenate_sent(sect['text'][i])
-
 
     def expand_short_forms(self):
         """Expand short forms (acronyms or abbreviations) in the document's
@@ -469,17 +477,16 @@ class Document:
                                                                x.group())), s)
                 sect['text'][i] = re.sub(r'\s+', ' ', s)
 
-
     def get_abstract(self):
         """Return the (probable) abstract for the document."""
-        #fix json has not heading
-        if self.sections==None or len(self.sections)==0:
+        # fix json has not heading
+        if self.sections == None or len(self.sections) == 0:
             return ""
 
         if self.sections[0].get('heading', '') == 'Abstract':
             return self.sections[0]['text'][:10]
         if len(self.sections) > 1 and \
-           self.sections[1].get('heading', '') == 'Abstract':
+                        self.sections[1].get('heading', '') == 'Abstract':
             return self.sections[1]['text'][:10]
 
         if len(self.sections[0]['text']) > 2:
@@ -542,7 +549,6 @@ class Document:
         t += '</passage></document></collection>'
         return filter_non_printable(t)
 
-
     def text(self, abstract=False):
         """Return a plain-text string representing the document."""
         out = self.title + '.\n'
@@ -574,7 +580,6 @@ class Document:
             out += self.corpus[ref_id].title + '.\n'
         return filter_non_printable(unidecode(out))
 
-
     def bigrams(self, abstract=False, stop=StopLexicon()):
         def good_word(w):
             if '_' in w and not '#' in w:
@@ -587,7 +592,7 @@ class Document:
             words = []
             for x in re.split(r'[^a-zA-Z0-9_#-]+', s):
                 if len(x) > 0 and not x in stop and not x.lower() in stop \
-                   and re.search('[a-zA-Z0-9]', x):
+                        and re.search('[a-zA-Z0-9]', x):
                     words.append(x)
             for w1, w2 in bigrams(words):
                 if good_word(w1) and good_word(w2):
@@ -595,7 +600,7 @@ class Document:
                 if w1[0] == '#' and w1[-1] == '#' and good_word(w1):
                     ret += w1 + '\n'
             if words and words[-1][0] == '#' and words[-1][-1] == '#' and \
-               good_word(words[-1]):
+                    good_word(words[-1]):
                 ret += words[-1] + '\n'
             return ret
 
@@ -634,13 +639,15 @@ class Document:
 def filter_non_printable(s):
     return ''.join([c for c in s if ord(c) > 31 or ord(c) == 9 or c == '\n'])
 
+
 def title_case(s):
     for word in ['And', 'The', 'Of', 'From', 'To', 'In', 'For', 'A', 'An',
                  'On', 'Is', 'As', 'At']:
         s = re.sub('([A-Za-z]) ' + word + ' ', r'\1 ' + word.lower() + ' ', s)
     return s
 
+
 def strtr(text, dic):
     """Replace the keys of dic with values of dic in text."""
     pat = '(%s)' % '|'.join(map(re.escape, dic.keys()))
-    return re.sub(pat, lambda m:dic[m.group()], text)
+    return re.sub(pat, lambda m: dic[m.group()], text)

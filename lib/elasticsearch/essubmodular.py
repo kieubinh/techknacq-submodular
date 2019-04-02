@@ -181,7 +181,7 @@ class ElasticsearchSubmodularity:
     def calMethod(self, newId, s, v, Lambda, method):
         result = 0.0
         if method == ConstantValues.Query_Focused_Relevance:
-            result = self.calQFR(newId=newId, s=s, v=v, Lambda=Lambda, alpha=ConstantValues.ALPHA)
+            result = self.calQFR(newId=newId, s=s, v=v, Lambda=Lambda)
         elif method == ConstantValues.Maximal_Concept_Relevance:
             result = self.calMCR(newId=newId, s=s, v=v, Lambda=Lambda)
         # print(result)

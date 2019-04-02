@@ -364,10 +364,10 @@ def main(resultpath="results/acl-cg/", parameters="es au qfr", corpusInputPath="
     if "es" in parameters:
         if "au" in parameters:
             if "qfr" in parameters:
-                recommendRLByQfrAuEs(index=index, doc_type=doctype, corpusInputPath="sample-high/",
+                recommendRLByQfrAuEs(index=index, doc_type=doctype, corpusInputPath="inputs/",
                                      resultpath=resultpath)
             else:
-                recommendRLByAuthors(index=index, doc_type=doctype, corpusInputPath="sample-high/", resultpath=resultpath)
+                recommendRLByAuthors(index=index, doc_type=doctype, corpusInputPath="inputs/", resultpath=resultpath)
         elif "qfr" in parameters:
             #
             recommendRLByQfrEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)

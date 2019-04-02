@@ -7,7 +7,7 @@ class ConstantValues:
     INTERMEDIATE = 4
     ADVANCED = 3
 
-    TIMEOUT = 20
+    TIMEOUT = 10
 
     MAX_SUBMODULARITY = 200
     BUDGET = 30

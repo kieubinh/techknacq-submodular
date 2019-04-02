@@ -5,7 +5,8 @@ from lib.submodular.retrievedinfo import RetrievedInformation
 from lib.constantvalues import ConstantValues
 
 # from elasticsearch_dsl.query import MultiMatch, Match
-from elasticsearch_dsl.query import MoreLikeThis
+# from elasticsearch_dsl.query import MoreLikeThis
+
 
 class ElasticsearchExporter:
     def __init__(self, index="acl2014", doc_type="json"):
@@ -14,7 +15,7 @@ class ElasticsearchExporter:
             self.es = Elasticsearch()
             self.index = index
             self.doc_type = doc_type
-            #get all ids
+            # get all ids
             self.getAllDocsByIndex()
         except Exception as e:
             print('Error connection with elasticsearch')
@@ -27,19 +28,19 @@ class ElasticsearchExporter:
         simdocs = {}
         for docId in v:
             score_doc = self.findSimDocsById(id=docId)
-            simdocs[docId][ConstantValues.OneVsRest] = 0.0
+            # score_doc[ConstantValues.OneVsRest] = 0.0
+            # simdocs[docId][] = 0.0
+            sum = 0.0
             for docId2 in v:
                 if (docId2 != docId) & (docId2 in score_doc):
-                    simdocs[docId][docId2] = score_doc[docId2]
-                    simdocs[docId][ConstantValues.OneVsRest] += score_doc[docId2]
-                else:
-                    # if no edge between docId and docId2
-                    simdocs[docId][docId2] = 0.0
+                    sum += score_doc[docId2]
+            score_doc[ConstantValues.OneVsRest] = sum
+            simdocs[docId] = score_doc
 
         return simdocs
 
     # get document similarity of docId -> {id, score}
-    def findSimDocsById(self, id=None, MAX_SIZE=5000):
+    def findSimDocsById(self, id=None, MAX_SIZE=2000):
         if id==None:
             return {}
         simdoc = {}
@@ -129,7 +130,6 @@ class ElasticsearchExporter:
             return ""
 
         return rawtext
-
 
     def getReflist(self, id=None):
         if id==None:
@@ -224,7 +224,7 @@ class ElasticsearchExporter:
         # s.filter(filter)
         # print(q)
         # s.query(q)
-        print("query DSL count: "+str(s.count()))
+        # print("query DSL count: "+str(s.count()))
         # response = s.scan()
         #10000 = max window
         response = s[:budget].execute()

@@ -4,6 +4,7 @@ from elasticsearch_dsl import Search, Q
 from lib.submodular.retrievedinfo import RetrievedInformation
 from lib.constantvalues import ConstantValues
 
+
 # from elasticsearch_dsl.query import MultiMatch, Match
 # from elasticsearch_dsl.query import MoreLikeThis
 
@@ -27,7 +28,8 @@ class ElasticsearchExporter:
             return {}
         simdocs = {}
         for docId in v:
-            score_doc = self.findSimDocsById(id=docId)
+            score_doc = self.findSimDocsById(docId=docId, v=v)
+            # print(docId + " - "+str(len(score_doc)))
             # score_doc[ConstantValues.OneVsRest] = 0.0
             # simdocs[docId][] = 0.0
             sum = 0.0
@@ -40,50 +42,61 @@ class ElasticsearchExporter:
         return simdocs
 
     # get document similarity of docId -> {id, score}
-    def findSimDocsById(self, id=None, MAX_SIZE=2000):
-        if id==None:
+    def findSimDocsById(self, docId=None, v=[]):
+        # print(docId)
+        # print(v)
+        if docId is None:
+            return {}
+        if (v is None) or (len(v) <= 0):
             return {}
         simdoc = {}
-        response = self.es.search(
-            index=self.index,
-            body={
-               "query": {
-                   "more_like_this": {
-                       'fields': ["info.title", "sections.text", "sections.heading"],
-                       "like": [
-                           {"_index": self.index,
-                            "_type": self.doc_type,
-                            "_id": id
-                            }
-                       ],
-                   }
-               },
-                "stored_fields": [],
-                "from": 0,
-                "size": MAX_SIZE
-            }
-        )
+        res_from = 0
+        res_size = 1000
+        MAXSIZE = 10000
 
+        while (len(simdoc.items()) < len(v)) & (res_from < MAXSIZE):
+            response = self.es.search(
+                index=self.index,
+                body={
+                    "query": {
+                        "more_like_this": {
+                            'fields': ["info.title", "sections.text", "sections.heading"],
+                            "like": [
+                                {"_index": self.index,
+                                 "_type": self.doc_type,
+                                 "_id": docId
+                                 }
+                            ],
+                        }
+                    },
+                    "stored_fields": [],
+                    "from": res_from,
+                    "size": res_size,
+                }
+            )
+            # print(response['hits']['total'])
+            for hit in response['hits']['hits']:
+                # print(hit['_id']+" "+str(hit.get('_score', 0.0)))
+                # print(v)
+                if hit['_id'] in v:
+                    simdoc[hit['_id']] = hit.get('_score', 0.0)
+            res_from += res_size
 
         # request = Search().query(MoreLikeThis(like={'_id': id, '_index': self.index, '_type': self.doc_type},
         #                         fields=['info.title', 'sections']))
         # response = request.execute()
         # print(response)
         # print(response['hits']['total'])
-        max_score = 0.0
-        for hit in response['hits']['hits']:
-            score = hit.get('_score', 0.0)
-            if score > max_score:
-                max_score = score
-            simdoc[hit['_id']] = score
-            # print(hit['_score'])
+        # print(hit['_score'])
         # scale score into [0,1]
-        for (docid, score) in simdoc.items():
-            simdoc[docid] = score / max_score
+        # max_score = 0.0
+        # for (docid, score) in simdoc.items():
+        #     simdoc[docid] = score / max_score
         return simdoc
 
     def getAllDocsByIndex(self):
-        request = Search(using=self.es, index=self.index, doc_type=self.doc_type).params(request_timeout=ConstantValues.TIMEOUT)
+        request = Search(using=self.es, index=self.index, doc_type=self.doc_type).params(
+            request_timeout=ConstantValues.TIMEOUT)
         response = request.scan()
         idList = []
         for hit in response:
@@ -100,7 +113,7 @@ class ElasticsearchExporter:
         return newV
 
     def getRawDocById(self, id=None):
-        if (id==None):
+        if (id == None):
             return ""
         try:
             res = self.es.get(index=self.index, doc_type=self.doc_type, id=id)
@@ -113,30 +126,30 @@ class ElasticsearchExporter:
         rawtext = ""
         try:
             title = doc['info']['title']
-            rawtext += title+"\n"
+            rawtext += title + "\n"
             sections = doc['sections']
             # print(sections)
             for sec in sections:
                 # print(sec)
                 if "heading" in sec:
-                    rawtext += sec['heading']+"\n"
+                    rawtext += sec['heading'] + "\n"
                 if "text" in sec:
                     for line in sec['text']:
                         rawtext += line
                     rawtext += "\n"
 
         except Exception as e:
-            print('Error get information of docId: '+id)
+            print('Error get information of docId: ' + id)
             return ""
 
         return rawtext
 
     def getReflist(self, id=None):
-        if id==None:
+        if id == None:
             return []
         res = self.es.get(index=self.index, doc_type=self.doc_type, id=id)
         # print(res['_source'].get('references',[]))
-        return res['_source'].get('references',[])
+        return res['_source'].get('references', [])
 
     def getDocsByAuthors(self, authors=[], year=10000, articleId=None):
         resDocs = []
@@ -153,24 +166,24 @@ class ElasticsearchExporter:
         return resDocs
 
     def searchDocsByAuthor(self, author=None, year=0):
-        if author==None:
+        if author == None:
             return []
         # print(author)
         res = self.es.search(index=self.index, body={"query": {
-                "bool": {
-                    "must": [
-                        {
+            "bool": {
+                "must": [
+                    {
                         "term": {
                             "info.authors.keyword": author
-                            }
                         }
-                    ],
                     }
-                },
-                "from": 0,
-                "size": 1000})
+                ],
+            }
+        },
+            "from": 0,
+            "size": 1000})
         # print("Got %d Hits:" % res['hits']['total'])
-        resultsDocs =[]
+        resultsDocs = []
         # print(res['hits']['hits'])
         for h in res['hits']['hits']:
             hit = h['_source']
@@ -178,9 +191,36 @@ class ElasticsearchExporter:
             retri = RetrievedInformation(hit)
             hyear = retri.getYear()
             hid = retri.getId()
-            if hyear<=year:
+            if hyear <= year:
                 if hid not in resultsDocs:
                     resultsDocs.append(hid)
+                # print('%s with year %i returned with score %f' % (
+                #     h.meta.id, h.info.year, h.meta.score))
+
+        return resultsDocs
+
+    def searchDocsByTitle(self, query="survey"):
+
+        res = self.es.search(index=self.index, body={
+            "query": {
+                "bool": {
+                    "must": [
+                                {"multi_match": {
+                                    "query": query,
+                                    "fields": ["info.title"]
+
+                                }}
+                            ],
+                }
+            },
+            "stored_fields": []
+        })
+        # print("Got %d Hits:" % res['hits']['total'])
+        resultsDocs = []
+        # print(res['hits']['hits'])
+        for hit in res['hits']['hits']:
+            # print(hit)
+            resultsDocs.append(hit['_id'])
                 # print('%s with year %i returned with score %f' % (
                 #     h.meta.id, h.info.year, h.meta.score))
 
@@ -218,7 +258,7 @@ class ElasticsearchExporter:
         # r = Range({ "@info.year": { "lte": 2010 }})
         # print(self.index)
         # print(self.doc_type)
-        s = Search(using=self.es, index=self.index, doc_type=self.doc_type).params(request_timeout=ConstantValues.TIMEOUT).query(q)
+        s = Search(using=self.es, index=self.index, doc_type=self.doc_type).query(q)
         # s.highlight_options(order='score')
         # s.exclude('range', fileds='info.year', lte=year)
         # s.filter(filter)
@@ -226,7 +266,11 @@ class ElasticsearchExporter:
         # s.query(q)
         # print("query DSL count: "+str(s.count()))
         # response = s.scan()
-        #10000 = max window
+        # 10000 = max window
+        # res = s.scan()
+        print(s.count())
+        if s.count() < budget:
+            budget = s.count() - 1
         response = s[:budget].execute()
         # res2 = s.scan()
 
@@ -235,7 +279,7 @@ class ElasticsearchExporter:
         # count=0
         selectedDocs = {}
         for h in response:
-            if h.info.year<=year:
+            if h.info.year <= year:
                 selectedDocs[h.meta.id] = h.meta.score
                 # print('%s with year %i returned with score %f' % (
                 #     h.meta.id, h.info.year, h.meta.score))
@@ -251,32 +295,45 @@ class ElasticsearchExporter:
         #     print(h.info.id)
         # return response
 
-    def queryByURL(self, query="", year=10000, budget=10000):
-        response = self.es.search(
-            index=self.index,
-            body={
-                "query": {
-                    "bool": {
-                        "must": [
-                            {"multi_match": {
-                                "query": query,
-                                "fields": ["info.title", "sections.text", "sections.heading"]
+    def queryByURL(self, query="", year=10000, budget=5000):
+        selectedDocs = {}
+        res_from = 0
+        res_size = 1000
+        MAXSIZE = 10000
 
-                            }}
-                        ],
-                        "filter": [
-                            {"range": {"info.year": {"lte": year}}}
-                        ]
-                    }
-                },
-                "stored_fields": []
-            }
-        )
+        while (len(selectedDocs.items()) < budget) & (res_from < MAXSIZE):
+            response = self.es.search(
+                index=self.index,
+                body={
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"multi_match": {
+                                    "query": query,
+                                    "fields": ["info.title", "sections.text", "sections.heading"]
 
-        # print(response)
-        print(response['hits']['total'])
-        for hit in response['hits']['hits']:
-            print(hit['_score'])
+                                }}
+                            ],
+                            "filter": [
+                                {"range": {"info.year": {"lte": year}}}
+                            ]
+                        }
+                    },
+                    "stored_fields": [],
+                    "from": res_from,
+                    "size": res_size,
+                }
+            )
+
+            # print(response)
+            # print(response['hits']['total'])
+            for hit in response['hits']['hits']:
+                # if hit['_id'] not in selectedDocs.keys():
+                selectedDocs[hit['_id']] = hit['_score']
+            res_from += res_size
+            # print(len(selectedDocs.items()))
+
+        return selectedDocs
 
 if __name__ == '__main__':
     esexport = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)
@@ -286,7 +343,17 @@ if __name__ == '__main__':
     # resDocs = esexport.queryByURL(query="Machine Translation of Very Close Languages", year=2010, budget=1000)
     # resDocs = esexport.queryByDSL(query="Machine Translation of Very Close Languages", year=2010, budget=1000)
     # esexport.getRawDocById(id="acl-C08-2022")
-    results = esexport.queryByDSL(query="Improved Models of Distortion Cost for Statistical Machine Translation", year=2010, budget=30)
-    print(results)
+
+    res = esexport.searchDocsByTitle(query="survey")
+    print(res)
+
+    # results = esexport.queryByURL(query="Improved Models of Distortion Cost for Statistical Machine Translation",
+    #                               year=2010, budget=10000)
+    # listv = []
+    # for docId, score in results.items():
+    #     listv.append(docId)
+    # print(listv)
+    # simdoc = esexport.calSimDocs(v=listv)
+    # print(simdoc)
     # print(len(resDocs))
     # print(resDocs)

@@ -84,9 +84,9 @@ def recommendRLByCGMMR(index="acl2014", doc_type="json", concept_graph="concept-
         r.convert2List()
         rl = r.getReadinglist()
         vDocs = getlistID(year=retrievedInfo.getYear(), resultlist=rl)
-        qsim = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
+        simq = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
 
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=qsim)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=simq)
         readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
 
         RLE.printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultPath)

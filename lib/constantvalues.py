@@ -9,7 +9,7 @@ class ConstantValues:
 
     TIMEOUT = 10
 
-    MAX_SUBMODULARITY = 200
+    MAX_SUBMODULARITY = 5000
     BUDGET = 30
     Lambda = 1.0
     Alpha = 1.0

@@ -65,18 +65,18 @@ def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None,
 
 # Using ES to get CONSTANT.MAX_SUBMODULARITY relevant documents,
 # then using submodular function (QFR) to get subset of these
-def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-au-qfr/"):
+def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr/"):
     inputDocs = loadInput(corpusInputPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
     Lambda = 1.0
     for article in inputDocs:
         retrievedInfo = RetrievedInformation(article)
         print(retrievedInfo.getId() + " " + retrievedInfo.getQuery() + " " + str(retrievedInfo.getYear()))
-        vDocs = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+        vDocs = ese.queryByURL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
                                budget=ConstantValues.MAX_SUBMODULARITY)
-        print(len(vDocs))
-        simq = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=simq)
+        # print(len(vDocs))
+        # qsim = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=5000)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=vDocs)
         readinglist = essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")
         # essub = ElasticsearchSubmodularity(esexport=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
         #                                    MAX_SIZE=1000)

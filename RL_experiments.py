@@ -49,14 +49,14 @@ from lib.elasticsearch.essubmodular import ElasticsearchSubmodularity
 def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr-authors/"):
     inputDocs = loadInput(corpusInputPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
-    Lambda = 1.0
+    Lambda = lambda_test[0]
     for article in inputDocs:
         retrievedInfo = RetrievedInformation(article)
         refDocs = getReflistByAuthors(esexport=ese, article=article)
         print(len(refDocs))
         simq = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
         essub = ElasticsearchSubmodularity(esexport=ese, v=refDocs, simq=simq)
-        readinglist = essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")
+        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
@@ -68,7 +68,7 @@ def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None,
 def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr/"):
     inputDocs = loadInput(corpusInputPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
-    Lambda = 1.0
+    Lambda = lambda_test[0]
     for article in inputDocs:
         retrievedInfo = RetrievedInformation(article)
         print(retrievedInfo.getId() + " " + retrievedInfo.getQuery() + " " + str(retrievedInfo.getYear()))
@@ -77,7 +77,7 @@ def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, r
         # print(len(vDocs))
         # qsim = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=5000)
         essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=vDocs)
-        readinglist = essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")
+        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
         # essub = ElasticsearchSubmodularity(esexport=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
         #                                    MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=vDocs, Lambda=Lambda, method="qfr")

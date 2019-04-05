@@ -18,7 +18,7 @@ from lib.elasticsearch.esexporter import ElasticsearchExporter
 # print(res)
 class ElasticsearchImporter:
     def __init__(self, host="localhost", port="9200"):
-        self.es = Elasticsearch([{'host': host, 'port': port}])
+        self.es = Elasticsearch([{'host': host, 'port': port, 'timeout': 90}])
 
     #input: json document
     #output: a query in order to update into elasticsearch

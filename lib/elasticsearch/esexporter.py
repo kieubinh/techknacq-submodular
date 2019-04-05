@@ -71,7 +71,7 @@ class ElasticsearchExporter:
                     },
                     "stored_fields": [],
                     "from": res_from,
-                    "size": res_size,
+                    "size": res_size
                 }
             )
             # print(response['hits']['total'])

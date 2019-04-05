@@ -52,7 +52,7 @@ class ElasticsearchExporter:
         simdoc = {}
         res_from = 0
         res_size = 1000
-        MAXSIZE = 10000
+        MAXSIZE = 23000
 
         while (simdoc.__len__() < len(v)) & (res_from < MAXSIZE):
             response = self.es.search(
@@ -71,7 +71,7 @@ class ElasticsearchExporter:
                     },
                     "stored_fields": [],
                     "from": res_from,
-                    "size": res_size,
+                    "size": res_size
                 }
             )
             # print(response['hits']['total'])

@@ -117,3 +117,13 @@ if __name__ == '__main__':
 # }
 # }
 # }'
+
+# curl -XPUT 'localhost:9200/acl_score/_settings' -H 'Content-Type: application/json' -d'
+# {
+#   "index.max_result_window" : "30000"
+# }'
+
+# curl -XPUT 'localhost:9200/acl_tfidf/_settings' -H 'Content-Type: application/json' -d'
+# {
+#   "index.max_result_window" : "30000"
+# }'

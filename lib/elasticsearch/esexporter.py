@@ -54,7 +54,7 @@ class ElasticsearchExporter:
         res_size = 1000
         MAXSIZE = 10000
 
-        while (len(simdoc.items()) < len(v)) & (res_from < MAXSIZE):
+        while (simdoc.__len__() < len(v)) & (res_from < MAXSIZE):
             response = self.es.search(
                 index=self.index,
                 body={
@@ -301,7 +301,7 @@ class ElasticsearchExporter:
         res_size = 1000
         MAXSIZE = 10000
 
-        while (len(selectedDocs.items()) < budget) & (res_from < MAXSIZE):
+        while (selectedDocs.__len__() < budget) & (res_from < MAXSIZE):
             response = self.es.search(
                 index=self.index,
                 body={

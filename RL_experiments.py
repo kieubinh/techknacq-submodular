@@ -15,7 +15,7 @@ from lib.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
 
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
-lambda_test = [1.0]
+lambda_test = [0.995]
 # ------------------------------- LOADING INPUT ----------------------------------------------
 import os
 import io
@@ -353,6 +353,7 @@ def printResult(articleId, output, Lambda=-1.0, resultPath=""):
 # qfr: recommendRLByQfr
 # cg: recommendRLByConceptGraph - standard, mmr, mcr (methods)
 # es: using elasticsearch similarity score
+# corpusInputPath="inputs/survey/selected/"
 def main(resultpath="results/acl-cg/", parameters="es au qfr", corpusInputPath="inputs/100-random/"):
     print(parameters)
     print(resultpath)
@@ -364,10 +365,9 @@ def main(resultpath="results/acl-cg/", parameters="es au qfr", corpusInputPath="
     if "es" in parameters:
         if "au" in parameters:
             if "qfr" in parameters:
-                recommendRLByQfrAuEs(index=index, doc_type=doctype, corpusInputPath="inputs/100-random/",
-                                     resultpath=resultpath)
+                recommendRLByQfrAuEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
             else:
-                recommendRLByAuthors(index=index, doc_type=doctype, corpusInputPath="inputs/100-random/", resultpath=resultpath)
+                recommendRLByAuthors(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
         elif "qfr" in parameters:
             #
             recommendRLByQfrEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)

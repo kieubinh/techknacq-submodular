@@ -15,7 +15,7 @@ from lib.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
 
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
-lambda_test = [0.995]
+lambda_test = [0.9, 0.99]
 # ------------------------------- LOADING INPUT ----------------------------------------------
 import os
 import io

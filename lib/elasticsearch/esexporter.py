@@ -66,19 +66,21 @@ class ElasticsearchExporter:
         return sim_docs
 
     # get document similarity of docId -> {id, score}
-    def findSimDocsById(self, doc_id=None, v=[]):
+    def findSimDocsById(self, doc_id=None, v=None):
         # print(docId)
         # print(v)
         if doc_id is None:
-            return {}
-        if (v is None) or (len(v) <= 0):
             return {}
         sim_doc = {}
         res_from = 0
         res_size = 1000
         MAXSIZE = 23000
-
-        while (sim_doc.__len__() < len(v)) & (res_from < MAXSIZE):
+        if v is None:
+            # for initial calculation -> get all results
+            max_get = MAXSIZE
+        else:
+            max_get = len(v) 
+        while (sim_doc.__len__() < max_get) & (res_from < MAXSIZE):
             response = self.es.search(
                 index=self.index,
                 body={
@@ -103,7 +105,9 @@ class ElasticsearchExporter:
             for hit in response['hits']['hits']:
                 # print(hit['_id']+" "+str(hit.get('_score', 0.0)))
                 # print(v)
-                if hit['_id'] in v:
+                if v is None:
+                    sim_doc[hit['_id']] = hit.get('_score', 0.0)
+                elif hit['_id'] in v:
                     sim_doc[hit['_id']] = hit.get('_score', 0.0)
             res_from += res_size
 
@@ -370,9 +374,10 @@ if __name__ == '__main__':
     # resDocs = esexport.queryByDSL(query="Machine Translation of Very Close Languages", year=2010, budget=1000)
     # esexport.getRawDocById(id="acl-C08-2022")
 
-    res = esexport.searchDocsByTitle(query="survey")
-    print(res)
-
+    # res = esexport.searchDocsByTitle(query="survey")
+    # print(res)
+    v = esexport.getAllDocsByIndex()
+    print(esexport.findSimDocsById())
     # results = esexport.queryByURL(query="Improved Models of Distortion Cost for Statistical Machine Translation",
     #                               year=2010, budget=10000)
     # listv = []

@@ -31,9 +31,9 @@ class ConstantValues:
 
     #data path
     SAMPLE="sample/"
-    ACL = "data/acl/"
-    ACL_PART = "data/acl-part/"
-    ACL_SCORES = "data/acl-score/"
+    ACL = "../data/acl/"
+    ACL_PART = "../data/acl-part/"
+    ACL_SCORES = "../data/acl-score/"
     SAMPLE_SCORES = "sample-score/"
 
     #save model

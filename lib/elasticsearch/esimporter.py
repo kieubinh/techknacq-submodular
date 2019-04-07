@@ -60,26 +60,25 @@ class ElasticsearchImporter:
         ese = ElasticsearchExporter(index=from_index, doc_type=from_doctype)
         to_ese = ElasticsearchExporter(index=to_index, doc_type=to_doctype)
 
-        docIds = ese.getAllDocsByIndex()
-        done_docIds = to_ese.getAllDocsByIndex()
-        # ignore docs which have already calculated similarity score with other documents
-        for donId in done_docIds:
-            if donId in docIds:
-                docIds.remove(donId)
+        all_doc_ids = ese.getAllDocsByIndex()
+        done_doc_ids = to_ese.getAllDocsByIndex()
+
         print("calculate similarity score of %i documents", len(docIds))
-        for docId in docIds:
-            score_doc = ese.findSimDocsById(doc_id=docId, v=docIds)
-            jsondict = {
-                "info": {
-                    "id": docId,
-                    "type": "tfidf",
-                    "description": "document similarity"
-                },
-                "score": score_doc
-            }
-            # jsondata = json.dumps(jsondict)
-            self.es.index(index=to_index, doc_type=to_doctype, id=docId, body=jsondict)
-            print(to_index + "/" + to_doctype + "/" + docId)
+        for doc_id in all_doc_ids:
+            # ignore docs which have already calculated similarity score with other documents
+            if doc_id not in done_doc_ids:
+                score_doc = ese.findSimDocsById(doc_id=doc_id)
+                jsondict = {
+                    "info": {
+                        "id": doc_id,
+                        "type": "tfidf",
+                        "description": "document similarity"
+                    },
+                    "score": score_doc
+                }
+                # jsondata = json.dumps(jsondict)
+                self.es.index(index=to_index, doc_type=to_doctype, id=doc_id, body=jsondict)
+                print(to_index + "/" + to_doctype + "/" + doc_id)
             # print(jsondata)
 
     def loadListDocIds(self, to_folder="data/acl-score/"):

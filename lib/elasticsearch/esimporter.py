@@ -62,8 +62,12 @@ class ElasticsearchImporter:
 
         all_doc_ids = ese.getAllDocsByIndex()
         done_doc_ids = to_ese.getAllDocsByIndex()
+        # ignore docs which have already calculated similarity score with other documents
+        # for done_id in done_doc_ids:
+        #     if done_id in doc_ids:
+        #         doc_ids.remove(done_id)
 
-        print("calculate similarity score of %i documents", len(docIds))
+        print("calculate similarity score of %i documents", len(all_doc_ids))
         for doc_id in all_doc_ids:
             # ignore docs which have already calculated similarity score with other documents
             if doc_id not in done_doc_ids:
@@ -97,36 +101,35 @@ class ElasticsearchImporter:
     # and save as files to folder data/acl_score/
     def scoreDocSimToFolder(self, from_index="acl_tfidf", from_doctype="doc", to_folder=ConstantValues.ACL_SCORES):
         ese = ElasticsearchExporter(index=from_index, doc_type=from_doctype)
-        doc_ids = ese.getAllDocsByIndex()
+        all_doc_ids = ese.getAllDocsByIndex()
         done_doc_ids = self.loadListDocIds(to_folder)
         # print(done_doc_ids)
-        # ignore docs which have already calculated similarity score with other documents
-        for done_id in done_doc_ids:
-            if done_id in doc_ids:
-                doc_ids.remove(done_id)
-        print("calculate similarity score of %d documents " % len(doc_ids))
+
+        print("calculate similarity score of %d documents " % len(all_doc_ids - done_doc_ids))
         count = 0
-        for docId in doc_ids:
-            score_doc = ese.findSimDocsById(doc_id=docId, v=doc_ids)
-            jsondict = {
-                "info": {
-                    "id": docId,
-                    "type": "tfidf",
-                    "description": "document similarity",
-                    "size": score_doc.__len__()
-                },
-                "score": score_doc
-            }
+        for doc_id in all_doc_ids:
+            # ignore docs which have already calculated similarity score with other documents
+            if doc_id not in done_doc_ids:
+                score_doc = ese.findSimDocsById(doc_id=doc_id)
+                jsondict = {
+                    "info": {
+                        "id": doc_id,
+                        "type": "tfidf",
+                        "description": "document similarity",
+                        "size": score_doc.__len__()
+                    },
+                    "score": score_doc
+                }
 
-            def myconverter(o):
-                if isinstance(o, np.float32):
-                    return float(o)
+                def myconverter(o):
+                    if isinstance(o, np.float32):
+                        return float(o)
 
-            with open(to_folder + docId + ".json", 'w', encoding='utf-8') as fout:
-                json.dump(jsondict, fout, default=myconverter)
-            fout.close()
-            count += 1
-            print("(%d / %d) wrote to file %s" % (count, len(doc_ids), to_folder + docId + ".json"))
+                with open(to_folder + doc_id + ".json", 'w', encoding='utf-8') as fout:
+                    json.dump(jsondict, fout, default=myconverter)
+                fout.close()
+                count += 1
+                print("(%d / %d) wrote to file %s" % (count, len(all_doc_ids)-len(done_doc_ids), to_folder + doc_id + ".json"))
 
 
 from lib.constantvalues import ConstantValues

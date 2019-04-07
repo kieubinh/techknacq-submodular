@@ -67,7 +67,7 @@ class ElasticsearchImporter:
         #     if done_id in doc_ids:
         #         doc_ids.remove(done_id)
 
-        print("calculate similarity score of %i documents", len(all_doc_ids))
+        print("calculate similarity score of %d documents" % (len(all_doc_ids) - len(done_doc_ids)))
         for doc_id in all_doc_ids:
             # ignore docs which have already calculated similarity score with other documents
             if doc_id not in done_doc_ids:
@@ -105,7 +105,7 @@ class ElasticsearchImporter:
         done_doc_ids = self.loadListDocIds(to_folder)
         # print(done_doc_ids)
 
-        print("calculate similarity score of %d documents " % len(all_doc_ids - done_doc_ids))
+        print("calculate similarity score of %d documents " % (len(all_doc_ids) - len(done_doc_ids)))
         count = 0
         for doc_id in all_doc_ids:
             # ignore docs which have already calculated similarity score with other documents
@@ -129,7 +129,8 @@ class ElasticsearchImporter:
                     json.dump(jsondict, fout, default=myconverter)
                 fout.close()
                 count += 1
-                print("(%d / %d) wrote to file %s" % (count, len(all_doc_ids)-len(done_doc_ids), to_folder + doc_id + ".json"))
+                print("(%d / %d) wrote to file %s"
+                      % (count, len(all_doc_ids)-len(done_doc_ids), to_folder + doc_id + ".json"))
 
 
 from lib.constantvalues import ConstantValues

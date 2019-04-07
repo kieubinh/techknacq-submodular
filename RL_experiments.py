@@ -72,6 +72,7 @@ def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, r
     for article in inputDocs:
         retrievedInfo = RetrievedInformation(article)
         print(retrievedInfo.getId() + " " + retrievedInfo.getQuery() + " " + str(retrievedInfo.getYear()))
+        # get 5000 relevant documents -> v = 5000
         vDocs = ese.queryByURL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
                                budget=ConstantValues.MAX_SUBMODULARITY)
         # print(len(vDocs))

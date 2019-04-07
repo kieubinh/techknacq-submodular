@@ -1,4 +1,7 @@
 import sys
+import io
+import json
+from pathlib import Path
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search, Q
 from lib.submodular.retrievedinfo import RetrievedInformation
@@ -22,39 +25,60 @@ class ElasticsearchExporter:
             print('Error connection with elasticsearch')
             sys.exit(1)
 
+    def getSimDocFromCorpus(self, doc_id=None, v=[], score_folder=ConstantValues.ACL_SCORES):
+        if doc_id is None:
+            return None
+        file_path = Path(score_folder + "/" + doc_id + ".json")
+        if file_path.exists():
+            json_data = json.load(io.open(file_path, 'r', encoding='utf-8'))
+            file_doc_id = json_data['id']
+            if file_doc_id == doc_id:
+                return json_data['score']
+            else:
+                # if not same id
+                return None
+        return None
+
+
     # calculate similarity matrix between 2 documents
     def calSimDocs(self, v=None):
         if v is None:
             return {}
-        simdocs = {}
-        for docId in v:
-            score_doc = self.findSimDocsById(docId=docId, v=v)
+        sim_docs = {}
+        for doc_id in v:
+            # get previous calculation
+            score_doc = self.getSimDocFromCorpus(doc_id=doc_id, v=v)
+            if score_doc is None:
+                # calculate new
+                print("%s need to calculate new" % doc_id)
+                score_doc = self.findSimDocsById(doc_id=doc_id, v=v)
             # print(docId + " - "+str(len(score_doc)))
             # score_doc[ConstantValues.OneVsRest] = 0.0
             # simdocs[docId][] = 0.0
-            sum = 0.0
-            for docId2 in v:
-                if (docId2 != docId) & (docId2 in score_doc):
-                    sum += score_doc[docId2]
-            score_doc[ConstantValues.OneVsRest] = sum
-            simdocs[docId] = score_doc
+            sum_score = 0.0
+            # sum of scores with others in v
+            for doc_id2 in v:
+                if (doc_id2 != doc_id) & (doc_id2 in score_doc):
+                    sum_score += score_doc[doc_id2]
+            score_doc[ConstantValues.OneVsRest] = sum_score
+            sim_docs[doc_id] = score_doc
 
-        return simdocs
+        return sim_docs
 
     # get document similarity of docId -> {id, score}
-    def findSimDocsById(self, docId=None, v=[]):
+    def findSimDocsById(self, doc_id=None, v=[]):
         # print(docId)
         # print(v)
-        if docId is None:
+        if doc_id is None:
             return {}
         if (v is None) or (len(v) <= 0):
             return {}
-        simdoc = {}
+        sim_doc = {}
         res_from = 0
         res_size = 1000
         MAXSIZE = 23000
 
-        while (simdoc.__len__() < len(v)) & (res_from < MAXSIZE):
+        while (sim_doc.__len__() < len(v)) & (res_from < MAXSIZE):
             response = self.es.search(
                 index=self.index,
                 body={
@@ -64,7 +88,7 @@ class ElasticsearchExporter:
                             "like": [
                                 {"_index": self.index,
                                  "_type": self.doc_type,
-                                 "_id": docId
+                                 "_id": doc_id
                                  }
                             ],
                         }
@@ -72,14 +96,15 @@ class ElasticsearchExporter:
                     "stored_fields": [],
                     "from": res_from,
                     "size": res_size
-                }
+                },
+                request_timeout=90
             )
             # print(response['hits']['total'])
             for hit in response['hits']['hits']:
                 # print(hit['_id']+" "+str(hit.get('_score', 0.0)))
                 # print(v)
                 if hit['_id'] in v:
-                    simdoc[hit['_id']] = hit.get('_score', 0.0)
+                    sim_doc[hit['_id']] = hit.get('_score', 0.0)
             res_from += res_size
 
         # request = Search().query(MoreLikeThis(like={'_id': id, '_index': self.index, '_type': self.doc_type},
@@ -92,7 +117,7 @@ class ElasticsearchExporter:
         # max_score = 0.0
         # for (docid, score) in simdoc.items():
         #     simdoc[docid] = score / max_score
-        return simdoc
+        return sim_doc
 
     def getAllDocsByIndex(self):
         request = Search(using=self.es, index=self.index, doc_type=self.doc_type).params(
@@ -205,12 +230,12 @@ class ElasticsearchExporter:
             "query": {
                 "bool": {
                     "must": [
-                                {"multi_match": {
-                                    "query": query,
-                                    "fields": ["info.title"]
+                        {"multi_match": {
+                            "query": query,
+                            "fields": ["info.title"]
 
-                                }}
-                            ],
+                        }}
+                    ],
                 }
             },
             "stored_fields": []
@@ -221,8 +246,8 @@ class ElasticsearchExporter:
         for hit in res['hits']['hits']:
             # print(hit)
             resultsDocs.append(hit['_id'])
-                # print('%s with year %i returned with score %f' % (
-                #     h.meta.id, h.info.year, h.meta.score))
+            # print('%s with year %i returned with score %f' % (
+            #     h.meta.id, h.info.year, h.meta.score))
 
         return resultsDocs
 
@@ -334,6 +359,7 @@ class ElasticsearchExporter:
             # print(len(selectedDocs.items()))
 
         return selectedDocs
+
 
 if __name__ == '__main__':
     esexport = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)

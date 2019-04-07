@@ -1,5 +1,5 @@
-#Author: Binh Kieu Thanh
-#Target:
+# Author: Binh Kieu Thanh
+# Target:
 # 1. import ACL data into elasticsearch
 # 2. calculate similarity score between 2 documents
 # 3. generate citation graph
@@ -12,6 +12,8 @@ import numpy as np
 # from datetime import datetime
 from elasticsearch import Elasticsearch
 from lib.elasticsearch.esexporter import ElasticsearchExporter
+from lib.constantvalues import ConstantValues
+
 
 # res = es.search(index="acl", body={"query": {"match_all": {"acl"}}})
 # print("Got %d Hits:" % res['hits']['total'])
@@ -20,8 +22,8 @@ class ElasticsearchImporter:
     def __init__(self, host="localhost", port="9200"):
         self.es = Elasticsearch([{'host': host, 'port': port, 'timeout': 90}])
 
-    #input: json document
-    #output: a query in order to update into elasticsearch
+    # input: json document
+    # output: a query in order to update into elasticsearch
     def jsonParser(self, corpusPath="data/acl/", index="acl2014", doctype="json"):
         # es = Elasticsearch([{'host': 'localhost', 'port': '9200'}])
 
@@ -48,7 +50,7 @@ class ElasticsearchImporter:
     # input: xml document
     # output: a query in order to update into elasticsearch
     def xmlParser(self, xmlDoc):
-        equery=""
+        equery = ""
 
         return equery
 
@@ -56,10 +58,17 @@ class ElasticsearchImporter:
     # and save to index = "acl_ds_score"
     def scoreDocSim(self, from_index="acl_tfidf", from_doctype="doc", to_index="acl_score", to_doctype="json"):
         ese = ElasticsearchExporter(index=from_index, doc_type=from_doctype)
+        to_ese = ElasticsearchExporter(index=to_index, doc_type=to_doctype)
 
         docIds = ese.getAllDocsByIndex()
+        done_docIds = to_ese.getAllDocsByIndex()
+        # ignore docs which have already calculated similarity score with other documents
+        for donId in done_docIds:
+            if donId in docIds:
+                docIds.remove(donId)
+        print("calculate similarity score of %i documents", len(docIds))
         for docId in docIds:
-            score_doc = ese.findSimDocsById(docId=docId, v=docIds)
+            score_doc = ese.findSimDocsById(doc_id=docId, v=docIds)
             jsondict = {
                 "info": {
                     "id": docId,
@@ -70,16 +79,64 @@ class ElasticsearchImporter:
             }
             # jsondata = json.dumps(jsondict)
             self.es.index(index=to_index, doc_type=to_doctype, id=docId, body=jsondict)
-            print(to_index+"/"+to_doctype+"/"+docId)
+            print(to_index + "/" + to_doctype + "/" + docId)
             # print(jsondata)
+
+    def loadListDocIds(self, to_folder="data/acl-score/"):
+        if to_folder is None:
+            print("Not found folder!")
+            return []
+        done_doc_ids = []
+        for root, dirs, files in os.walk(to_folder, topdown=False):
+            for name_file in files:
+                if "json" in name_file:
+                    doc_id = name_file.replace(".json", "")
+                    done_doc_ids.append(doc_id)
+        return done_doc_ids
+
+    # calculate document similarity score between any 2 documents
+    # and save as files to folder data/acl_score/
+    def scoreDocSimToFolder(self, from_index="acl_tfidf", from_doctype="doc", to_folder=ConstantValues.ACL_SCORES):
+        ese = ElasticsearchExporter(index=from_index, doc_type=from_doctype)
+        doc_ids = ese.getAllDocsByIndex()
+        done_doc_ids = self.loadListDocIds(to_folder)
+        # print(done_doc_ids)
+        # ignore docs which have already calculated similarity score with other documents
+        for done_id in done_doc_ids:
+            if done_id in doc_ids:
+                doc_ids.remove(done_id)
+        print("calculate similarity score of %d documents " % len(doc_ids))
+        count = 0
+        for docId in doc_ids:
+            score_doc = ese.findSimDocsById(doc_id=docId, v=doc_ids)
+            jsondict = {
+                "info": {
+                    "id": docId,
+                    "type": "tfidf",
+                    "description": "document similarity",
+                    "size": score_doc.__len__()
+                },
+                "score": score_doc
+            }
+
+            def myconverter(o):
+                if isinstance(o, np.float32):
+                    return float(o)
+
+            with open(to_folder + docId + ".json", 'w', encoding='utf-8') as fout:
+                json.dump(jsondict, fout, default=myconverter)
+            fout.close()
+            count += 1
+            print("(%d / %d) wrote to file %s" % (count, len(doc_ids), to_folder + docId + ".json"))
 
 
 from lib.constantvalues import ConstantValues
+
 if __name__ == '__main__':
     # ElasticsearchImporter().jsonParser(corpusPath="../../data/acl/", index="acltest3",
     #                                    doctype=ConstantValues.ACL_CORPUS_DOCTYPE)
     # ElasticsearchImporter().jsonParser(corpusPath="../../data/acl/", index=ConstantValues.ACL_CORPUS_INDEX, doctype=ConstantValues.ACL_CORPUS_DOCTYPE)
-    ElasticsearchImporter().scoreDocSim()
+    ElasticsearchImporter().scoreDocSimToFolder()
 
 # curl -X POST "localhost:9200/acl_tfidf/_close"
 # curl -X PUT "localhost:9200/acl_tfidf/_settings" -H 'Content-Type: application/json' -d'
@@ -117,7 +174,7 @@ if __name__ == '__main__':
 # }
 # }
 # }'
-
+#
 # curl -XPUT 'localhost:9200/acl_score/_settings' -H 'Content-Type: application/json' -d'
 # {
 #   "index.max_result_window" : "30000"

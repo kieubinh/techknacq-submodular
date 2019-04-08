@@ -1,6 +1,6 @@
 from lib.constantvalues import ConstantValues
+from lib.document.similarityscore import SimilarityScore
 from lib.elasticsearch.esexporter import ElasticsearchExporter
-from lib.submodular.similarityscore import SimilarityScores
 
 
 class ElasticsearchSubmodularity:
@@ -58,9 +58,9 @@ class ElasticsearchSubmodularity:
                 if len(rawdoc2) < 10:
                     continue
                 if (docId2 in s):
-                    fcp += SimilarityScores().cosineOf2Text(rawdoc1, rawdoc2)
+                    fcp += SimilarityScore().cosineOf2Text(rawdoc1, rawdoc2)
                 else:  # if (docId2 in s):
-                    fcc += SimilarityScores().cosineOf2Text(rawdoc1, rawdoc2)
+                    fcc += SimilarityScore().cosineOf2Text(rawdoc1, rawdoc2)
 
         return fcc - (1 + Lambda) * fcp
 

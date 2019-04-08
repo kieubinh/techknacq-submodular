@@ -4,9 +4,9 @@ import sys
 class RetrievedInformation:
     def __init__(self, doc):
         self.id = "acl"
-        self.query=""
+        self.query = ""
         self.year = 0
-        self.authors=[]
+        self.authors = []
         try:
             self.id = doc['info']['id']
             self.query = doc['info']['title']

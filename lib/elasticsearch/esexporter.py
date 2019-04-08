@@ -28,10 +28,11 @@ class ElasticsearchExporter:
     def getSimDocFromCorpus(self, doc_id=None, v=[], score_folder=ConstantValues.ACL_SCORES):
         if doc_id is None:
             return None
-        file_path = Path(score_folder + "/" + doc_id + ".json")
+        file_name = score_folder + "/" + doc_id + ".json"
+        file_path = Path(file_name)
         if file_path.exists():
-            json_data = json.load(io.open(file_path, 'r', encoding='utf-8'))
-            file_doc_id = json_data['id']
+            json_data = json.load(io.open(file_name, 'r', encoding='utf-8'))
+            file_doc_id = json_data['info']['id']
             if file_doc_id == doc_id:
                 return json_data['score']
             else:
@@ -45,30 +46,35 @@ class ElasticsearchExporter:
         if v is None:
             return {}
         sim_docs = {}
+        count_new = 0
+        count = 0
         for doc_id in v:
+            count += 1
             # get previous calculation
-            score_doc = self.getSimDocFromCorpus(doc_id=doc_id, v=v)
-            if score_doc is None:
+            doc_score = self.getSimDocFromCorpus(doc_id=doc_id, v=v)
+            if doc_score is None:
                 # calculate new
-                print("%s need to calculate new" % doc_id)
-                score_doc = self.findSimDocsById(doc_id=doc_id, v=v)
+                count_new +=1
+                print("%s need to calculate new (%d / %d)" % (doc_id, count_new, count))
+                doc_score = self.findSimDocsById(doc_id=doc_id, v=v)
             # print(docId + " - "+str(len(score_doc)))
             # score_doc[ConstantValues.OneVsRest] = 0.0
             # simdocs[docId][] = 0.0
-            sum_score = 0.0
+            sum_scores = 0.0
             # sum of scores with others in v
             for doc_id2 in v:
-                if (doc_id2 != doc_id) & (doc_id2 in score_doc):
-                    sum_score += score_doc[doc_id2]
-            score_doc[ConstantValues.OneVsRest] = sum_score
-            sim_docs[doc_id] = score_doc
+                if (doc_id2 != doc_id) & (doc_id2 in doc_score):
+                    sum_scores += doc_score[doc_id2]
+
+            doc_score[ConstantValues.OneVsRest] = sum_scores
+            sim_docs[doc_id] = doc_score
 
         return sim_docs
 
     # get document similarity of docId -> {id, score}
     def findSimDocsById(self, doc_id=None, v=None):
-        # print(docId)
-        # print(v)
+        print(doc_id)
+        print(v)
         if doc_id is None:
             return {}
         sim_doc = {}

@@ -8,7 +8,7 @@ import re, math
 from collections import Counter
 #from lib.submodular.constantvalues import ConstantValues
 
-class SimilarityScores:
+class SimilarityScore:
 
     # def __init__(self, text1, text2, measure = 0):
     #     self.text1=text1

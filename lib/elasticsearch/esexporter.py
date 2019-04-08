@@ -25,12 +25,13 @@ class ElasticsearchExporter:
             print('Error connection with elasticsearch')
             sys.exit(1)
 
-    def getSimDocFromCorpus(self, doc_id=None, v=[], score_folder=ConstantValues.ACL_SCORES):
+    def getSimDocFromCorpus(self, doc_id=None, score_folder=ConstantValues.ACL_SCORES):
         if doc_id is None:
             return None
         file_name = score_folder + "/" + doc_id + ".json"
         file_path = Path(file_name)
         if file_path.exists():
+            # print(file_name)
             json_data = json.load(io.open(file_name, 'r', encoding='utf-8'))
             file_doc_id = json_data['info']['id']
             if file_doc_id == doc_id:
@@ -48,45 +49,43 @@ class ElasticsearchExporter:
         sim_docs = {}
         count_new = 0
         count = 0
+        print(len(v))
         for doc_id in v:
             count += 1
             # get previous calculation
-            doc_score = self.getSimDocFromCorpus(doc_id=doc_id, v=v)
+            doc_score = self.getSimDocFromCorpus(doc_id=doc_id)
             if doc_score is None:
                 # calculate new
-                count_new +=1
+                count_new += 1
                 print("%s need to calculate new (%d / %d)" % (doc_id, count_new, count))
-                doc_score = self.findSimDocsById(doc_id=doc_id, v=v)
+                doc_score = self.findSimDocsById(doc_id=doc_id)
             # print(docId + " - "+str(len(score_doc)))
             # score_doc[ConstantValues.OneVsRest] = 0.0
             # simdocs[docId][] = 0.0
             sum_scores = 0.0
             # sum of scores with others in v
+            matrix_score = {}
             for doc_id2 in v:
-                if (doc_id2 != doc_id) & (doc_id2 in doc_score):
+                if (doc_id2 != doc_id) and (doc_id2 in doc_score):
+                    matrix_score[doc_id2] = doc_score[doc_id2]
                     sum_scores += doc_score[doc_id2]
 
-            doc_score[ConstantValues.OneVsRest] = sum_scores
-            sim_docs[doc_id] = doc_score
+            matrix_score[ConstantValues.OneVsRest] = sum_scores
+            sim_docs[doc_id] = matrix_score
 
         return sim_docs
 
     # get document similarity of docId -> {id, score}
-    def findSimDocsById(self, doc_id=None, v=None):
+    def findSimDocsById(self, doc_id=None):
         print(doc_id)
-        print(v)
         if doc_id is None:
             return {}
         sim_doc = {}
         res_from = 0
         res_size = 1000
         MAXSIZE = 23000
-        if v is None:
-            # for initial calculation -> get all results
-            max_get = MAXSIZE
-        else:
-            max_get = len(v) 
-        while (sim_doc.__len__() < max_get) & (res_from < MAXSIZE):
+
+        while res_from < MAXSIZE:
             response = self.es.search(
                 index=self.index,
                 body={
@@ -110,11 +109,7 @@ class ElasticsearchExporter:
             # print(response['hits']['total'])
             for hit in response['hits']['hits']:
                 # print(hit['_id']+" "+str(hit.get('_score', 0.0)))
-                # print(v)
-                if v is None:
-                    sim_doc[hit['_id']] = hit.get('_score', 0.0)
-                elif hit['_id'] in v:
-                    sim_doc[hit['_id']] = hit.get('_score', 0.0)
+                sim_doc[hit['_id']] = hit.get('_score', 0.0)
             res_from += res_size
 
         # request = Search().query(MoreLikeThis(like={'_id': id, '_index': self.index, '_type': self.doc_type},
@@ -336,7 +331,9 @@ class ElasticsearchExporter:
         res_size = 1000
         MAXSIZE = 10000
 
-        while (selectedDocs.__len__() < budget) & (res_from < MAXSIZE):
+        while (res_from < budget) & (res_from < MAXSIZE):
+            if res_size + res_from > budget:
+                res_size = budget - res_from
             response = self.es.search(
                 index=self.index,
                 body={
@@ -366,6 +363,7 @@ class ElasticsearchExporter:
                 # if hit['_id'] not in selectedDocs.keys():
                 selectedDocs[hit['_id']] = hit['_score']
             res_from += res_size
+
             # print(len(selectedDocs.items()))
 
         return selectedDocs

@@ -356,7 +356,7 @@ def printResult(articleId, output, Lambda=-1.0, resultPath=""):
 # es: using elasticsearch similarity score
 # corpusInputPath="inputs/survey/selected/"
 # corpusInputPath="inputs/100-random/"
-def main(resultpath="results/acl-cg/", parameters="es au qfr", corpusInputPath="inputs/survey/selected/"):
+def main(resultpath="results/acl-cg/", parameters="es au qfr", corpusInputPath="inputs/100-random/"):
     print(parameters)
     print(resultpath)
     index = ConstantValues.ACL_CORPUS_INDEX

@@ -1,0 +1,374 @@
+{
+  "info": {
+    "authors": [
+      "Sandipan Dandapat",
+      "Sara Morrissey",
+      "Andy Way",
+      "Josef Genabith"
+    ],
+    "book": "Proceedings of the Joint Workshop on Exploiting Synergies between Information Retrieval and Machine Translation (ESIRMT) and Hybrid Approaches to Machine Translation (HyTra)",
+    "id": "acl-W12-0106",
+    "title": "Combining EBMT, SMT, TM and IR Technologies for Quality and Scale",
+    "url": "https://aclweb.org/anthology/W12-0106",
+    "year": 2012
+  },
+  "references": [
+    "acl-C92-2101",
+    "acl-J03-1002",
+    "acl-P02-1040",
+    "acl-P07-2045",
+    "acl-W03-0313",
+    "acl-W04-3250"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "In this paper we present a hybrid statistical machine translation (SMT)-example-based MT (EBMT) system that shows significant improvement over both SMT and EBMT baseline systems.",
+        "First we present a runtime EBMT system using a subsentential translation memory (TM).",
+        "The EBMT system is further combined with an SMT system for effective hybridization of the pair of systems.",
+        "The hybrid system shows significant improvement in translation quality (0.82 and 2.75 absolute BLEU points) for two different language pairs (English?Turkish (En?Tr) and English?",
+        "French (En?Fr)) over the baseline SMT system.",
+        "However, the EBMT approach suffers from significant time complexity issues for a runtime approach.",
+        "We explore two methods to make the system scalable at runtime.",
+        "First, we use an heuristic-based approach.",
+        "Secondly, we use an IR-based indexing technique to speed up the time-consuming matching procedure of the EBMT system.",
+        "The index-based matching procedure substantially improves runtime speed without affecting translation quality."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "State-of-the-art phrase-based SMT (Koehn, 2010a) is the most successful MT approach in many large scale evaluations, such as WMT,1 IWSLT2 etc.",
+        "At the same time, work continues in the area of EBMT.",
+        "TrEx (Dandapat et al., 2010).",
+        "The success of an SMT system often depends on the amount of parallel training corpora available for the particular language pair.",
+        "However, low translation accuracy has been observed for language pairs with limited training resources (Islam et al., 2010; Khalilov et al., 2010).",
+        "SMT systems effectively discard the actual training data once the models (translation model and language model) have been estimated.",
+        "This can lead to their inability to guarantee good quality translation for sentences closely matching those in the training corpora.",
+        "By contrast, EBMT systems usually maintain a linked relationship between the full sentence pairs in source and target texts.",
+        "Because of this EBMT systems can often capture long range dependencies and rich morphology at runtime.",
+        "In contrast to SMT, however, most EBMT models lack a well-formed probability model, which restricts the use of statistical information in the translation process.",
+        "Keeping these in mind, our objective is to develop a good quality MT system choosing the best approach for each input in the form of a hybrid SMT-EBMT approach.",
+        "It is often the case that an EBMT system produces a good translation where SMT systems fail and vice versa (Dandapat et al., 2011).",
+        "An EBMT system relies on past translations to derive the target output for a given input.",
+        "Runtime EBMT approaches generally do not include any training stage, which has the advantage of not having to depend on time-consuming preprocessing.",
+        "On the other hand, their runtime complexity can be considerable.",
+        "This is due to the time-consuming matching stage at runtime that finds the example",
+        "(or set of examples) which most closely matches the source-language sentence to be translated.",
+        "This matching step often uses some variation of string edit-distance measures (Levenshtein, 1965) which has quadratic time complexity.3 This is quite time-consuming even when a moderate amount of training examples are used for the matching procedure.",
+        "We adopt two alternative approaches to tackle the above problem.",
+        "First we use heuristics which are often useful to avoid some of the computations.",
+        "For a input sentence, in the matching process, we may not need to compute the string edit distance with all sentences in the example base.",
+        "In order to prune some of the computation, we rely on the fact that the input sentence and its closest match sentence from the example-base are likely to have a similar sentence length.",
+        "Search engine indexing is an effective way of storing data for fast and accurate retrieval of information.",
+        "During retrieval, a set of documents are extracted based on their similarity to the input query.",
+        "In our second approach, we use this concept to efficiently retrieve a potential set of suitable candidate sentences from the example-base to find the closest match.",
+        "We index the entire example-base considering each source-side sentence as a document for the indexer.",
+        "We show that improvements can be made with our approach in terms of time complexity without affecting the translation quality.",
+        "The remainder of this paper is organized as follows.",
+        "The next section presents work related to our EBMT approach.",
+        "Section 3 describes the MT systems used in our experiments.",
+        "Section 4 focuses on the two techniques used to make the system scalable.",
+        "Section 5 presents the experiments in detail.",
+        "Section 6 presents and discusses the results and provides an error analysis.",
+        "We conclude in Section 7."
+      ]
+    },
+    {
+      "heading": "2 Related Work",
+      "text": [
+        "The EBMT framework was first introduced by Na-gao (1984) as the ?MT by analogy principle?.",
+        "The two main approaches to EBMT are distinguished by the inclusion or exclusion of a preprocessing/training stage.",
+        "Approaches that incorporate a 3Ukkonen (1983) gave an algorithm for computing edit-distance with the worst case complexity O(md), where m is the length of the string and d is their edit distance.",
+        "This is effective when m d. We use word-based edit distance, so m is shorter in length.",
+        "training stage are commonly called ?compiled approaches?",
+        "(Cicekli and Gu?venir, 2001).",
+        "Approaches that do not include a training stage are often referred to as ?pure?",
+        "or ?runtime?",
+        "EBMT approaches, e.g. (Lepage and Denoual, 2005).",
+        "These approaches have the advantage that they do not depend on any time-consuming preprocessing stages.",
+        "On the other hand, their runtime complexity can be considerable.",
+        "EBMT is often linked with the related concept of translation memory (TM).",
+        "A TM essentially stores source-and target-language translation pairs for effective reuse of previous translations originally created by human translators.",
+        "TMs are often used to store examples for EBMT systems.",
+        "After retrieving a set of examples with associated translations, EBMT systems automatically extract translations of suitable fragments and combine them to produce a grammatical target output.",
+        "Phrase-based SMT systems (Koehn, 2010a), produce a source?target algned subsentential phrase table which can be adapted as an additional TM to be used in a CAT environment (Simard, 2003; Bic?ici and Dymetman, 2008; Bourdaillet et al., 2009; Simard and Isabelle, 2009).",
+        "Koehn and Senel-lart (2010b) use SMT to produce the translation of the non-matched fragments after obtaining the TM-based match.",
+        "EBMT phrases have also been used to populate the knowledge database of an SMT system (Groves et al., 2006).",
+        "However, to the best of our knowledge, the use of SMT phrase tables within an EBMT system as an additional sub-sentential TM has not been attempted so far.",
+        "Some work has been carried out to integrate MT in a CAT environment to translate the whole segment using the MT system when no sufficiently well matching translation unit (TU) is found in the TM.",
+        "The TransType system (Langlais et al., 2002) integrates an SMT system within a text editor to suggest possible continuations of the translations being typed by the translator.",
+        "By contrast, our approach attempts to integrate the subsentential TM obtained using SMT techniques within an EBMT system."
+      ]
+    },
+    {
+      "heading": "3 MT Systems",
+      "text": [
+        "The SMT system used in our hybrid SMT-EBMT approach is the vanilla Moses4 decoder.",
+        "Moses (Koehn et al., 2007) is a set of SMT tools that include routines to automatically train a translation model for any language pair and an efficient decoder to find the most probable translation.",
+        "Due to lack of space and the wide usage of Moses, here we focus more on the novel EBMT system we have developed for our hybrid SMT-EBMT approach.",
+        "The EBMT system described in this section is based on previous work (Dandapat et al., 2010) and some of the material has been reproduced here to make the paper complete.",
+        "Like all other EBMT systems, our particular approach comprises three stages: matching, alignment and recombination.",
+        "Our EBMT system also uses a subsentential TM in addition to the sentence aligned example-base.",
+        "Using the original TM as a training set, additional subsentential TUs (words and phrases) are extracted from it based on word alignments and phrase pairs produced by Moses.",
+        "These subsentential TUs are used for alignment and recombination stages of our EBMT system."
+      ]
+    },
+    {
+      "heading": "3.1 Building a Subsentential TM for EBMT",
+      "text": [
+        "A TM for EBMT usually contains TUs linked at the sentence, phrasal and word level.",
+        "TUs can be derived manually or automatically (e.g. using the marker-hypothesis (Groves et al., 2006)).",
+        "Usually, TUs are linguistically motivated translation units.",
+        "In this paper however, we explore a different route, as manual construction of high-quality TMs is time consuming and expensive.",
+        "Furthermore, only considering linguistically motivated TUs may limit the matching potential of a TM.",
+        "Because of this, we used SMT technology to automatically create the subsentential part of our TM at the phrase (i.e. no longer necessarily linguistically motivated) and word level.",
+        "Based on Moses word alignment (using GIZA++ (Och and Ney, 2003)) and phrase table construction, we construct the additional TM for further use within an EBMT approach.",
+        "Firstly, we add entries to the TM based on the aligned phrase pairs from the Moses phrase table using the following two scores:",
+        "1.",
+        "Direct phrase translation probabilities: ?",
+        "(t|s) 2.",
+        "Direct lexical weight: lex(t|s)",
+        "Table 1 shows an example of phrase pairs with the associated probabilities learned by Moses.",
+        "We keep all target equivalents in a sorted order based on the",
+        "a hotel bir otel 0.826087 0.12843 a hotel bir otelde 0.086957 0.07313 a hotel otel mi 0.043478 0.00662 a hotel otel 0.043478 0.22360 above probabilities.",
+        "This helps us in the matching procedure, but during recombination we only consider the most probable target equivalent.",
+        "The following shows the resulting TUs in the TM for the English source phrase a hotel.",
+        "a hotel?",
+        "{bir otel, bir otelde, otel, otem mi} Secondly, we add entries to the TM based on the source-to-target word-aligned file.",
+        "We also keep the multiple target equivalents for a source word in a sorted order.",
+        "This essentially adds source-and target-language equivalent word pairs into the TM.",
+        "Note that the entries in the TM may contain incorrect source-target equivalents due to unreliable word/phrase alignments produced by Moses."
+      ]
+    },
+    {
+      "heading": "3.2 EBMT Engine",
+      "text": [
+        "The overview of the three stages of the EBMT engine is given below: Matching: In this stage, we find a sentence pair ?sc, tc?",
+        "from the example-base that closely matches with the input sentence s. We used a fuzzy-match score (FMS) based on a word-level edit distance metric (Wagner and Fischer, 1974) to find the closest matching source-side sentence from the example-base ({si}N1 ) based on Equation (i).",
+        "score(s, si) = 1?",
+        "ED(s, si)/max(|s|, |si|) (i) where |x |denotes the length (in words) of a sentence, and ED(x, y) refers to the word-level edit distance between x and y.",
+        "The EBMT system considers the associated translation tc of the closest matching source sentence sc, to build a skeleton for the translation of the input sentence s. Alignment: After retrieving the closest fuzzy-matched sentence pair ?sc, tc?, we identify the non-matching fragments from the skeleton translation tc in two steps.",
+        "Firstly, we find the matched and non-matched segments between s and sc using edit distance trace.",
+        "Given the two sentences (s and sc), the algorithm finds the minimum possible number of operations (substitutions, additions and deletions) required to change the closest match sc into the input sentence s. For example, consider the input",
+        "matched (boxed) segments between s and sc.",
+        "Secondly, we align each non-matched segment in sc with its associated translation using the TM and the GIZA++ alignment.",
+        "Based on the source-target aligned pair in the TM, we mark the mismatched segment in tc.",
+        "We find the longest possible segment from the non-matched segment in sc that has a matching target equivalent in tc based on the source-target equivalents in the TM.",
+        "We continue the process recursively until no further segments of the non-matched segment in sc can be matched with tc using the TM.",
+        "Remaining non-matching segments in scare then aligned with segments in tc using the GIZA++ word alignment information.",
+        "Recombination: In the recombination stage, we add or substitute segments from the input sentence s with the skeleton translation equivalent tc.",
+        "We also delete some segments from tc that have no correspondence in s. After obtaining the source segments (needs to be added or substituted in tc) from the input s, we use our subsentential TM to translate these segments.",
+        "Details of the recombination process are given in Algorithm 1."
+      ]
+    },
+    {
+      "heading": "3.3 An Illustrative Example",
+      "text": [
+        "As a running example, for the input sentence in (1a) the corresponding closest fuzzy-matched sentence Algorithm 1 recombination(X,TM) In: source segment X , subsentential translation memory TM Out: translation of source segment X",
+        "1: mark all words of X as untranslated (untranslatedPortions(X)?",
+        "{X}) 2: repeat 3: U = untranslatedPortions(X) 4: x = longest subsegment in untranslatedPortions(X) such that (x, tx) ?",
+        "TM; 5: substitute(X,x ?",
+        "tx) {substitute x with its target equivalent tx in X} 6: remove x from untranslatedPortions(X) 7: until (untranslatedPortions(X) = U ) 8: return X",
+        "pair ?sc, tc?",
+        "is shown in (1b) and (1c).",
+        "The portion marked with angled brackets in (1c) are aligned with the mismatched portion in (1b).",
+        "The character and the following number in angled brackets indicate the edit operation (?s?",
+        "indicates substitution) and the index of the mismatched segment from the alignment process respectively.",
+        "1.",
+        "(a) s: i ?d like a <s#0:present> for <s#1:my mother> .",
+        "(b) sc: i ?d like a <s#0:shampoo> for <s#1:greasy hair> .",
+        "(c) tc: <s#1:yag?l?",
+        "sac?lar> ic?in bir <s#0:s?ampuan> istiyorum .",
+        "During recombination, we need to replace two segments in (1c) {yag?l?",
+        "sac?lar (greasy hair) and s?ampuan (shampoo)} with the two corresponding source segments in (1a) {my mother and present} as an intermediate stage (2) along the way towards producing a target equivalent.",
+        "(2)<1:my mother> ic?in bir <0:present> istiyorum .",
+        "Furthermore, replacing the untranslated segments in (2) with the translations obtained using TM, we",
+        "derive the output translation in (3) of the original input sentence in (1).",
+        "(3) <annem> ic?in bir <hediye> istiyorum ."
+      ]
+    },
+    {
+      "heading": "4 Scalability",
+      "text": [
+        "The main motivation of scalability is to improve the speed of the EBMT system when using a large example-base.",
+        "The matching procedure in an EBMT system finds the example (or a set of examples) which closely matches the source-language string to",
+        "be translated.",
+        "All matching processes necessarily involve a distance or similarity measure.",
+        "The most widely used distance measure in EBMT matching is Levenshtein distance (Levenshtein, 1965; Wagner and Fischer, 1974) which has quadratic time complexity.",
+        "In our EBMT system, we find the closest sentence at runtime from the whole example-base for a given input sentence using the edit distance matching score.",
+        "Thus, the matching step of the EBMT system is a time-consuming process with a runtime complexity of O(nm2), where n denotes the size of the example-base and m denotes the average length (in words) of a sentence.",
+        "Due to a significant runtime complexity, the EBMT system can only handle a moderate size example-base in the matching stage.",
+        "However, it is important to handle a large example-base to improve the quality of an MT system.",
+        "In order to make the system scalable with a larger example-base, we adopt two approaches for finding the closest matching sentences efficiently."
+      ]
+    },
+    {
+      "heading": "4.1 Grouping",
+      "text": [
+        "Our first attempt is heuristic-based.",
+        "We divide the example-base into bins based on sentence length.",
+        "It is anticipated that the sentence from the example-base that most closely matches an input sentence will fall into the group which has comparable length to the length of the input sentence.",
+        "First, we divide the example-baseE into different bins based on their",
+        "for all i 6= j where 0 ?",
+        "i, j ?",
+        "l. Ei denotes the set of sentences with length i and l is the maximum length of a sentence in E. In order to find the closest match for a test sentence (s of length k), we only",
+        "m=0Ek?m, where x indicates the window size.",
+        "In our experiment, we consider the value of x from 0 to 2.",
+        "We find the closest-match sc from EG for a given test sentence s. EG has fewer sentences compared to E which will effectively reduce the time of the matching procedure."
+      ]
+    },
+    {
+      "heading": "4.2 Indexing",
+      "text": [
+        "Our second approach to addressing time complexity is to use indexing.",
+        "We index the complete example-base using an open-source IR engine SMART5 and retrieve a potential set of candidate sentences (likely 5An open source IR system from Cornell University.",
+        "ftp: //ftp.cs.cornell.edu/pub/smart/ to contain the closest match sentence) from the example-base.",
+        "Unigrams extracted from the sentences of the example-base are indexed using the language model (LM) and complete sentences are considered as retrievable units.",
+        "In LM-based retrieval we assume that a given query is generated from a unigram document language model.",
+        "The application of the LM retrieval model in our case returns a sorted list of sentences from the example-base ordered by the estimated probabilities of generating the given input sentence.",
+        "In order to improve the runtime performance, we integrate the SMART retrieval engine within the matching procedure of our EBMT system.",
+        "The retrieval engine estimates a potential set of candidate close-matching sentences from the example-base E for a test sentence s. We assume that the closest source-side match sc of the input sentence s can take the value from the set EIR(s), where EIR(s) is the potential set of close-matching sentences computed by the LM-based retrieval engine.",
+        "We have used the top 50 candidate sentences from EIR(s).",
+        "Since the IR engine tries to retrieve the document (sentences from E) for a given query (input) sentence, it is likely to retrieve the closest match sentence sc in the set EIR(s).",
+        "Due to a much reduced set of possibilities, this approach improves the runtime performance of the EBMT system without hampering system accuracy.",
+        "Finding this potential set of candidate sentences will be much faster than traditional edit-distance-based retrieval on the full example-base as the worst case run time of the re",
+        "si), where wi is a word in the input sentence and si is the number of sentences in the example-base that contain wi.",
+        "Finding a set of candidate sentences took only 0.3 seconds and 116 seconds, respectively, for 414 and 10,000 example input sentences given 20k and 250k sentence example-base in our En?Tr and En?Fr experiment on a 3GHz Core 2 Duo machine with 4GB RAM."
+      ]
+    },
+    {
+      "heading": "5 Experiments",
+      "text": [
+        "We conduct different experiments to report the accuracy of our EBMT systems for En?Tr and En?Fr translation tasks.",
+        "In order to compare the performance of our approaches we use two baseline systems.",
+        "We use the Moses SMT system as one base",
+        "line.",
+        "Furthermore, based on the matching step (Section 3.2) of the EBMT approach, we obtain the closest target-side equivalent (the skeleton sentence) and consider this as the baseline output for the input to be translated.",
+        "This is referred to as TM in the experiment below.",
+        "We will consider this as the baseline accuracy for our EBMT using TM approach.",
+        "In addition, we conduct two experiments with our EBMT system.",
+        "After obtaining the skeleton translation through the matching and alignment steps, in the recombination step, we use TM to translate any unmatched segments based on Algorithm 1.",
+        "We call this EBMTTM.",
+        "We found that there are cases where the EBMTTM system produces the correct translation but SMT fails and vice-versa (Dandapat et al., 2011).",
+        "In order to further improve translation quality, we use a combination of EBMT and SMT.",
+        "Here we use some features to decide whether to rely on the output produced by the EBMTTM system.",
+        "These features include fuzzy match scoreFMS (as in (i)) and the number of mismatched segments in each of s, sc, tc (EqUS6 as in (1)).",
+        "We assume that the translations of an input sentence s produced by EBMTTM and SMT systems are respectively TEBMT(s) and TSMT(s).",
+        "If the value of FMS is greater than some threshold and EqUS exists between s and sc, we rely on the output TEBMT(s); otherwise we take the output from TSMT(s).",
+        "We refer to this system as EBMTTM + SMT.",
+        "To test the scalability of the system, we conducted two more experiments based on the approach described in Section 4.",
+        "First, we conducted an experiment based on the sentence length-based grouping heuristics (Section 4.1).",
+        "We refer to this system asEBMTTM + SMT+ groupi, where i indicates the window size while comparing the length of the input sentence with the bins.",
+        "We conduct a second experiment based on the LM-based indexing technique (Section 4.2) we have used to retrieve a potential set of candidate sentences from the indexed example-base.",
+        "We call this sys",
+        "accuracy while conducting the experiments for scal-6If s, sc and tc agree in the number of mismatched segments, EqUS evaluates to 1, otherwise 0. ability of the EBMT system."
+      ]
+    },
+    {
+      "heading": "5.1 Data Used for Experiments",
+      "text": [
+        "We used two data sets for all our experiments representing two language pairs of different size and type.",
+        "In the first data-set, we have used the En?Tr corpus from IWSLT09.7 The training data consists of 19,972 parallel sentences.",
+        "We used the IWSLT09 development set as our testset which consists of 414 sentences.",
+        "The IWSLT09 data set is comprised of short sentences (with an average of 9.5 words per sentence) from a particular domain (the C-STAR project's Basic Travel Expression Corpus).",
+        "Our second data set consists of an En?Fr corpus from the European Medicines Agency (EMEA)8 (Tiedemann and Nygaard, 2009).",
+        "The training data consists of 250,806 unique parallel sentences.9 As a testset we use a set of 10,000 randomly drawn sentences disjoint from the training corpus.",
+        "This data also represents a particular domain (medicine) but with longer sentence lengths (with an average of 18.8 words per sentence) compared to the IWSLT09 data."
+      ]
+    },
+    {
+      "heading": "6 Results and Observations",
+      "text": [
+        "We used BLEU (Papineni et al., 2002) for automatic evaluation of our EBMT systems.",
+        "Table 2 shows the accuracy obtained for both En?Tr and En?Fr by the EBMTTM system described in Section 3.",
+        "Here we have two baseline systems (SMT and TM) as described in the first two experiments in Section 5.",
+        "better scores than TM alone.",
+        "Tables 3 and 4 show that combining EBMT with SMT systems shows improvements of 0.82 and 2.75 BLEU absolute over the SMT baseline (Table 2) for both the En?Tr and the En?Fr data sets.",
+        "In each case, the improvement of EBMTTM + SMT over the baseline SMT is statistically significant (reliability of 98%) using boot",
+        "A particular objective of our work is to scale the runtime EBMT system to a larger amount of training examples.",
+        "We experiment with the two approaches described in Section 4 to improve the run time of the system.",
+        "Table 5 compares the run time of the three systems (EBMTTM, EBMTTM + groupi and EBMTTM + index) for both En?Tr and En?Fr translation.",
+        "Note that the SMT decoder takes 140 seconds and 310 minutes respectively for En?Tr and",
+        "Both the grouping and indexing methodologies proved successful for system scalability with a maximum speedup of almost 2 orders of magnitude.",
+        "We also need to estimate the accuracy while combining grouping and indexing techniques with the baseline system (EBMTTM + SMT) to understand their relative performance.",
+        "Table 6 provides the system accuracy using the grouping and indexing techniques for both the language pairs.",
+        "We report the translation quality under three conditions.",
+        "Similar trends have been observed for other conditions."
+      ]
+    },
+    {
+      "heading": "6.1 Observations and Discussions",
+      "text": [
+        "We find that the EBMTTM system has a lower accuracy on its own compared to baseline SMT for both the language pairs (Table 2).",
+        "Nevertheless, there are sentences which are better translated by the EBMTTM approach compared to SMT, although the overall document translation score is higher with SMT.",
+        "Thus, we combined the two systems based on different features and found that the combined system performs better.",
+        "The highest relative improvements in BLEU score are 3.47% and 1.05% respectively for En?Tr and En?Fr translation.",
+        "We found that if an input has a high fuzzy match score (FMS) with the example-base, then the EBMTTM system does better compared to SMT.",
+        "With our current experimental setup, we found that an FMS over 0.8 showed an improvement for En?Tr and a FMS over 0.6 showed improvement for En?Fr over the SMT system.",
+        "Figure 2 shows the effect in the translation",
+        "quality when different FMS thresholds were used to combine the two systems.",
+        "However, FMS might not be the only factor for triggering the EBMTTM system.",
+        "We considered EqUs as another factor which showed improvement for En?Tr but showed negative effect for En?Fr.",
+        "Though an FMS over 0.7 for En?Tr shows no improvement in overall system accuracy, inclusion of the EqUs feature along with FMS shows improvement.",
+        "Thus, the EBMTTM system is sometimes more effective when the number of unmatched segment matches in s, sc and tc.",
+        "These observations show the effective use of our EBMT approach in terms of translation quality.",
+        "However, we found that the EBMTTM system has a very considerable runtime complexity.",
+        "In order to translate 414 test sentences from English into Turkish, the basic EBMT system takes 295.9 seconds.",
+        "The situation becomes worse when using the large example-base for En?Fr translation.",
+        "Here, we found that the system takes around 38 hours to translate 10k source English sentences into French.",
+        "This is a significant time complexity by any standard for a runtime approach.",
+        "However, both grouping and indexing reduce the time complexity of the approach considerably.",
+        "The time reduction with grouping depends on the number of bins considered to find the closest sentence during the matching stage.",
+        "Systems with a lower number of bins take less time but cause more of a drop in translation quality.",
+        "The effect is more prominent with the En?Fr system which uses a larger example-base.",
+        "We found a drop of absolute 1.32 BLEU points while considering a single bucket whose length is equal to the length of the test sentence.",
+        "This configuration takes 63 minutes to translate 10k English sentences into French.",
+        "There is only a drop of 0.03 BLEU points when considering the 5 nearest bins (?2) for a given test sentence.",
+        "Nevertheless, there is not much of a reduction but it increases the run time to 5 hours for the translation of 10k sentences.",
+        "Thus, the group-based method is not effective enough to balance system accuracy and run time.",
+        "Incorporation of the indexing technique into the matching stage of EBMT shows the highest efficiency gains in run time.",
+        "Translating 10k sentences from English into French takes only 158 seconds.",
+        "It is also interesting to note that with indexing, the BLEU score remained the same or even increased.",
+        "This is due to the fact that, compared to FMS-based matching, a different closest-matching sentence sc is selected for some of the input sentences while using indexing, thus resulting in a different outcome to the system.",
+        "Figure 3 compares the number of times the EBMTTM + SMT + index system is used in the hybrid system and the number of same closest-matching sentences selected by EBMTTM + SMT + index systems under different conditions for En?Tr.",
+        "The use of index-based candidate selection for EBMT matching shows effective",
+        "in final translation.",
+        "Input: zeffix belongs to a group of medicines called antivirals.",
+        "Ref : zeffix appartient a` une classe de me?dicaments appele's antiviraux.",
+        "baseline EBMTTM system sc: simulect belongs to a group of medicines called immunosuppressants.",
+        "st: simulect fait parti d ?",
+        "une classe de me?dicaments appele's immunosuppresseurs.",
+        "Output: zeffix fait parti d ?",
+        "une classe de me?dicaments appele's antiviraux.",
+        "EBMTTM + SMT + index system sc: diacomit belongs to a group of medicines called antiepileptics.",
+        "st: diacomit appartient a` un groupe de me?dicaments appele's antie?pileptiques.",
+        "Output: zeffix appartient a` un groupe de me?dicaments appele's antiviraux.",
+        "improvement in translation time, and BLEU scores remained the same or increased.",
+        "Due to the selection of different closest-matching sentence sc, sometimes the system produces better quality translation which increases the system level BLEU score.",
+        "Table 7 shows one such En?Fr example where an index-based technique produced a better translation than the baseline (EBMTTM + SMT) system."
+      ]
+    },
+    {
+      "heading": "7 Conclusion",
+      "text": [
+        "Our experiments show that EBMT approaches work better compared to the SMT-based system for certain sentences when a high fuzzy match score is",
+        "used in the hybrid system and the number of times the same closest-matching sentences are selected by the systems.",
+        "a=FMS>0.85, b=FMS>0.85 & EqUS and c=FMS>0.80 OR (FMS>0.70 & EqUS) obtained for the input sentence with the example-base.",
+        "Thus a feature-based combination of EBMT-and SMT-based systems produces better translation quality than either of the individual systems.",
+        "Integration of a SMT technology-based sub-sentential TM with the EBMT framework (EBMTTM) has improved translation quality in our experiments.",
+        "Our baseline EBMTTM system is a runtime approach which has high time complexity when using a large example-base.",
+        "We found that the integration of IR-based indexing substantially improves run time without affecting BLEU score.",
+        "So far our systems have been tested using moderately sized example-bases from a closed domain corpus.",
+        "In our future work, we plan to use a much larger example-base and wider-domain corpora."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This research is supported by Science Foundation Ireland (Grants 07/CE/I1142, Centre for Next Generation Localisation)."
+      ]
+    }
+  ]
+}

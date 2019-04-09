@@ -1,0 +1,262 @@
+{
+  "info": {
+    "authors": [
+      "Thorsten Brants"
+    ],
+    "book": "Conference of the European Association for Computational Linguistics",
+    "id": "acl-E99-1016",
+    "title": "Cascaded Markov Models",
+    "url": "https://aclweb.org/anthology/E99-1016",
+    "year": 1999
+  },
+  "references": [
+    "acl-A88-1019",
+    "acl-A97-1014",
+    "acl-C94-1071",
+    "acl-H94-1050",
+    "acl-J88-1003",
+    "acl-J97-2003",
+    "acl-P98-1010",
+    "acl-P98-1034",
+    "acl-W95-0107",
+    "acl-W97-0307",
+    "acl-W98-1117"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper presents a new approach to partial parsing of context-free structures.",
+        "The approach is based on Mazkov Models.",
+        "Each layer of the resulting structure is represented by its own Markov Model, and output of a lower layer is passed as input to the next higher layer.",
+        "An empirical evaluation of the method yields very good results for NP/PP chunking of German newspaper texts."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Partial parsing, often referred to as chunking, is used as a preprocessing step before deep analysis or as shallow processing for applications like information retrieval, messsage extraction and text summarization.",
+        "Chunking concentrates on constructs that can be recognized with a high degree of certainty.",
+        "For several applications, this type of information with high accuracy is more valuable than deep analysis with lower accuracy.",
+        "We will present a new approach to partial parsing that uses Markov Models.",
+        "The presented models are extensions of the part-of-speech tagging technique and are capable of emitting structure.",
+        "They utilize context-free grammar rules and add left-to-right transitional context information.",
+        "This type of model is used to facilitate the syntactic annotation of the NEGRA corpus of German newspaper texts (Skut et al., 1997).",
+        "Part-of-speech tagging is the assignment of syntactic categories (tags) to words that occur in the processed text.",
+        "Among others, this task is efficiently solved with Markov Models.",
+        "States of a Markov Model represent syntactic categories (or tuples of syntactic categories), and outputs represent words and punctuation (Church, 1988; DeRose, 1988, and others).",
+        "This technique of statistical part-of-speech tagging operates very suc cessfully, and usually accuracy rates between 96 and 97% are reported for new, unseen text.",
+        "Brants et al.",
+        "(1997) showed that the technique of statistical tagging can be shifted to the next level of syntactic processing and is capable of assigning grammatical functions.",
+        "These are functions like subject, direct object, head, etc.",
+        "They mark the function of a child node within its parent phrase.",
+        "Figure 1 shows an example sentence and its structure.",
+        "The terminal sequence is complemented by tags (Stuttgart-Tiibingen-Tagset, Thielen and Schiller, 1995).",
+        "Non-terminal nodes are labeled with phrase categories, edges are labeled with grammatical functions (NEGRA tagset).",
+        "In this paper, we will show that Markov Models are not restricted to the labeling task (i.e., the assignment of part-of-speech labels, phrase labels, or labels for grammatical functions), but are also capable of generating structural elements.",
+        "We will use cascades of Markov Models.",
+        "Starting with the part-of-speech layer, each layer of the resulting structure is represented by its own Markov Model.",
+        "A lower layer passes its output as input to the next higher layer.",
+        "The output of a layer can be ambiguous and it is complemented by a probability distribution for the alternatives.",
+        "This type of parsing is inspired by finite state cascades which are presented by several authors.",
+        "CASS (Abney, 1991; Abney, 1996) is a partial parser that recognizes non-recursive basic phrases (chunks) with finite state transducers.",
+        "Each transducer emits a single best analysis (a longest match) that serves as input for the transducer at the next higher level.",
+        "CASS needs a special grammar for which rules are manually coded.",
+        "Each layer creates a particular subset of phrase types.",
+        "FASTUS (Appelt et al., 1993) is heavily based on pattern matching.",
+        "Each pattern is associated with one or more trigger words.",
+        "It uses a series of non-deterministic finite-state transducers to build chunks; the output of one transducer is passed",
+        "as input to the next transducer.",
+        "(Roche, 1994) uses the fix point of a finite-state transducer.",
+        "The transducer is iteratively applied to its own output until it remains identical to the input.",
+        "The method is successfully used for efficient processing with large grammars.",
+        "(Cardie and Pierce, 1998) present an approach to chunking based on a mixture of finite state and context-free techniques.",
+        "They use NP rules of a pruned treebank grammar.",
+        "For processing, each point of a text is matched against the treebank rules and the longest match is chosen.",
+        "Cascades of automata and transducers can also be found in speech processing, see e.g. (Pereira et al., 1994; Mohri, 1997).",
+        "Contrary to finite-state transducers, Cascaded Markov Models exploit probabilities when processing layers of a syntactic structure.",
+        "They do not generate longest matches but most-probable sequences.",
+        "Furthermore, a higher layer sees different alternatives and their probabilities for the same span.",
+        "It can choose a lower ranked alternative if it fits better into the context of the higher layer.",
+        "An additional advantage is that Cascaded Markov Models do not need a \"stratified\" grammar (i.e., each layer encodes a disjoint subset of phrases).",
+        "Instead the system can be immediately trained on existing treebank data.",
+        "The rest of this paper is structured as follows.",
+        "Section 2 addresses the encoding of parsing processes as Markov Models.",
+        "Section 3 presents Cascaded Markov Models.",
+        "Section 4 reports on the evaluation of Cascaded Markov Models using tree bank data.",
+        "Finally, section 5 will give conclusions."
+      ]
+    },
+    {
+      "heading": "2 Encoding of Syntactical Information as Markov Models",
+      "text": [
+        "When encoding a part-of-speech tagger as a Markov Model, states represent syntactic categories1 and outputs represent words.",
+        "Contextual probabilities of tags are encoded as transition probabilities of tags, and lexical probabilities of the Markov Model are encoded as output probabilities of words in states.",
+        "We introduce a modification to this encoding.",
+        "States additionally may represent non-terminal categories (phrases).",
+        "These new states emit partial parse trees (cf. figure 2).",
+        "This can be seen as collapsing a sequence of terminals into one non terminal.",
+        "Transitions into and out of the new states are performed in the same way as for words and parts-of-speech.",
+        "Transitional probabilities for this new type of Markov Models can be estimated from annotated data in a way very similar to estimating probabilities for a part-of-speech tagger.",
+        "The only difference is that sequences of terminals may be replaced by one non-terminal.",
+        "Lexical probabilities need a new estimation method.",
+        "We use probabilities of context-free partial parse trees.",
+        "Thus, the lexical probability of the state NP in figure 2 is determined by Note that the last three probabilities are the same as for the part-of-speech model.",
+        "'Categories and states directly correspond in bigram models.",
+        "For higher order models, tuples of categories are combined to one state."
+      ]
+    },
+    {
+      "heading": "3.1 Tagging Lattices",
+      "text": [
+        "The processing example in figure 3 only shows the best hypothesis at each layer.",
+        "But there are alternative phrase hypotheses and we need to determine the best one during the parsing process.",
+        "All rules of the generated context-free grammar with right sides that are compatible with part of the sequence are added to the search space.",
+        "Figure 4 shows an example for hypotheses at the first layer when processing the sentence of figure 1.",
+        "Each bar represents one hypothesis.",
+        "The position of the bar indicates the covered words.",
+        "It is labeled with the type of the hypothetical phrase, an index in the upper left corner for later reference, the negative logarithm of the probability that this phrase generates the terminal yield (i.e., the smaller the better; probabilities for part-ofspeech tags are omitted for clarity).",
+        "This part is very similar to chart entries of a chart parser.",
+        "All phrases that are newly introduced at this layer are marked with an asterisk (*).",
+        "They are produced according to context-free rules, based on the elements passed from the next lower layer.",
+        "The layer below layer 1 is the part-of-speech layer.",
+        "The hypotheses form a lattice, with the word boundaries being states and the phrases being edges.",
+        "Selecting the best hypothesis means to find the best path from node 0 to the last node (node 14 in the example).",
+        "The best path can be efficiently found with the Viterbi algorithm (Viterbi, 1967), which runs in time linear to the length of the word sequence.",
+        "Having this view of finding the best hypothesis, processing of a layer is similar to word lattice processing in speech recognition (cf. Samuelsson, 1997).",
+        "Two types of probabilities are important when searching for the best path in a lattice.",
+        "First, these are probabilities of the hypotheses (phrases) generating the underlying terminal nodes (words).",
+        "They are calculated according to a stochastic context-free grammar and given in figure 4.",
+        "The second type are context probabilities, i.e., the probability that some type of phrase follows or precedes another.",
+        "The two types of probabilities coincide with lexical and contextual probabilities of a Markov Model, respectively.",
+        "According to a trigram model (generated from a corpus), the path in figure 4 that is marked grey is the best path in the lattice.",
+        "Its probability is composed of",
+        "Kronos haben mit ihrer Musik Bracken geschlagen Kronos have with their music bridgesbuilt \"Kronos built bridges with their music\" Input -P(PPICNP, VAFIN) P(PPvon den 37 beteiligten Vereinen) -P(VVPPIVAFIN, PP)P(VVPP 4 au f gebracht) -P(SIPP, VVPP).",
+        "Start and end of the path are indicated by a dollar sign (8).",
+        "This path is very close to the correct structure for layer 1.",
+        "The CNP and PP are correctly recognized Additionally, the best path correctly predicts that APP R, VAFIN and VVPP should not be attached in layer 1.",
+        "The only error is the NP em n enormer Posten.",
+        "Although this is on its own a perfect NP, it is not complete because the PP an Arbeit und Geld is missing.",
+        "ART, ADJA and NN should be left unattached in this layer in order to be able to create the correct structure at higher layers.",
+        "The presented Markov Models act as filters.",
+        "The probability of a connected structure is determined only based on a stochastic context-free grammar.",
+        "The joint probabilities of unconnected partial structures are determined by additionally using Markov Models.",
+        "While building the structure bottom up, parses that are unlikely according to the Markov Models are pruned."
+      ]
+    },
+    {
+      "heading": "3.2 The Method",
+      "text": [
+        "The standard Viterbi algorithm is modified in order to process Markov Models operating on lattices.",
+        "In part-of-speech tagging, each hypothesis (a tag) spans exactly one word.",
+        "Now, a hypothesis can span an arbitrary number of words, and the same span can be covered by an arbitrary number of alternative word or phrase hypotheses.",
+        "Using terms of a Markov Model, a state is allowed to emit a context-free partial parse tree, starting with the represented non-terminal symbol, yielding part of the sequence of words.",
+        "This is in contrast to standard Markov Models.",
+        "There, states emit atomic symbols.",
+        "Note that an edge in the lattice is represented by a state in the corresponding Markov Model.",
+        "Figure 2 shows the part of the Markov Model that represents the best path in the lattice of figure 4.",
+        "The equations of the Viterbi algorithm are adapted to process a language model operating on a lattice.",
+        "Instead of the words, the gaps between the words are enumerated (see figure 4), and an edge between two states can span one or more words, such that an edge is represented by a triple (t, t' ,q), starting at time t, ending at time t' and representing state q.",
+        "We introduce accumulators At,t, (q) that collect the maximum probability of state q covering words from position t to t'.",
+        "We use 5i,j(q) to denote the probability of the deriviation emitted by state q having a terminal yield that spans positions i to j.",
+        "These are needed here as part of the accumulators A. Initialization:",
+        "for i > 1, until we reach t7kn = 0.",
+        "Now, qin is the best sequence of phrase hypotheses (read backwards)."
+      ]
+    },
+    {
+      "heading": "3.3 Passing Ambiguity to the Next Layer",
+      "text": [
+        "The process can move on to layer 2 after the first layer is computed.",
+        "The results of the first layer are taken as the base and all context-free rules that apply to the base are retrieved.",
+        "These again form a lattice and we can calculate the best path for layer 2.",
+        "The Markov Model for layer 1 operates on the output of the Markov Model for part-of-speech tagging, the model for layer 2 operates on the output of layer 1, and so on.",
+        "Hence the name of the processing model: Cascaded Markov Models.",
+        "Very often, it is not sufficient to calculate just the best sequences of words/tags/phrases.",
+        "This may result in an error leading to subsequent errors at higher layers.",
+        "Therefore, we not only calculate the best sequence but several top ranked sequences.",
+        "The number of the passed hypotheses depends on a predefined threshold 0 > 1.",
+        "We select all hypotheses with probabilities P > P /0 - - best These are passed to the next layer together with their probabilities."
+      ]
+    },
+    {
+      "heading": "3.4 Parameter Estimation",
+      "text": [
+        "Transitional parameters for Cascaded Markov Models are estimated separately for each layer.",
+        "Output parameters are the same for all layers, they are taken from the stochastic context-free grammar that is read off the treebank.",
+        "Training on annotated data is straight forward.",
+        "First, we number the layers, starting with 0 for the part-of-speech layer.",
+        "Subsequently, information for the different layers is collected.",
+        "Each sentence in the corpus represents one training sequence for each layer.",
+        "This sequence consists of the tags or phrases at that layer.",
+        "If a span is not covered by a phrase at a particular layer, we take the elements of the highest layer below the actual layer.",
+        "Figure 5 shows the training sequences for layers 0 4 generated from the sentence in figure 1.",
+        "Each sentence gives rise to one training sequence for each layer.",
+        "Contextual parameter estimation is done in analogy to models for part-of-speech tagging, and the same smoothing techniques can be applied.",
+        "We use a linear interpolation of uni-, bi-, and trigram models.",
+        "A stochastic context-free grammar is read off the corpus.",
+        "The rules derived from the annotated sentence in figure 1 are also shown in figure 5.",
+        "The grammar is used to estimate output parameters for all Markov Models, i.e., they are the"
+      ]
+    },
+    {
+      "heading": "4 Experiments",
+      "text": [
+        "This section reports on results of experiments with Cascaded Markov Models.",
+        "We evaluate chunking precision and recall, i.e., the recognition of kernel N Ps and PPs.",
+        "These exclude prenominal adverbs and postnominal PPs and relative clauses, but include all other prenominal modifiers, which can be fairly complex adjective phrases in German.",
+        "Figure 6 shows an example of a complex NP and the output of the parsing process.",
+        "For our experiments, we use the NEGRA corpus (Skut et al., 1997).",
+        "It consists of German newspaper texts (Frankfurter Rundschau) that are annotated with predicate-argument structures.",
+        "We extracted all structures for NPs, PPs, APs, AVPs (i.e., we mainly excluded sentences, VPs and coordinations).",
+        "The version of the corpus used contains 17,000 sentences (300,000 tokens).",
+        "The corpus was divided into training part (90%) and test part (10%).",
+        "Experiments were repeated 10 times, results were averaged.",
+        "Cross-evaluation was done in order to obtain more reliable performance estimates than by just one test run.",
+        "Input of the process is a sequence of words (divided into sentences), output are part-of-speech tags and structures like the one indicated in figure 6.",
+        "Recall increases with the number of layers.",
+        "It ranges from 54.0% for 1 layer to 84.8% for 9 layers.",
+        "This could be expected, because the number of layers determines the number of phrases that can be parsed by the model.",
+        "The additional line for \"topline recall\" indicates the percentage of phrases that can be parsed by Cascaded Markov Models with the given number of layers.",
+        "All nodes that belong to higher layers cannot be recognized.",
+        "Precision slightly decreases with the number of layers.",
+        "It ranges from 91.4% for 1 layer to 88.3% for 9 layers.",
+        "The F-score is a weighted combination of recall R and precision P and defined as follows:",
+        "because they processed a different language and generated only one layer of structure (the chunk boundaries), while our algorithm also generates the internal structure of chunks.",
+        "But generally, Cascaded Markov Models can be reduced to generating just one layer and can be trained on Penn Treebank data."
+      ]
+    },
+    {
+      "heading": "5 Conclusion and Future Work",
+      "text": [
+        "We have presented a new parsing model for shallow processing.",
+        "The model parses by representing each layer of the resulting structure as a separate Markov Model.",
+        "States represent categories of words and phrases, outputs consist of partial parse trees.",
+        "Starting with the layer for part-ofspeech tags, the output of lower layers is passed as input to higher layers.",
+        "This type of model is restricted to a fixed maximum number of layers in the parsed structure, since the number of Markov Models is determined before parsing.",
+        "While the effects of these restrictions on the parsing of sentences and VPs are still to be investigated, we obtain excellent results for the chunking task, i.e., the recognition of kernel N Ps and PPs.",
+        "It will be interesting to see in future work if Cascaded Markov Models can be extended to parsing sentences and VPs.",
+        "The average number of layers per sentence in the NEGRA corpus is only 5; 99.9% of all sentences have 10 or less layers, thus a very limited number of Markov Models would be sufficient.",
+        "Cascaded Markov Models add left-to-right context-information to context-free parsing.",
+        "This contextualization is orthogonal to another important trend in language processing: lexicalization.",
+        "We expect that the combination of these techniques results in improved models.",
+        "We presented the generation of parameters from annotated corpora and used linear interpolation for smoothing.",
+        "While we do not expect im124 Proceedings of EACL '99 provements by re-estimation on raw data, other smoothing methods may result in better accuracies, e.g. the maximum entropy framework.",
+        "Yet, the high complexity of maximum entropy parameter estimation requires careful pre-selection of relevant linguistic features.",
+        "The presented Markov Models act as filters.",
+        "The probability of the resulting structure is determined only based on a stochastic context-free grammar.",
+        "While building the structure bottom up, parses that are unlikely according to the Markov Models are pruned.",
+        "We think that a combined probability measure would improve the model.",
+        "For this, a mathematically motivated combination needs to be determined."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "I would like to thank Hans Uszkoreit, Yves Schabes, Wojciech Skut, and Matthew Crocker for fruitful discussions and valuable comments on the work presented here.",
+        "And I am grateful to Sabine Kramp for proofreading this paper.",
+        "This research was funded by the Deutsche Forschungsgemeinschaft in the Sonderforschungsbereich 378, Project C3 NEGRA."
+      ]
+    }
+  ]
+}

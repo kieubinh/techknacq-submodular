@@ -1,0 +1,1292 @@
+{
+  "info": {
+    "authors": [
+      "Carlos Gómez-Rodríguez",
+      "John Carroll",
+      "David Weir"
+    ],
+    "book": "Computational Linguistics",
+    "id": "acl-J11-3004",
+    "title": "Dependency Parsing Schemata and Mildly Non-Projective Dependency Parsing",
+    "url": "https://aclweb.org/anthology/J11-3004",
+    "year": 2011
+  },
+  "references": [
+    "acl-C96-1058",
+    "acl-C96-2122",
+    "acl-D07-1013",
+    "acl-D07-1096",
+    "acl-E09-1034",
+    "acl-E99-1020",
+    "acl-H05-1036",
+    "acl-H05-1066",
+    "acl-N06-1021",
+    "acl-N07-1050",
+    "acl-N09-1061",
+    "acl-P04-1054",
+    "acl-P05-1012",
+    "acl-P05-1013",
+    "acl-P05-1067",
+    "acl-P06-2066",
+    "acl-P07-1021",
+    "acl-P07-1077",
+    "acl-P08-1066",
+    "acl-P08-1108",
+    "acl-P08-1110",
+    "acl-P87-1015",
+    "acl-P89-1018",
+    "acl-P92-1012",
+    "acl-P96-1025",
+    "acl-P98-1106",
+    "acl-P99-1059",
+    "acl-W04-2407",
+    "acl-W06-2922",
+    "acl-W06-2933",
+    "acl-W07-2216",
+    "acl-W08-2121",
+    "acl-W08-2134",
+    "acl-W98-0507",
+    "acl-W98-0511"
+  ],
+  "sections": [
+    {
+      "text": [
+        "Carlos Gomez-Rodriguez*",
+        "Universidade da Coruna, Spain",
+        "John Carroll** University of Sussex, UK",
+        "David Weir\" University of Sussex, UK",
+        "We introduce dependency parsing schemata, a formal framework based on Sikkel's parsing schemata for constituency parsers, which can be used to describe, analyze, and compare dependency parsing algorithms.",
+        "We use this framework to describe several well-known projective and non-projective dependency parsers, build correctness proofs, and establish formal relationships between them.",
+        "We then use the framework to define new polynomial-time parsing algorithms for various mildly non-projective dependency formalisms, including well-nested structures with their gap degree bounded by a constant k in time O(n+2k), and a new class that includes all gap degree k structures present in several natural language treebanks (which we call mildly ill-nested structures for gap degree k)intime O(n+3k).",
+        "Finally, we illustrate how the parsing schema framework can be applied to Link Grammar, a dependency-related formalism."
+      ]
+    },
+    {
+      "heading": "1.. Introduction",
+      "text": [
+        "Dependency parsing involves finding the structure of a sentence as expressed by a set of directed links (called dependencies) between individual words.",
+        "Dependency formalisms have attracted considerable interest in recent years, having been successfully applied to tasks such as machine translation (Ding and Palmer 2005; Shen, Xu, and Weischedel 2008), textual entailment recognition (Herrera, Peinas, and Verdejo 2005), relation extraction (Culotta and Sorensen 2004; Fundel, Kuffner, and Zimmer 2006), and question answering (Cui et al.",
+        "2005).",
+        "Key characteristics of the dependency parsing approach are that dependency structures specify head-modifier and head-complement relationships, which form the basis of predicate-argument structure, but are not represented explicitly in constituency trees; there is no need for dependency parsers to postulate the existence of non-lexical nodes; and some variants of dependency parsers * Facultade de Informatica, Universidade da Coruna Campus de Elvina, s/n, 15071 A Coruna, Spain.",
+        "E-mail: cgomezr@udc.es.",
+        "** School of Informatics, University of Sussex, Falmer, Brighton BN1 9QJ, UK.",
+        "E-mail: J.A.Carroll@sussex.ac.uk.",
+        "t School of Informatics, University of Sussex, Falmer, Brighton BN1 9QJ, UK.",
+        "E-mail: D.J.Weir@sussex.ac.uk.",
+        "Submission received: 21 October 2009; revised submission received: 23 December 2010; accepted for publication: 29 January 2011.",
+        "are able to represent non-projective structures (McDonald et al.",
+        "2005), which is important when parsing free word order languages where discontinuous constituents are common.",
+        "The formalism of parsing schemata, introduced by Sikkel (1997), is a useful tool for the study of constituency parsers, supporting precise, high-level descriptions of parsing algorithms.",
+        "Potential applications of parsing schemata include devising correctness proofs, extending our understanding of relationships between different algorithms, deriving new variants of existing algorithms, and obtaining efficient implementations automatically (Gomez-Rodriguez, Vilares, and Alonso 2009).",
+        "The formalism was originally defined for context-free grammars (CFG) and since then has been applied to other constituency-based formalisms, such as tree-adjoining grammars (Alonso et al.",
+        "1999).",
+        "This article considers the application of parsing schemata to the task of dependency parsing.",
+        "The contributions of this article are as follows.",
+        "• We introduce dependency parsing schemata, a novel adaptation of the original parsing schemata framework (see Section 2).",
+        "• We use the dependency parsing schemata to define and compare a number of existing dependency parsers (projective parsers are presented in Section 3, and their formal properties discussed in Sections 4 and 5; a number of non-projective parsers are presented in Section 6).",
+        "• We present parsing algorithms for several sets of mildly non-projective dependency structures, including a parser for a new class of structures we call mildly ill-nested, which encompasses all the structures in a number of existing dependency treebanks (see Section 7).",
+        "• We adapt the dependency parsing schema framework to the formalism of Link Grammar (Sleator and Temperley 1991,1993) (see Section 8).",
+        "Although some of these contributions have been published previously, this article presents them in a thorough and consistent way.",
+        "The definition of dependency parsing schemata was first published by Gomez-Rodriguez, Carroll, and Weir (2008), along with some of the projective schemata presented here and their associated proofs.",
+        "The results concerning mildly non-projective parsing in Section 7 were first published by Gomez-Rodriguez, Weir, and Carroll (2008, 2009).",
+        "On the other hand, the material on Nivre and Covington's projective parsers, as well as all the non-projective parsers and the application of the formalism to Link Grammar, are entirely new contributions of this article.",
+        "The notion of a parsing schema comes from considering parsing as a deduction process which generates intermediate results called items.",
+        "In particular, items in parsing schemata are sets of partial constituency trees taken from the set of all partial parse trees that do not violate the constraints imposed by a grammar.",
+        "A parsing schema can be used to obtain a working implementation of a parser by using deductive engines such as the ones described by Shieber et al.",
+        "(1995) and Gomez-Rodriguez, Vilares, and Alonso (2009), or the Dyna language (Eisner, Goldlust, and Smith 2005)."
+      ]
+    },
+    {
+      "heading": "2. Dependency Parsing Schemata",
+      "text": [
+        "Although parsing schemata were originally defined for CFG parsers, they have since been adapted to other constituency-based grammar formalisms.",
+        "This involves finding a suitable definition of the set of structures contained in items, and a way to define deduction steps that captures the formalism's composition rules (Alonso et al.",
+        "1999).",
+        "Although it is less clear how to adapt parsing schemata to dependency parsing, a number of dependency parsers have the key property of being constructive: They proceed by combining smaller structures to form larger ones, terminating when a complete parse for the input sentence is found.",
+        "We show that this makes it possible to define a variant of the traditional parsing schemata framework, where the encodings of intermediate dependency structures are defined as items, and the operations used to combine them are expressed as inference rules.",
+        "We begin by addressing a number of preliminary issues.",
+        "Traditional parsing schemata are used to define grammar-driven parsers, in which the parsing process is guided by some set of rules which are used to license deduction steps.",
+        "For example, an Earley PREDICTOR step is tied to a particular grammar rule, and can only be executed if such a rule exists.",
+        "Some dependency parsers are also grammar-driven.",
+        "For example, those described by Lombardo and Lesmo (1996), Barbero et al.",
+        "(1998), and Kahane, Nasr, and Rambow (1998) are based on the formalizations of dependency grammar CFG-like rules described by Hays (1964) and Gaifman (1965).",
+        "However, many of the algorithms (Eisner 1996; Yamada and Matsumoto 2003) are not traditionally considered to be grammar-driven, because they do not use an explicit formal grammar; decisions about which dependencies to create are taken individually, using probabilistic models (Eisner 1996) or classifiers (Yamada and Matsumoto 2003).",
+        "These are called data-driven parsers.",
+        "To express such algorithms as deduction systems, we use the notion of D-rules (Covington 1990).",
+        "D-rules have the form (a, i) – (b, j), which specifies that a word b located at position j in the input string can have the word a in position i as a dependent.",
+        "Deduction steps in data-driven parsers can be associated with the D-rules corresponding to the links they create, so that parsing schemata for such parsers are defined using grammars of D-rules.",
+        "In this way, we obtain a representation of some of the declarative aspects of these parsing strategies that is independent of the particular model used to make the decisions associated with each D-rule.",
+        "Note that this representation is useful for designing control structures or probabilistic models for the parsers, because it makes explicit the choice points where the models will have to make probabilistic decisions, as well as the information available at each of those choice points.",
+        "Additionally, D-rules allow us to use an uniform description that is valid for both data-driven and grammar-driven parsers, because D-rules can function like grammatical rules.",
+        "The fundamental structures in dependency parsing are dependency trees.",
+        "Therefore, just as items for constituency parsers encode sets of partial constituency trees, items for dependency parsers can be defined using partial dependency trees.",
+        "However, dependency trees cannot express the fact that a particular structure has been predicted, but not yet built; this is required for grammar-based algorithms such as those of Lombardo and Lesmo (1996) and Kahane, Nasr, and Rambow (1998).",
+        "The formalism can be made general enough to include these parsers by using a novel way of representing intermediate states of dependency parsers based on a form of dependency trees that include nodes labelled with preterminals and terminals (Gomez-Rodriguez, Carroll, and Weir 2008; Gomez-Rodriguez 2009).",
+        "For simplicity of presentation, we will only use this representation (called extended dependency trees) in the grammar-based algorithms that need it, and we will define the formalism and the rest of the algorithms with simple dependency trees.",
+        "Some existing dependency parsing algorithms, for example, the algorithm of Eisner (1996), involve steps that connect spans which can represent disconnected dependency graphs.",
+        "Such spans cannot be represented by",
+        "Gomez-Rodriguez, a single dependency tree.",
+        "Therefore, our formalism allows items to be sets of forests of partial dependency trees, rather than sets of trees.",
+        "We are now ready to define the concepts needed to specify item sets for dependency parsers."
+      ]
+    },
+    {
+      "heading": "Definition 1",
+      "text": [
+        "An interval (with endpoints i and j) is a set of natural numbers of the form = {k | i < k < j}.",
+        "We will use the notation for the ordered list of the numbers in A dependency graph for a string w = w1 ...wn is a graph G = (V,E), where V C [1..n] and E C V x V.",
+        "The edge (i,j) is written i – j, and each such edge is called a dependency link, encoding the fact that the word wi is a syntactic dependent (or child)of wj or, conversely, that wj is the parent, governor,or head of wi.",
+        "We write i – * j to denote that there exists a (possibly empty) path from i to j.The projection of a node i, denoted [ij,isthe setof reflexive-transitive dependents of i,thatis, [ij = {j £ V | j – * i}.",
+        "In contexts where we refer to different dependency graphs, we use the notation [ijG to specify the projection of a node i in the graph G."
+      ]
+    },
+    {
+      "heading": "Definition 2",
+      "text": [
+        "A dependency graph T for a string w1 ... wn is called a dependency tree for that string if it contains no cycles and all of its nodes have exactly one parent, except for one node that has none and is called the root or head of the tree T, denoted head(T).",
+        "The yield of a dependency tree T, denoted yield(T), is the ordered list of its nodes.",
+        "We will use the term dependency forest to refer to a set of dependency trees for the same string, and the generic term dependency structure to refer to a dependency tree or forest.",
+        "A dependency tree is said to be a parse tree for a string w1 ...wn if its yield is 1..n."
+      ]
+    },
+    {
+      "heading": "Definition 3",
+      "text": [
+        "We say that a dependency graph G = (V, E)for astring w1 ...wn is projective if [ij is an interval for every i £ V."
+      ]
+    },
+    {
+      "heading": "Definition 4",
+      "text": [
+        "Let 6(G) be the set of dependency trees which are syntactically well-formed according to a given grammar G (which may be a grammar of D-rules or of CFG-like rules, as explained previously).",
+        "We define an item set for dependency parsing as a set I C n, where n is a partition of the power set, P(6(G)), of the set 6(G).",
+        "Each element of I, called an item, is a set of dependency forests for strings.",
+        "For example, each member of the item [1,5] in the item set of the parser by Yamada and Matsumoto (2003) that will be explained in Section 3.4 is a dependency forest with two projective trees, one with head 1 and the other with head 5, and such that the concatenation of their yields is 1..5.",
+        "Figure 1 shows the three dependency forests that constitute the contents of this item under a specific grammar of D-rules.",
+        "Following Sikkel (1997), items are sets of syntactic structures and tuples are a shorthand notation for such sets, as seen in the previous example.",
+        "An alternative approach,",
+        "1 Note that the trees in a dependency forest can have different yields, because the node set of a dependency tree for a string w1 ...wn can be any subset of [1..n].",
+        "In fact, all the forests used by the parsers in this article contain trees with non-overlapping yields, although this is not required by the definition.",
+        "Contents of the item [1, 5] from the Yamada and Matsumoto (2003) parsing schema under a grammar of D-rules {(w2,2) – (w1,1), (w3,3) – (w1,1), (w3,3) – (w5,5), (w3,3) – (w4,4), (w4,4) – (w5,5)}.",
+        "following Shieber, Schabes, and Pereira (1995), would be to define items as tuples that denote sets of syntactic structures.",
+        "Although the latter approach provides more flexibility, this makes defining the relationships between parsers less straightforward.",
+        "In any case, because tuple notation is used to write schemata under both approaches, the schemata we provide are compatible with both interpretations.",
+        "Having defined an item set for dependency parsing, the remaining definitions are analogous to those in Sikkel's theory of constituency parsing (Sikkel 1997), and are not presented in full detail.",
+        "A dependency parsing system is a deduction system (I,H, D) where I is a dependency item set as defined here, H is a set containing initial items or hypotheses (not necessarily contained in I), and D C (P(H L)I) xI)isasetof deduction steps defining an inference relation K",
+        "Final items in this formalism will be those containing some forest F containing a parse tree for some string w1 ... wn.",
+        "In parsers for general non-projective structures, any item containing such a tree will be called a coherent final item for w1 ...wn .In schemata for parsers that are constrained to a more restrictive class T of dependency trees, such as projective parsers, coherent final items will be those containing parse trees for w1 ...wnthat are in T. For example, because we expect correct projective parsers to produce only projective structures, coherent final items for projective parsers will be those containing projective parse trees for w1... wn.",
+        "Correctness proofs typically define a set of coherent items, such that its intersection with final items produces the set of coherent final items.",
+        "The definition of coherent items depends on each particular proof.",
+        "For each input string, a parsing schema's deduction steps allow us to infer a set of items, called derivable items, for that string.",
+        "A parsing schema is said to be sound if all derivable final items it produces for any arbitrary string are coherent for that string.",
+        "A parsingschemaissaidtobe complete if all coherent final items are derivable.",
+        "A correct parsing schema is one which is both sound and complete.",
+        "Parsing schemata are located at a higher abstraction level than parsing algorithms, and formalize declarative aspects of their logic: A parsing schema specifies a set of intermediate results that are obtained by the algorithm (items) and a set of operations that can be used to obtain new such results from existing ones (deduction steps); but it makes no claim about the order in which to execute the operations or the data structures to use for storing the results."
+      ]
+    },
+    {
+      "heading": "3. Projective Schemata",
+      "text": [
+        "In this section, we show how dependency parsing schemata can be used to describe several existing projective dependency parsers.",
+        "2 Coherent (final) items are called correct (final) items in the original formulation by Sikkel (1997).",
+        "3 Derivable items are called valid items in the original formulation by Sikkel (1997).",
+        "Gomez-Rodriguez,"
+      ]
+    },
+    {
+      "heading": "L-Link",
+      "text": []
+    },
+    {
+      "heading": "Figure 2",
+      "text": [
+        "Representation of the [i, j, h] item in Collins's parser, together with one of the dependency structures contained in it (left side); and of the antecedents and consequents of an L-LINK step (right side).",
+        "White rectangles in an item represent intervals of nodes that have been assigned a head by the parser, and dark squares represent nodes that have no head.",
+        "One of the most straightforward projective dependency parsing strategies was introduced by Collins (1996), and is based on the CYK bottom-up parsing strategy (Kasami 1965; Younger 1967).",
+        "Collins's parser works with dependency trees which are linked to each other by creating links between their heads.",
+        "The schema for this parser maps every set of D-rules G and input string w1 ...wn to an instantiated dependency parsing system (Ico196 , H, DCol96)suchthat:",
+        "Item set: The item set is defined as ICol96 = {[i, j, h] | 1 < i < h < j < n}, where item [i, j, h] is defined as the set of forests containing a single projective dependency tree T of 6(G) such that yield(T) is of the form and head(T) = h (see Figure 2, left side).",
+        "From now on, we will implicitly assume that the dependency trees appearing in items of a parsing schema for a grammar G are taken from the set 6(G) of syntactically well-formed trees according to G.",
+        "This means that Collins's parser will be able to infer an item [i, j, h] in the presence of an input string w1 ... wn if, using our set of D-rules, it is possible to build a projective dependency tree headed at h that spans the substring wi ... wj of the input.",
+        "Hypotheses: For an input string w1... wn, the set of hypotheses is H = {[i,i,i] | 0 < i < n + 1}, where each item contains a forest with a single dependency tree having only one node i.",
+        "This same set of hypotheses is used for all the parsers, so is not repeated for subsequent schemata.",
+        "Note that the nodes 0 and n + 1 used in the definition do not correspond to actual input words – these are dummy nodes that we call beginning-of-sentence and end-of-sentence markers, respectively, and will be needed by several of the parsers described subsequently.",
+        "Final items: The set of final items is {[1, n,h] | 1 < h < n}.",
+        "These items trivially represent parse trees for the input sentence whose head is some node h, expressing that the word wh is the sentence's syntactic head.",
+        "4 Although in the parsers described in Section 7 we use a different notation for the hypotheses, they still are the same, as explained later.",
+        "Deduction steps: The set of deduction steps, DCol96, is the union of the following:",
+        "allowing us to join two contiguous trees by linking their heads with a rightward or leftward link, respectively.",
+        "Figure 2 (right side) shows a graphical representation of how trees are joined by the L-LINK step.",
+        "Note that, because this parsing strategy is data-driven, D-rules are used as side conditions for the parser's deduction steps.",
+        "Side conditions restrict the inference relation by specifying which combinations of values are permissible for the variables appearing in the antecedents and consequent of deduction steps.",
+        "This parsing schema specifies a recognizer: Given a set of D-rules and an input string w1 ... wn, the sentence can be parsed (projectively) under those D-rules if and only if the deduction system infers a coherent final item.",
+        "When executing this schema with a deductive engine, the parse forest can be recovered by following back pointers, as in constituency parsers (Billot and Lang 1989).",
+        "This schema formalizes a parsing logic which is independent of the order and the way linking decisions are taken.",
+        "Statistical models can be used to determine whether a step linking words a and b in positions i and j – i.e., having (a, i) – (b, j) as a side condition – is executed or not, and probabilities can be attached to items in order to assign different weights to different analyses of the sentence.",
+        "The side conditions provide an explicit representation of the choice points where probabilistic decisions are made by the control mechanism that is executing the schema.",
+        "The same principle applies to all D-rule-based parsers described in this article.",
+        "Based on the number of free variables used in deduction steps of Collins's parser, it is apparent that its time complexity is O(n): There are O(n) combinations of index values with which each of its LINK steps can be executed.",
+        "This complexity arises because a parentless word (head) may appear in any position in the items generated by the parser; the complexity can be reduced to O(n) by ensuring that parentless words only appear at the first or last position of an item.",
+        "This is the idea behind the parser defined by Eisner (1996), which is still in wide use today (McDonald, Crammer, and Pereira 2005; Corston-Oliver et al.",
+        "2006).",
+        "The parsing schema for this algorithm is defined as follows.",
+        "Item set: The item set is where item [i, j, True, False] corresponds to [i, j, j] £ ICol96,item[i, j, False, True] corresponds to item [i, j, i] £ ICol96, and item [i, j, False, False] is defined as the set of forests",
+        "5 For this and the rest of the complexity results in this article, we assume that the linking decision associated with a D-rule can be made in constant time.",
+        "Gomez-Rodriguez,",
+        "The flags b, c in [i, j, b, c] indicate whether the nodes i and j, respectively, have a parent in the item.",
+        "Items with one of the flags set to True represent dependency trees where the node i or j is the head, whereas items with both flags set to False represent pairs of trees headed at nodes i and j which jointly dominate the substring wi ... wj.",
+        "Items of this kind correspond to disconnected dependency graphs.",
+        "Deduction steps: The set of deduction steps is as follows: where the R-LINK and L-LINK steps establish a dependency link between the heads of an item containing two trees (i.e., having both flags set to False), producing a new item containing a single tree.",
+        "The COMBINESPANS step is used to join two items that overlap at a single word, which must have a parent in only one of the items, so that the result of joining trees coming from both items (without creating any dependency link) is a well-formed dependency tree.",
+        "Final items: The set of final items is {[0, n, False, True]}.",
+        "Note that these items represent dependency trees rooted at the beginning-of-sentence marker 0, which acts as a \"dummy head\" for the sentence.",
+        "In order for the algorithm to parse sentences correctly, we need to define D-rules to allow the real sentence head to be linked to the node 0.",
+        "Eisner and Satta (1999) define an O(n) parser for split head automaton grammars which can be used for dependency parsing.",
+        "This algorithm is conceptually simpler than Eisner's (1996) algorithm, because it only uses items representing single dependency trees, avoiding items of the form [i, j,False,False].",
+        "Item set: The item set is Ies99 = {[i, j,i] | 0 < i < j < n}u{[i,j, j] | 0 < i < j < n}, where items are defined as in Collins's parsing schema.",
+        "Deduction steps: The deduction steps for this parser are the following:",
+        "6 We could have used items [i, i + 1, False, False] as hypotheses for this parsing schema, and not require an Initter step, but we prefer a standard set of hypotheses valid for all parsers as it facilitates more straightforward proofs of the relations between schemata.",
+        "where LINK steps create a dependency link between two dependency trees spanning adjacent segments of the input, and COMBINER steps join two overlapping trees by a graph union operation that does not create new links.",
+        "COMBINER steps follow the same mechanism as those in the algorithm of Eisner (1996), and LINK steps work analogously to those of Collins (1996), so this schema can be seen as being intermediate between those two algorithms.",
+        "These relationships will be formally described in Section 4.",
+        "Final items: The set of final items is {[0,n,0]}.",
+        "By convention, parse trees have the beginning-of-sentence marker 0 as their head, as in the previous algorithm.",
+        "When described for head automaton grammars (Eisner and Satta 1999), this algorithm appears to be more complex to understand and implement than the previous one, requiring four different kinds of items to keep track of the state of the automata used by the grammars.",
+        "However, this abstract representation of its underlying semantics reveals that this parsing strategy is, in fact, conceptually simpler for dependency parsing.",
+        "Yamada and Matsumoto (2003) define a deterministic, shift-reduce dependency parser guided by support vector machines, which achieves over 90% dependency accuracy on Section 23 of the Wall Street Journal Penn Treebank.",
+        "Parsing schemata cannot specify control strategies that guide deterministic parsers; schemata work at an abstraction level, defining a set of operations without procedural constraints on the order in which they are applied.",
+        "However, deterministic parsers can be viewed as optimizations of underlying nondeterministic algorithms, and we can represent the actions of the underlying parser as deduction steps, abstracting away from the deterministic implementation details, obtaining a potentially interesting nondeterministic dependency parser.",
+        "Actions in Yamada and Matsumoto's parser create links between two target nodes, which act as heads of neighboring dependency trees.",
+        "One of the actions creates a link where the left target node becomes a child of the right one, and the head of a tree located directly to the left of the target nodes becomes the new left target node.",
+        "The other action is symmetric, performing the same operation with a right-to-left link.",
+        "An 0(n) nondeterministic parser generalizing this behavior can be defined as follows.",
+        "Item set: The item set is Iymos = {[i, j] | 0 < i < j < n + 1}, where each item [i,j] corresponds to the item [i, j,False,False]in lEis%.",
+        "Deduction steps: The deduction steps are as follows:",
+        "where a LINK step joins a pair of items containing forests with two trees each and overlapping at a head node, and creates a dependency link from their common head to one of the peripheral heads.",
+        "Note that this is analogous to performing an Eisner LINK step immediately followed by an Eisner COMBINE step, as will be further analyzed in Section 4.",
+        "Final items: The set of final items is {[0,n +1]}.",
+        "For this set to be well-defined, the grammar must not have D-rules of the form (wi, i) – (wn+1, n + 1), that is, it must not",
+        "Gomez-Rodriguez,",
+        "dependencystructure"
+      ]
+    },
+    {
+      "heading": "Figure 3",
+      "text": [
+        "Grounded extended dependency tree and associated dependency structure.",
+        "allow the end-of-sentence marker to govern any words.",
+        "If the grammar satisfies this condition, it is trivial to see that every forest in an item of the form [0, n + 1] must contain a parse tree rooted at the beginning-of-sentence marker and with yield 0..n.",
+        "As can be seen from the schema, this algorithm requires less bookkeeping than the other parsers described here.",
+        "3.5 Lombardo and Lesmo (1996) and Other Earley-Based Parsers",
+        "The algorithms presented so far are based on making individual decisions about dependency links, represented by D-rules.",
+        "Other parsers, such as that of Lombardo and Lesmo (1996), use grammars with CFG-like rules which encode the preferred order of dependents for each given governor.",
+        "For example, a rule of the form N(Det * PP)isused to allow N to have Det as left dependent and PP as right dependent.",
+        "The algorithm by Lombardo and Lesmo is a version of Earley's CFG parser (Earley 1970) that uses Gaifman's dependency grammar (Gaifman 1965).",
+        "As this algorithm predicts dependency relations before building them, item sets contain extended dependency trees, trees that have two kinds of nodes: preterminal nodes and terminal nodes.",
+        "Depending on whether all the preterminal nodes have been linked to terminals, extended dependency trees can either be grounded, in which case they are isomorphic to traditional dependency graphs (see Figure 3), or ungrounded,as in Figure 4, in which case they capture parser states in which some structure has been predicted, but not yet found.",
+        "Note that a dependency graph can always be extracted from such a tree, but in the ungrounded case different extended trees can be associated with the same graph.",
+        "Gomez-Rodriguez, Carroll, and Weir (2008) present extended dependency trees in more detail.",
+        "Item set: The item set is lLomies = {[A(a • ß),i,j] | A(aß) e P A 1 < i < j + 1 < n} where a and ß are strings; P is a set of CFG-like rules; and each item [A(a • ß), i, j] represents the set of projective extended dependency trees rooted at A, where the direct children of A are aß , and the subtrees rooted at a have yield i..j.",
+        "Note that Lombardo and Lesmo's parser uses both grounded trees (in items [A(a«), i, j]) and non-grounded trees (in items",
+        "7 A CFG-like rule A(a * ß) rewrites a preterminal A to strings axß over terminals and preterminals, where a, ß are strings of preterminals and x is a terminal of category A (the head of the rule).",
+        "A special rule * (s) is used to state that the preterminal s can act as the root of an extended dependency tree."
+      ]
+    },
+    {
+      "heading": "Figure 4",
+      "text": [
+        "Non-grounded extended dependency tree: A determiner and adjective have been found and, according to the grammar, we expect a noun that will act as their common head.",
+        "As this head has not been read, no dependency links have been established.",
+        "[A(a • ß), i,j], where ß is nonempty).",
+        "Items in this parser can represent infinite sets of extended dependency trees, as in Earley's CFG parser but unlike items in D-rule-based parsers, which are finite sets.",
+        "Deduction steps: The deduction steps for this parsing schema are as follows:",
+        "Final items: The final item set is {[(S»), 1,n]}.",
+        "The schema for Lombardo and Lesmo's parser is a variantof the Earleyconstituency parser (cf. Sikkel 1997), with minor changes to adapt it to dependency grammar (for example, the SCANNER always moves the dot over the head symbol *, rather than over a terminal symbol).",
+        "Analogously, other dependency parsing schemata based on CFG-like rules can be obtained by modifying CFG parsing schemata of Sikkel (1997): The algorithm of Barbero et al.",
+        "(1998) can be obtained from the left-corner parser, and the parser described by Courtin and Genthial (1998) is a variant of the head-corner parser.",
+        "Nivre (2003) describes a shift-reduce algorithm for projective dependency parsing, later extended by Nivre, Hall, and Nilsson (2004).",
+        "With linear-time performance and competitive parsing accuracy (Nivre et al.",
+        "2006; Nivre and McDonald 2008), it is one of the parsers included in the MaltParser system (Nivre et al.",
+        "2007), which is currently widely used (e.g., Nivre et al.",
+        "2007; Surdeanu et al.",
+        "2008).",
+        "The parser proceeds by reading the sentence from left to right, using a stack and four different kinds of transitions between configurations.",
+        "The transition system defined by all the possible configurations and transitions is nondeterministic, and machine learning techniques are used to train a mechanism that produces a deterministic parser.",
+        "A deduction system describing the transitions of the parser is defined by Nivre, Hall, and Nilsson (2004), with the following set of rules that describes transitions",
+        "Gomez-Rodriguez, between configurations (we use the symbol p for a stack and the notation p :: h for the stack resulting from pushing h into p,and ßi to represent a buffer of the form wi... wn):",
+        "This set of inference rules is not a parsing schema, however, because the entities it works with are not items.",
+        "Although the antecedents and consequents in this deduction system are parser configurations, they do not correspond to disjoint sets of dependency structures (several configurations may correspond to the same dependency structures), and therefore do not conform to the definition of an item set.",
+        "It would be possible to define parsing schemata in a different way with a weaker definition of item sets allowing these configurations as items, but this would make it harder to formalize relations between parsers, because they rely on the properties of item sets.",
+        "A parsing schema for Nivre's parser can be obtained by abstracting away the rules in the system that are implementing control structures, however, and expressing only declarative aspects of the parser's tree building logic.",
+        "To do this, we first obtain a simplified version of the deduction system.",
+        "This version of the parser is obtained by storing an index f rather than the full buffer ßf in each configuration, and then grouping configurations that share common features, making them equivalent for the side conditions of the system: Instead of storing the full set of dependency links that the algorithm has constructed up to a given point (denoted by V), we only keep track of whether elements in the stack have been assigned a head or not; and we represent this by using a stack of pairs (l, b), where l is the position of a word in the string and b is a flag which is True if the corresponding node has been assigned a head or False if it has not:",
+        "Initter – - Shift Reduce-",
+        "To obtain a parsing schema from this deduction system, we retain only rules pertaining to the way in which the parser joins dependency structures and builds links between them.",
+        "In particular, the Reduce step is just a mechanism to select which of a set of possible \"linkable words\" to link to the word currently being read.",
+        "Two different configurations corresponding to the same dependency structure may have different lists of words in the stack depending on which Reduce steps have been executed.",
+        "In the parsing schema, these configurations must correspond to the same item, as they involve the same dependency structures.",
+        "To define an item set for this parser, we must establish which words could be on the stack at each configuration.",
+        "A node in a dependency graph T is right-linkable if it is not a dependent of any node situated to its right, and is not covered by any dependency link ( j is covered by Item set: The item set is Deduction steps: The deduction steps are as follows:",
+        "the link i – k if i < j < k or i > j > k).",
+        "A link cannot be created between a non-right-linkable node and any node to the right of T without violating the projectivity property.",
+        "When the parser is reading a particular word at position f, the following properties hold for all nodes to the left of f(nodes 0 ...f- 1):",
+        "• If the node i is not right-linkable, then it cannot be on the stack.",
+        "• If the node i does not have a head, then it must be on the stack.",
+        "(Note that nodes that do not have a head assigned are always right-linkable.)",
+        "• If the node i has a head and it is right-linkable, then it may or may not be on the stack, depending on the transitions that we have executed.",
+        "A dependency parsing schema represents items with lists (instead of stacks) containing all the nodes found so far which are right-linkable, and a flag associated with each node indicating whether it has been assigned a head or not.",
+        "Instead of using Reduce steps to decide which node to choose as a head of the one corresponding to the currently-read word, we allow any node in the list that does not have a headless node to its right to be the head; this is equivalent to performing several Reduce transitions followed by an L-link transition.",
+        "where an item [i, L] represents the set of forests of projective trees of the form F = { T1, , Tw} (w > 0) satisfying the following:",
+        "• The heads of the trees T1,..., Tw_1 are the nodes j where ( j, False) e L; and the head of the tree Tw is the node i,",
+        "• The right-linkable nodes in the dependency graph corresponding to the union of the trees in F are the nodes j where ( j, b) e L,with",
+        "b e{False, True}.",
+        "Final items: The set of final items is {[n + 1, ((0,False), True),... ,(vk, True)}] \\ 1 < Vj < n}, the set of items containing a forest with a single projective dependency tree T headed at the dummy node 0, whose yield spans the whole input string, and which contains any set of right-linkable words.",
+        "Initter: - – – Advance:",
+        "Gomez-Rodriguez,",
+        "Note that a naive nondeterministic implementation of this schema in a generic deductive engine would have exponential complexity.",
+        "The linear complexity in Nivre's algorithm is achieved by using a control strategy that deterministically selects a single transition at each state.",
+        "Covington (2001) defines a non-projective dependency parser, and a projective variant called Algorithm LSUP (for List-based Search with Uniqueness and Projectivity).",
+        "Unfortunately, the algorithm presented in Covington (2001) is not complete: It does not parse all projective dependency structures, because when creating leftward links it assumes that the head of a node i must be a reflexive-transitive head of the node i – 1, which is not always the case.",
+        "For instance, the structure shown in Figure 5 cannot be parsed because the constraints imposed by the algorithm prevent it from finding the head of 4.",
+        "The MaltParser system (Nivre et al.",
+        "2007) includes an implementation of a complete variant of Covington's LSUP parser where these constraints have been relaxed.",
+        "This implementation has the same tree building logic as the parser described by Nivre (2003), differing from it only with respect to the control structure.",
+        "Thus, it can be seen as a different realization of the schema shown in Section 3.6."
+      ]
+    },
+    {
+      "heading": "4. Relations Between Dependency Parsers",
+      "text": [
+        "The parsing schemata framework can be exploited to establish how different algorithms are related, improving our understanding of the features of these parsers, and potentially exposing new algorithms that combine characteristics of existing parsers in novel ways.",
+        "Sikkel (1994) defines various relations between schemata that fall into two categories: generalization relations, which are used to obtain more fine-grained versions of parsers, and filtering relations, which can be seen as the converse of generalization and are used to reduce the number of items and/or steps needed for parsing.",
+        "Informally, a parsing schema can be generalized from another via the following transformations:",
+        "• Item refinement: P2 is an item refinement of P1, written P1 P2, if there is a mapping between items in both parsers such that single items in P1 are mapped into multiple items in P2 and individual deductions are preserved.",
+        "• Step refinement: P1 - – P2 if the item set of P1 is a subset of that of P2and every deduction step in P1 can be emulated by a sequence of steps",
+        "in P2.",
+        "A projective dependency structure that cannot be parsed with Covington's LSUP algorithm.",
+        "A schema can be obtained from another by filtering in the following ways:",
+        "• Static/dynamic filtering: P1 – /d-> P2 if the item set of P2 is a subset of that of P1 and P2 allows a subset of the direct inferences in P1.",
+        "Sikkel (1994) explains the distinction between static and dynamic filtering, which is not used here."
+      ]
+    },
+    {
+      "heading": "• Item contraction: The inverse of item refinement:",
+      "text": [
+        "• Step contraction: The inverse of step refinement: P1 P2 if P2 --P1.",
+        "Many of the parsing schemata described in Section 3 can be related (see Figure 6), but for space reasons we sketch proofs for only the more interesting cases."
+      ]
+    },
+    {
+      "heading": "Theorem 1",
+      "text": [
+        "It is easy to see from the schema definitions that Iymos Q IEis96.",
+        "We must verify that every deduction step in the Yamada and Matsumoto (2003) schema can be emulated by a sequence of inferences in the Eisner (1996) schema.",
+        "For the Initter step this is trivial as the initters of both parsers are equivalent.",
+        "Expressing the R-Link step of Yamada and Matsumoto's parser in the notation used for Eisner items gives:",
+        "RL' k j, False, False][j, k, False, False] .",
+        "This can be emulated in Eisner's parser by an R Link step followed by a CombineSpans step:",
+        "[j, k, False, False] h [j, k, True, False](by R-Link) [j, k, True, False], [i, j, False, False] h [i, k, False, False](by CombineSpans)"
+      ]
+    },
+    {
+      "heading": "D-rules",
+      "text": []
+    },
+    {
+      "heading": "CFG-like rules,",
+      "text": []
+    },
+    {
+      "heading": "0 (n3) Head Corner",
+      "text": []
+    },
+    {
+      "heading": "Figure 6",
+      "text": [
+        "Relating several well known dependency parsers.",
+        "Arrows pointing up correspond to generalization relations, while those pointing down correspond to filtering.",
+        "The specific subtype of relation is shown in each arrow's label, following the notation in Section 4.",
+        "Gomez-Rodriguez,",
+        "(Collins 1996)",
+        "0(n)",
+        "+ Combiner",
+        "Head",
+        "steps",
+        "Corner",
+        "ir",
+        "(Eisner and",
+        "Satta 1999)",
+        "Symmetrically, the L Link step in Yamada and Matsumoto's parser can be emulated by an L-Link followed by a CombineSpans in Eisner's.",
+        "■"
+      ]
+    },
+    {
+      "heading": "Theorem 2",
+      "text": [
+        "Eisner and Satta (1999) – Eisner (1996)."
+      ]
+    },
+    {
+      "heading": "Proof 2",
+      "text": [
+        "Writing R-Link in Eisner and Satta's parser in the notation used for Eisner items gives",
+        "This inference can be emulated in Eisner's parser as follows:",
+        "The proof corresponding to the L-Link step is symmetric.",
+        "As for the R-Combiner and L-Combiner steps in Eisner and Satta's parser, it is easy to see that they are particular cases of the CombineSpans step in Eisner's, and therefore can be emulated by a single application of CombineSpans.",
+        "■",
+        "Note that, in practice, these two relations mean that the parsers by Eisner and Satta (1999) and Yamada and Matsumoto (2003) are more efficient, at the schema level, than that of Eisner (1996), in that they generate fewer items and need fewer steps to perform the same deductions.",
+        "These two parsers also have the interesting property that they use disjoint item sets (one uses items representing trees while the other uses items representing pairs of trees); and the union of these disjoint sets is the item set used by Eisner's parser.",
+        "The optimization in Yamada and Matsumoto's parser comes from contracting deductions in Eisner's parser so that linking operations are immediately followed by combining operations; whereas Eisner and Satta's parser does the opposite, forcing combining operations to be followed by linking operations.",
+        "By generalizing the linking steps in Eisner and Satta's parser so that the head of each item can be in any position, we obtain an 0(w) parser which can be filtered into the parser of Collins (1996) by eliminating the Combiner steps.",
+        "From Collins's parser, we obtain an 0(w) head-corner parser based on CFG-like rules by an item refinement in which each Collins item [i,j,h] is split into a set of items [A(a • ß • y),i,j,h].",
+        "The refinement relation between these parsers only holds if for every D-rule B – A there is a corresponding CFG-like rule A – ... B ... in the grammar used by the head-corner parser.",
+        "Although this parser uses three indices i, j,h, using CFG-like rules to guide linking decisions makes the h indices redundant.",
+        "This simplification is an item contraction which results in an 0(w) head corner parser.",
+        "From here, we can follow the procedure described by Sikkel (1994) to relate this head-corner algorithm to parsers analogous to other algorithms for CFGs.",
+        "In this way, we can refine the head-corner parser to a variant of the algorithm by de Vreught and Honig (1989) (Sikkel 1997), and by successive filters we reach a left-corner parser which is equivalent to the one described by Barbero et al.",
+        "(1998), and a step contraction of the Earley-based dependency parser by Lombardo and Lesmo (1996).",
+        "The proofs for these relations are the same as those given by Sikkel (1994), except that the dependency variants of each algorithm are simpler (due to the absence of epsilon rules and the fact that the rules are lexicalized).",
+        "The names used for schemata dVH1, dVH2, dVH3,and buLC shown in Figure 6 come from Sikkel (1994, 1997).",
+        "These dependency parsing schemata are versions of the homonymous schemata whose complete description can be found in Sikkel (1997), adapted for dependency parsing.",
+        "Gomez-Rodriguez (2009) gives a more thorough explanation of these relations and schemata."
+      ]
+    },
+    {
+      "heading": "5. Proving Correctness",
+      "text": [
+        "Another use of the parsing schemata framework is that it is helpful in establishing the correctness of a parser.",
+        "Furthermore, relations between schemata can be used to establish the correctness of one schema from that of related ones.",
+        "In this section, we show that the schemata for Yamada and Matsumoto (2003) and Eisner and Satta (1999) are correct, and use this to prove the correctness of the schema for Eisner (1996)."
+      ]
+    },
+    {
+      "heading": "Theorem 3",
+      "text": [
+        "The Eisner and Satta (1999) parsing schema is correct."
+      ]
+    },
+    {
+      "heading": "Proof 3",
+      "text": [
+        "To prove correctness, we must show both soundness and completeness.",
+        "To verify soundness we need to check that every individual deduction step in the parser infers a coherent consequent item when applied to coherent antecedents (i.e., in this case, that steps always generate non-empty items that conform to the definition in Section 3.3).",
+        "This is shown by checking that, given two antecedents of a deduction step that contain a tree licensed by a set of D-rules G, the consequent of the step also contains such a tree.",
+        "The tree for the consequent is built from the trees corresponding to the antecedents: by a graph union operation, in the case of COMBINER steps; or by linking the heads of both trees with a dependency relation licensed by G, in the case of LINK steps.",
+        "To prove completeness we prove that all coherent final items are derivable by proving the stronger result that all coherent items are derivable.",
+        "We show this by strong induction on the length of items, where the length of an item l = [i, k, h] is defined as length(i) = k – i + 1.",
+        "Coherent items of length 1 are the hypotheses of the schema (of the form [i, i, i]) which are trivially derivable.",
+        "We show that, if all coherent items of length m are derivable for all 1 < m < l, then items of length l are also derivable.",
+        "Let [i, k, i]beanitemoflength l in 1ES99 (thus, l = k – i + 1).",
+        "If this item is coherent, it contains a dependency tree T such that yield(T) = i..k and head(t) = i.",
+        "By construction, the root of T is labelled i.Let j be the rightmost daughter of i in T. Because T is projective, we know that the yield of j must be of the form l..k, where i < l < j < k.If l < j, then l is the leftmost transitive dependent of j in T,and if k > j, then we know that k is the rightmost transitive dependent of j in T.",
+        "Let Tj be the subtree of T rooted at j, T1 be the tree obtained from removing Tj by T, T2 be the tree obtained by removing all the nodes to the right of j from Tj,andT3be the tree obtained by removing all the nodes to the left of j from Tj.",
+        "By construction,",
+        "8 Removing a subtree from a dependency tree involves removing all the nodes in the subtree from its vertex set, and all the outgoing links from nodes in the subtree from its edge set.",
+        "Gomez-Rodriguez,",
+        "T1 belongs to a coherent item [i, l – 1, i], T2 belongs to a coherent item [l,j, j], and T3belongs to a coherent item [ j, k, j].",
+        "Because these three items have a length strictly less than l, by the inductive hypothesis, they are derivable.",
+        "Thus the item [i, k, i]isalso derivable, as it can be obtained from these derivable items by the following inferences:",
+        "This proves that all coherent items of length l which are of the form [i, k, i] are derivable under the induction hypothesis.",
+        "The same can be shown for items of the form [i, k, k]by symmetric reasoning.",
+        "■"
+      ]
+    },
+    {
+      "heading": "Theorem 4",
+      "text": [
+        "The Yamada and Matsumoto (2003) parsing schema is correct."
+      ]
+    },
+    {
+      "heading": "Proof 4",
+      "text": [
+        "Soundness is verified by building forests for the consequents of steps from those corresponding to the antecedents.",
+        "To prove completeness we use strong induction on the length of items, where the length of an item [i, j] is defined as j – i + 1.",
+        "The induction step involves considering any coherent item [i, k] of length l > 2(l = 2 is the base case here because items of length 2 are generated by the Initter step) and showing that it can be inferred from derivable antecedents of length less than l, so it is derivable.",
+        "If l > 2, either i has at least one right dependent or k has at least one left dependent in the item.",
+        "Suppose i has a right dependent; if T1 and T2 are the trees rooted at i and k in a forest in [i, k], we call j the rightmost daughter of i and consider the following trees:",
+        "• V = the subtreeof T1 rooted at j,",
+        "• U1 = the tree obtained by removing V from T1,",
+        "• U2 = the tree obtained by removing all nodes to the right of j from V,",
+        "• U3 = the tree obtained by removing all nodes to the left of j from V.",
+        "The forest {U1, U2} belongs to the coherent item [i,j], and {U3, T2} belongs to the coherent item [j,k].",
+        "From these two items, we can obtain [i,k]byusing the L-LINK step.",
+        "Symmetric reasoning can be applied if i has no right dependents but k has at least one left dependent, analogously to the case of the previous parser.",
+        "■"
+      ]
+    },
+    {
+      "heading": "Theorem 5",
+      "text": [
+        "The Eisner (1996) parsing schema is correct."
+      ]
+    },
+    {
+      "heading": "Proof 5",
+      "text": [
+        "By using the previous proofs and the relationships between schemata established earlier, we show that the parser of Eisner (1996) is correct: Soundness is straightforward, and completeness can be shown by using the properties of other algorithms.",
+        "Because the set of final items in the Eisner (1996) and Eisner and Satta (1999) schemata are the same, and the former is a step refinement of the latter, the completeness of Eisner and Satta's parser directly implies the completeness of Eisner's parser.",
+        "Alternatively, we can use Yamada and Matsumoto's parser to prove the correctness of Eisner's parser if we redefine the set of final items in the latter to be items of the form [0, n + 1, False, False], which are equally valid as final items since they always contain parse trees.",
+        "This idea can be applied to transfer proofs of completeness across any refinement relation.",
+        "■"
+      ]
+    },
+    {
+      "heading": "6. Non-Projective Schemata",
+      "text": [
+        "The parsing schemata presented so far define parsers that are restricted to projective dependency structures, that is, structures in which the set of reflexive-transitive dependents of each node forms a contiguous substring of the input.",
+        "We now show that the dependency parsing schema formalism can also describe various non-projective parsers."
+      ]
+    },
+    {
+      "heading": "6.1 Pseudo-Projectivity",
+      "text": [
+        "Pseudo-projective parsers generate non-projective analyses in polynomial time by using a projective parsing strategy and postprocessing the results to establish non-projective links.",
+        "This projective parsing strategy can be represented by dependency parsing schemata such as those seen in Section 3.",
+        "For example, the algorithm of Kahane, Nasr, and Rambow (1998) uses a strategy similar to Lombardo and Lesmo (1996), but with the following initializer step instead of the INITTER and PREDICTOR:",
+        "The initialization step specified by Kahane, Nasr, and Rambow (1998) differs from this (directly consuming a nonterminal from the input) but this gives an incomplete algorithm.",
+        "The problem can be fixed either by using the step shown here instead (bottom-up Earley strategy) or by adding an additional step turning it into a bottom-up left-corner parser.",
+        "The non-projective parser of Attardi (2006) extends the algorithm of Yamada and Matsumoto (2003), adding additional shift and reduce actions to handle non-projective dependency structures.",
+        "These extra actions allow the parser to link to nodes that are several positions deep in the stack, creating non-projective links.",
+        "In particular, Attardi uses six non-projective actions: two actions to link to nodes that are two positions deep, another two actions for nodes that are three positions deep, and a third pair of actions that generalizes the previous ones to n positions deep for any n.Thus,the maximum depth in the stack to which links can be created can be configured according to the actions allowed.",
+        "We use Attd for the variant of the algorithm that allows links only up to depth d,and Att^ for the original, unrestricted algorithm with unlimited depth actions.",
+        "A nondeterministic version of the algorithm Attd can be described as follows.",
+        "Item set: The item set is lAtt = {[h1,h2,hm] | 0 < h1 < ... < hm < n + 1} where [h1, h2, ... , hm] is the set of dependency forests of the form {T1, T2, ... , Tm} such that: head(Ti) = hi for each i e [1..m]; and the projections of the nodes h1,h2,hm are pairwise disjoint, and their union is [h1..hm].",
+        "INITTER:",
+        "Gomez-Rodriguez, Deduction steps: The set of deduction steps for Attd is the following:",
+        "Deduction steps for Att^ are obtained by removing the constraint \\ j – i \\< d from this set (this restriction corresponds to the maximum stack depth to which dependency links can be created).",
+        "Final items: The set of final items is {[0, n + i]}.",
+        "Although similar to the final item set for Yamada and Matsumoto's parser, they differ in that an Attardi item of the form [0, n + i] may contain forests with non-projective dependency trees.",
+        "Given the number of indices manipulated in the schema, a nondeterministic implementation of Attd has exponential complexity with respect to input length (though in the implementation of Attardi [2006], control structures determinize the algorithm).",
+        "Soundness of the algorithm Att^ is shown as in the previous algorithms, and completeness can be shown by reasoning that every coherent final item [0, n + i] can be obtained by first performing n + ilnitter stepstoobtainitems [i, i + i] for each 0 < i < n, then using n Combiners to join all of these items into [0,i,n,n + i], and then performing the Link steps corresponding to the links in a tree contained in [0, n + i] to obtain this final item.",
+        "The algorithm Attd where d is finite is not correct with respect to the set of non-projective dependency structures, because it only parses a restricted subset of them (Attardi 2006).",
+        "Note that the algorithm Attd is a static filter of Attd+ifor every natural number d, since the set of deduction steps of Attd is a subset of that of Attd+i."
+      ]
+    },
+    {
+      "heading": "6.3 The MH k Parser",
+      "text": [
+        "We now define a novel variant of Attardi's parser with polynomial complexity by limiting the number of trees in each forest contained in an item (rather than limiting stack depth), producing a parsing schema MHk (standing for multi-headed with at most k heads per item).",
+        "Its item set is lMHk = {[hi,h2,...,hm] \\ 0 < hi < ... < hm < n + i A 2 < m < k} where [hi, h2,hm] is defined as in IAtt, and the deduction steps are the following:",
+        "As with the Attd parser, MHk parses a restricted subset of non-projective dependency structures, such that the set of structures parsed by MHk is always a subset of those parsed by MHk+1.The MH^ parser, obtained by assuming that the number of trees per forest is unbounded, is equivalent to Att^, and therefore correct with respect to the set of non-projective dependency structures.",
+        "For finite values of k, MHd+2 is a static filter of Attd, because its sets of items and deduction steps are subsets of those of Attd.",
+        "Therefore, the set of structures parsed by MHd+2 is also a subset of those parsed by Attd.",
+        "k",
+        "The complexity of the MHk parser is 0(nk).",
+        "For k = 3, MH3 is a step refinement of the parser by Yamada and Matsumoto (2003) that parses projective structures only, but by modifying the bound k we can define polynomial-time algorithms that parse larger sets of non-projective dependency structures.",
+        "The MHk parser has the property of being able to parse any possible dependency structure as long as we make k large enough.",
+        "McDonald et al.",
+        "(2005) describe a parser which finds a nonprojective analysis for a sentence in 0(n) time under a strong independence assumption called an edge-factored model: Each dependency decision is assumed to be independent of all the others (McDonald and Satta 2007).",
+        "Despite the restrictiveness of this model, this maximum spanning tree (MST) parser achieves state-of-the-art performance for projective and non-projective structures (Che et al.",
+        "2008; Nivre and McDonald 2008; Surdeanu et al.",
+        "2008).",
+        "The parser considers the weighted graph formed by all the possible dependencies between pairs of input words, and applies an MST algorithm to find a dependency tree covering all the words in the sentence and maximizing the sum of weights.",
+        "The MST algorithm for directed graphs suggested by McDonald et al.",
+        "(2005) is not fully constructive: It does not work by building structures and combining them into large structures until it finds the solution.",
+        "Instead, the algorithm works by using a greedy strategy to select a candidate set of edges for the spanning tree, potentially creating cycles and forming an illegal dependency tree.",
+        "A cycle elimination procedure is iteratively applied to this graph until a legal dependency tree is obtained.",
+        "It is still possible to express declarative aspects of the parser with a parsing schema, although the importance of the control mechanism in eliminating cycles makes this schema less informative than other cases we have considered, and we will not discuss it in detail here.",
+        "Gomez-Rodriguez (2009) gives a complete description and discussion of the schema for the MST parser.",
+        "Covington's non-projective parsing algorithm (Covington 1990, 2001) reads the input from left to right, establishing dependency links between the current word and previous words in the input.",
+        "The parser maintains two lists: one with all the words encountered so far, and one with those that do not yet have a head assigned.",
+        "A new word can be linked as a dependent of any of the words in the first list, and as a head of any of the words in the second list.",
+        "The following parsing schema expresses this algorithm.",
+        "Item set: The item set is lCovNP = {[i, (h1,h2,...,hk}] \\ 1 < h1 < ... < hk < i < n} where an item [i, (h1,h2,hk}] represents the set of forests of the form F = {T1,T2,Tk} such that head(Tj) = hj for every Tj in F; the projections of the nodes h1, h2,..., hk are pairwise disjoint, and their union is [i..i].",
+        "Gomez-Rodriguez, Deduction steps: The set of deduction steps is as follows:",
+        "Final items: The set of final items is {[n, (h}] \\ 1 < h < n}, the set of items containing a forest with a single dependency tree T headed at an arbitrary position h of the string, and whose yield spans the whole input string.",
+        "The time complexity of the algorithm is exponential in the input length n.",
+        "Note that this parsing schema is not correct, because Covington's algorithm does not prevent the generation of cycles in the dependency graphs it produces.",
+        "Quoting Covington (2001, page 99),",
+        "Because the parser operates one word at a time, unity can only be checked at the end of the whole process: did it produce a tree with a single root that comprises all of the words?",
+        "Therefore, a postprocessing mechanism is needed to determine which of the generated structures are, in fact, valid trees.",
+        "In the parsing schema, this is reflected by the fact that the schema is complete but not sound.",
+        "Nivre (2007) uses a variant of this algorithm in which cycle detection is used to avoid generating incorrect structures.",
+        "Other non-projective parsers not covered here can also be represented under the parsing schema framework.",
+        "For example, Kuhlmann (2010) presents a deduction system for a non-projective parser which uses a grammar formalism called regular dependency grammars.",
+        "This deduction system can easily be converted into a parsing schema by associating adequate semantics with items.",
+        "However, we do not show this here for space reasons, because we would first have to explain the formalism of regular dependency grammars."
+      ]
+    },
+    {
+      "heading": "7. Mildly Non-Projective Dependency Parsing",
+      "text": [
+        "For reasons of computational efficiency, many practical implementations of dependency parsing are restricted to projective structures.",
+        "However, some natural language sentences appear to have non-projective syntactic structure, something that arises in many languages (Havelka 2007), and is particularly common in free word order languages such as Czech.",
+        "Parsing without the projectivity constraint is computationally complex: Although it is possible to parse non-projective structures in quadratic time with respect to input length under a model in which each dependency decision is independent of all the others (as in the parser of McDonald et al.",
+        "[2005], discussed in Section 6.4), the problem is intractable in the absence of this assumption (McDonald and Satta 2007).",
+        "Nivre and Nilsson (2005) observe that most non-projective dependency structures appearing in practice contain only small proportions of non-projective arcs.",
+        "This has led to the study of subclasses of the class of all non-projective dependency structures (Kuhlmann and Nivre 2006; Havelka 2007).",
+        "Kuhlmann (2010) investigates several such classes, based on well-nestedness and gap degree constraints (Bodirsky, Kuhlmann, and Mohl 2005), relating them to lexicalized constituency grammar formalisms.",
+        "Specifically, Kuhlmann shows that linear context-free rewriting systems (LCFRS) with fanout k (Vijay-Shanker, Weir, and Joshi 1987; Satta 1992) induce the set of dependency structures with gap degree at most k – 1; coupled CFG in which the maximal rank of a nonterminal is k (Hotz and Pitsch i996) induces the set of well-nested dependency structures with gap degree at most k – 1; and finally, LTAG (Joshi and Schabes 1997) induces the set of well-nested dependency structures with gap degree at most i.",
+        "These results establish that there are polynomial-time dependency parsing algorithms for well-nested structures with bounded gap degree, because such parsers exist for their corresponding lexicalized constituency-based formalisms.",
+        "Developing efficient dependency parsing strategies for these sets of structures has considerable practical interest, in particular, making it possible to parse directly with dependencies in a data-driven manner rather than indirectly by constructing intermediate constituency grammars and extracting dependencies from constituency parses.",
+        "In this section, we make four contributions to this enterprise.",
+        "Firstly, we define a parser for well-nested structures of gap degree 1, and prove its correctness.",
+        "The parser runs in time O(n), the same complexity as the best existing algorithms for LTAG (Eisner and Satta 2000), and can be optimized to O(n) in the non-lexicalized case.",
+        "Secondly, we generalize our algorithm to any well-nested dependency structure with gap degree at most k, resulting in an algorithm with time complexity O(n+2k).",
+        "Thirdly, we generalize the previous parsers in order to include ill-nested structures with gap degree at most k satisfying certain constraints, giving a parser that runs in time O(n+3k).",
+        "Note that parsing unrestricted ill-nested structures, even when the gap degree is bounded, is NP-complete: These structures are equivalent to LCFRS for which the recognition problem is NP-complete (Satta 1992).",
+        "Finally, we characterize the set of structures covered by this parser, which we call mildly ill-nested structures, and show that it includes all the trees present in a number of dependency treebanks.",
+        "We now define the concepts of gap degree and well-nestedness (Kuhlmann and Nivre 2006).",
+        "Let T be a dependency tree for the string w1... wn:"
+      ]
+    },
+    {
+      "heading": "Definition 5",
+      "text": [
+        "The gap degree of a node k in T is the minimum g e (N u{0})suchthat [k\\ (the projection of the node k) can be written as the union of g + 1 intervals, that is, the number of discontinuities in \\k\\.",
+        "The gap degree of the dependency tree T is the maximum of the gap degrees of its nodes.",
+        "Note that T has gap degree 0 if and only if T is projective.",
+        "Definition 6",
+        "The subtree induced by the node u in a dependency tree T is the tree Tu = (\\u\\,Eu) where Eu = {i – j e E \\ j e[u\\}.",
+        "The subtrees induced by nodes p and q are interleaved if Lp\\nLq\\ = $ and there are nodes i, j e\\p\\ and k, l e\\qq\\ such that i < k < j < l.A dependency tree T is well-nested if it does not contain two interleaved subtrees, and a tree that is not well-nested is said to be ill-nested.",
+        "Projective trees are always well-nested, but well-nested trees are not always projective.",
+        "7.1 The WG1 Parser",
+        "We now define WG1, a polynomial-time parser for well-nested dependency structures of gap degree at most 1.",
+        "In this and subsequent schemata, each dependency forest in",
+        "Gomez-Rodriguez, an item is a singleton set containing a dependency tree, so we will not make explicit mention of these forests, referring directly to their trees instead.",
+        "Also note that in the parsers in this section we use D-rules to express parsing decisions, so dependency trees are assumed to be taken from the set of trees licensed by a given set of D-rules.",
+        "The schema for the WG1 parser is defined as follows:",
+        "Item set: The item set is lWGi = I1 u I2,with where each item of the form [i, j, h, o, o] represents the set of all well-nested dependency trees with gap degree at most 1, rooted at h, and such that \\h\\ = {h}u and where each item of the form [i, j, h, l, r] represents the set of all well-nested dependency trees rooted at h such that \\h\\ = {h}u \\ [l..r]), and all the nodes (except possibly h) have gap degree at most 1.",
+        "We call items of this form gapped items, and the interval [l..r]the gap of the item.",
+        "Figure 7 shows two WGi items, one from I and the other from I2, together with one of the trees contained in each of them.",
+        "Note that the constraints h = j, h = i + 1, h = l – 1, h = r are added to items to avoid redundancy in the item set.",
+        "Because the result of the expression {h}u \\ [l..r]) for a given head can be the same for different sets of values of i, j, l, r, we restrict these values so that we cannot get two different items representing the same dependency structures.",
+        "Items i violating these constraints always have an alternative representation that does not violate them, which we can express with a normalizing function nm(i) as follows:",
+        "nm([i,j, j,l,r]) = [i,j – 1,j, l,r](if r < j – ior r = o), or [i, l – 1, j,o, o](if r = j – 1).",
+        "nm([i,j, l – 1, l,r]) = [i, j,l – 1,l – 1,r](if l > i + 1), or [r + 1,j, l – 1, o,o](if l = i + 1).",
+        "nm([i, j, i – 1, l, r]) = [i – 1, j, i – 1, l, r].",
+        "nm([i,j, r,l,r]) = [i,j,r,l, r – 1] (if l < r), or [i,j,r, o,o](if l = r).",
+        "nm([i,j,h, l, r]) = [i, j,h,l,r] for all other items.",
+        "When defining the deduction steps for this and other parsers, we assume that they always produce normalized items.",
+        "For clarity, we do not explicitly write this in the deduction steps, writing i instead of nm(i) as antecedents and consequents of steps."
+      ]
+    },
+    {
+      "heading": "Figure 7",
+      "text": [
+        "Representation of the WG1 items [i, j, h, o, o]and [i, j, h, l, r], each together with one of the dependency structures contained in it.",
+        "Initial items: The set of initial items (hypotheses) is defined as the set where each item [h, h, h, o, o] represents the set containing the trivial dependency tree consisting of a single node h and no links.",
+        "This is the same set of hypotheses used by the parsers defined in previous sections, but we use the notation [h, h, h, o, o] rather than [h, h, h] here for convenience when defining deduction steps.",
+        "The same set of hypotheses is used for all the mildly non-projective parsers, so we do not make it explicit for subsequent schemata.",
+        "Note that initial items are separate from the item set 1WGi and not subject to its constraints, so they do not require normalization.",
+        "Final items: The set of final items for strings of length n in WG1 is defined as the set which is the set of the items in 1WG1 containing dependency trees for the complete input string (from position 1 to n), with their head at any position h.",
+        "Deduction steps: The deduction steps of the WG1 parser are the following:",
+        "Link Ungapped:",
+        "Combine Ungapped:",
+        "Combine Opening Gap:",
+        "Combine Keeping Gap Left:",
+        "Combine Closing Gap:",
+        "Combine Keeping Gap Right:",
+        "Combine Shrinking Gap Centre:",
+        "Combine Shrinking Gap Left:",
+        "Combine Shrinking Gap Right:",
+        "The WG1 parser proceeds bottom-up, building dependency subtrees and combining them into larger subtrees, until a complete dependency tree for the input sentence is",
+        "Gomez-Rodriguez, found.",
+        "The parser logic specifies how items corresponding to the subtree induced by a particular node are inferred, given the items for the subtrees induced by the direct dependents of that node.",
+        "Suppose that, in a complete dependency analysis for a sentence W1... wn, the node h has d1 ...dp as direct dependents (i.e., we have dependency links d1 – h,dp – h).",
+        "The item corresponding to the subtree induced by h is obtained from the ones corresponding to the subtrees induced by d1 ...dp as follows.",
+        "First, apply the LINK UNGAPPED or LINK GAPPED step to each of the items corresponding to the subtrees induced by the direct dependents, and to the hypothesis [h, h, h, o, o].",
+        "We infer p items representing the result of linking each of the dependent subtrees to the new head h. Second, apply the various COMBINE steps to join all items obtained in the previous step into a single item.",
+        "The COMBINE steps perform a union operation between subtrees.",
+        "Therefore, the result is a dependency tree containing all the dependent subtrees, and with all of them linked to h – this is the subtree induced by h. This process is applied repeatedly to build larger subtrees, until, if the parsing process is successful, a final item is found containing a dependency tree for the complete sentence.",
+        "A graphical representation of this process is shown in Figure 8."
+      ]
+    },
+    {
+      "heading": "he gave a talk yesterday about parsing",
+      "text": []
+    },
+    {
+      "heading": "Link rn",
+      "text": []
+    },
+    {
+      "heading": "Ungapped",
+      "text": []
+    },
+    {
+      "heading": "Link Ungapped",
+      "text": [
+        "u."
+      ]
+    },
+    {
+      "heading": "Ungapped Link",
+      "text": []
+    },
+    {
+      "heading": "■Ungapped",
+      "text": []
+    },
+    {
+      "heading": "Combine Opening Gap",
+      "text": []
+    },
+    {
+      "heading": "Link Gapped",
+      "text": []
+    },
+    {
+      "heading": "Combine - Keeping Gap Right",
+      "text": []
+    },
+    {
+      "heading": "Combine \" Closing Gap",
+      "text": []
+    },
+    {
+      "heading": "Figure 8",
+      "text": [
+        "Example WG1 parse, following the notation of Figure 7.",
+        "Link stepslinkanitemtoanew head, while Combine steps are used to join a pair of items sharing the same head.",
+        "Different Combine steps correspond to different relative positions of items that can be joined and their gaps.",
+        "The WGi schema provides an abstract mechanism for finding all the dependency structures in the class of well-nested structures of gap degree at most 1, for an input string under a set of D-rules.",
+        "Concrete implementations of the schema may use probabilistic models or machine learning techniques to make the linking decisions associated with the D-rules, as explained in Section 3.1.",
+        "The definition of such statistical models for guiding the execution of schemata falls outside the scope of this article."
+      ]
+    },
+    {
+      "heading": "7.2 Proof of Correctness for WGi",
+      "text": [
+        "We define a set of coherent items for the schema, in such a way that final items in this set satisfy the general definition of coherent final items; and then prove the stronger claims that all derivable items are coherent and all coherent items are derivable.",
+        "The full correctness proof has previously been published (Gomez-Rodriguez, Weir, and Carroll 2008; Gomez-Rodriguez 2009), so for reasons of space we only sketch the proof here.",
+        "To define the set of coherent items for WGi, we provide a definition of the trees that these items must contain.",
+        "Let T be a well-nested dependency tree headed at a node h, with all its edges licensed by our set of D-rules.",
+        "We call such a tree a properly formed tree for the algorithm WGi if it satisfies the following conditions.",
+        "1.",
+        "[h\\ is either of the form [h}u [i..j]or [h}u \\ [l..r]).",
+        "2.",
+        "All the nodes in T have gap degree at most 1 except for h, which can have gap degree up to 2.",
+        "An item [i,j, h, l, r] e IWG1 is coherent if it contains a properly formed tree headed at h,suchthat [h\\ = [h}U \\ [l..r]).",
+        "Similarily for items of the form [i, j, h, o, o], where [h\\ = [h}U A coherent final item [1, n,h,o, o] for an input string contains at least one well-nested parse of gap degree < 1 for that string.",
+        "With these sets of coherent and coherent final items, we prove the soundness and completeness of WG1."
+      ]
+    },
+    {
+      "heading": "Theorem 6",
+      "text": [
+        "WG1 is sound."
+      ]
+    },
+    {
+      "heading": "Proof 6",
+      "text": [
+        "Proving the soundness of the WG1 parser involves showing that all derivable final items are coherent.",
+        "We do this by proving the stronger claim that all derivable items are coherent.",
+        "As in previous proofs, this is done by showing that each deduction step in the parser infers a coherent consequent item when applied to coherent antecedents.",
+        "We proceed step by step, showing that if each of the antecedents of a given step contains at least one properly formed tree, we obtain a properly formed tree that is an element of the corresponding consequent.",
+        "In the case of LINK steps, this properly formed consequent tree is obtained by creating a dependency link between the heads of the properly formed antecedent trees; for COMBINE steps, it is obtained from the union of the antecedent trees.",
+        "To prove that these consequent trees are properly formed, we show that they are well-nested, have a projection corresponding to the indices in the consequent item, and satisfy the gap degree constraint 2 required for the trees to be properly formed.",
+        "Each of these properties is proven individually, based on the properties of the antecedent trees.",
+        "■",
+        "Gomez-Rodriguez,"
+      ]
+    },
+    {
+      "heading": "Theorem 7",
+      "text": [
+        "WG1 is complete."
+      ]
+    },
+    {
+      "heading": "Proof 7",
+      "text": [
+        "Proving completeness of the WG1 parser involves proving that all coherent final items in WG1 are derivable.",
+        "We show this by proving the following, stronger claim."
+      ]
+    },
+    {
+      "heading": "Lemma 1",
+      "text": [
+        "If T is a dependency tree headed at a node h, which is a properly formed tree for WG1, then:",
+        "1.",
+        "If [h\\ = [h}U then the item [i, j, h, o, o] containing T is a derivable item in the WG1 parser.",
+        "2.",
+        "If [h\\ = [h}u \\ [l..r]), then the item [i,j,h,l,r] containing T is a derivable item in the WG1 parser.",
+        "This implies that all coherent final items are derivable, and therefore that WG1 is complete.",
+        "The lemma is proven by strong induction on the number of elements in [hj, which we denote #( [hj ).",
+        "The base case of the induction is trivial, because the case #( [hj ) = 1 corresponds to a tree contained in an initial item, which is derivable by definition.",
+        "For the induction step, we take T to be a properly formed dependency tree rooted at a node h,suchthat #([hj) = N for some N > 1.",
+        "Lemma 1 holds for T if it holds for every properly formed dependency tree T rooted at hh such that #( [h'j ) < N. Let p be the number of direct children of h in the tree T. We have p > 1, because by hypothesis #( [hj ) > 1.",
+        "With this, the induction step proof is divided into two cases, according to whether p = 1orp> 1.",
+        "When p = 1, the item that Lemma 1 associates with the subtree of T induced by the single direct dependent of h is known to be derivable by the induction hypothesis.",
+        "It can be shown case by case that the item corresponding to h by Lemma 1 can be inferred using LINK steps, thus completing the case for p = 1.",
+        "For p > 1, we use the concept of order annotations (Kuhlmann and Mohl 2007; Kuhlmann 2010).",
+        "Order annotations are strings that encode the precedence relation between the nodes of a dependency tree.",
+        "The order annotation for a given node encodes the shape (with respect to this precedence relation) of the projection of each of the children of that node, that is, the number of intervals in each projection, the number of gaps, and the way in which intervals and gaps are interleaved.",
+        "The concepts of projectivity, gap degree, and well-nestedness are associated with particular constraints on order annotations.",
+        "The completeness proof for p > 1 is divided into cases according to the order annotation of the head h. The fact that the tree T is properly formed imposes constraints on the form of this order annotation.",
+        "With this information, we divide the possible order annotations into a number of cases.",
+        "Using the induction hypotheses and some relevant properties of order annotations we find that, for each of this cases, we can find a sequence of COMBINE steps to infer the item corresponding to T from smaller coherent items.",
+        "■"
+      ]
+    },
+    {
+      "heading": "7.3 Computational Complexity of WG 1",
+      "text": [
+        "The time complexity of WG1 is 0(n), as the step COMBINE SHRINKING GAP CENTRE works with seven free string positions.",
+        "This complexity with respect to the length of the input is as expected for this set of structures, because Kuhlmann (2010) shows that they are equivalent to LTAG, and the best existing parsers for this formalism also perform in 0(n) (Eisner and Satta 2000).",
+        "Note that the COMBINE step that is the bottleneck only uses seven indices, not any additional entities such as D-rules.",
+        "Hence, the 0(n) complexity does not involve additional factors relating to grammar size.",
+        "Given unlexicalized D-rules specifying the possibility of dependencies between pairs of categories rather than pairs of words, a variant of this parser can be constructed with time complexity O(n), as with parsers for unlexicalized TAG.",
+        "We expand the item set with unlexicalized items of the form [i, j, C, l, r], where C is a category, distinct from the existing items [i, j, h, l, r].",
+        "Steps in the parser are duplicated, to work both with lexicalized and unlexicalized items, except for the LINK steps, which always work with a lexicalized item and an unlexicalized hypothesis to produce an unlexicalized item, and the COMBINE SHRINKING GAP steps, which work only with unlexicalized items.",
+        "Steps are added to obtain lexicalized items from their unlexicalized equivalents by binding the head to particular string positions.",
+        "Finally, we need certain variants of the COMBINE SHRINKING GAP steps that take two unlexicalized antecedents and produce a lexicalized consequent; an example is the following:",
+        "Combine Shrinking Gap Centre L:-----cat(wl)=C",
+        "Although this version of the algorithm reduces time complexity to O(n), it also adds a factor related to the number of categories, as well as constant factors due to having more kinds of items and steps than the original WG1 algorithm."
+      ]
+    },
+    {
+      "heading": "7.4 The WG k Parser",
+      "text": [
+        "The WG1 parsing schema can be generalized to obtain a parser for all well-nested dependency structures with gap degree bounded by a constant k (k > 1), which we call the WGk parser.",
+        "We extend the item set so that it contains items with up to k gaps, and modify the deduction steps to work with these multi-gapped items.",
+        "Item set: The item set for the WGk parsing schema is where i, j,h e (N u{0}), 0 < g < k,1 < h < n,1 < i < j < n, h = j, h = i - 1; and for each p e{1,2,...,g}: lp, rp e N, i < lp < rp < j, rp < lp+1 - 1, h = lp - 1, h = rp.Anitem[i, j,h, r1),... ,(lg,rg))] represents the set of all well-nested dependency trees rooted at h such that [hj = {h}u \\ Ug=1[lp..rp]), where each interval [lp..rp] is called a gap.",
+        "The constraints h = j, h = i + 1, h = lp – 1, h = rp are added to avoid redundancy, and normalization is defined as in WG1.",
+        "Final items: The set of final items is defined as the set F = {[1,n,h, {)] | h e [1..n]}.Note that this set is the same as in WG1, as these are the items that we denoted [1, n, h, o, o]in that parser.",
+        "9 Although standard TAG parsing algorithms run in time O(n) with respect to the input length, they also have a complexity factor related to grammar size.",
+        "Eisner and Satta (2000) show that, in the case of lexicalized TAG, this factor is a function of the input length n; hence the additional complexity.",
+        "Gomez-Rodriguez, Deduction steps: The parser has the following deduction steps:",
+        "As expected, the WG1 parser corresponds to WGk for k = 1.",
+        "WGk works in the same way as WG1, except that COMBINE steps can create items with more than one gap.",
+        "In all the parsers described in this section, COMBINE steps may be applied in different orders to produce the same result, causing spurious ambiguity.",
+        "in WG1 and WGk, this can be avoided when implementing the schemata by adding flags to items so as to impose a particular order on the execution of these steps."
+      ]
+    },
+    {
+      "heading": "7.5 Proof of Correctness for WG k",
+      "text": [
+        "The proof of correctness for WGk is analogous to that of WG1, but generalizing the definition of properly formed trees to a higher gap degree.",
+        "A properly formed tree in WGk is a dependency tree T, headed at node h, such that the following hold.",
+        "1.",
+        "[hj is of the form {h}u \\ (Jg=1[lp..rp]), with 0 < g < k.",
+        "2.",
+        "All the nodes in T have gap degree at most k except for h, which can have gap degree up to k + 1.",
+        "With this, we define coherent items and coherent final items as for WG1.",
+        "Soundness is shown as for WG1, changing the constraints on nodes so that any node can have gap degree up to k and the head of a properly formed tree can have gap degree k+ 1.",
+        "Completeness is shown by induction on #( [hj ).",
+        "The base case is the same as for WG1, and for the induction step, we consider the direct children d1 ...dp of h. The case where p = 1 is proven by using LINK stepsjustasin WG1.",
+        "In the case for p > 1, we also base our proof on the order annotation for h, but we have to take into account that the set of possible annotations is larger when we allow the gap degree to be greater than 1, so we must consider more cases in this part of the proof."
+      ]
+    },
+    {
+      "heading": "7.6 Computational Complexity of WG k",
+      "text": [
+        "The WGk parser runs in time O(n5+2k).",
+        "As in the case of WG1, the step with most free variables is COMBINE SHRINKING GAP CENTRE with 5 + 2k free indices.",
+        "Again, this complexity result is in line with what could be expected from previous research in constituency parsing: Kuhlmann (2010) shows that the set of well-nested dependency structures with gap degree at most k is closely related to coupled CFG in which the maximal rank of a nonterminal is k + 1.",
+        "The constituency parser defined by Hotz and Pitsch (1996) for these grammars also adds an n factor for each unit increment of k.Note that a small value of k appears to be sufficient to account for the vast majority of the non-projective sentences found in natural language treebanks.",
+        "For instance, the Prague Dependency Treebank (Hajic et al.",
+        "2006) contains no structures with gap degree greater than 4.",
+        "Thus, a WG4 parser would be able to analyze all the well-nested structures in this treebank, which represent 99.89% of the total (WG1 would be able to parse 99.49%).",
+        "Increasing k beyond 4 would not produce further improvements in coverage."
+      ]
+    },
+    {
+      "heading": "7.7 Parsing Ill-Nested Structures: MG 1 and MG k",
+      "text": [
+        "The WGk parser analyzes dependency structures with bounded gap degree as long as they are well-nested.",
+        "Although this covers the vast majority of the structures that occur in natural language treebanks (Kuhlmann and Nivre 2006), a significant number of sentences contain ill-nested structures.",
+        "Maier and Lichte (2011) provide examples of some linguistic phenomena that cause ill-nestedness.",
+        "Unfortunately, the general problem of parsing ill-nested structures is NP-complete, even when the gap degree is bounded.",
+        "This set of structures is closely related to LCFRS with bounded fanout and unbounded production length, and parsing in this formalism is known to be NP-complete (Satta 1992).",
+        "The reason for this complexity is the problem of unrestricted crossing configurations, appearing when dependency subtrees are allowed to interleave in every possible way.",
+        "Ill-nested structures can be parsed in polynomial time with bounds on the gap degree and the number of dependents allowed per node: Kuhlmann (2010) presents a parser based on this idea, using a kind of grammar that resembles LCFRS, called regular dependency grammar.",
+        "This parser is exponential in the gap degree, as well as in the maximum number of dependents allowed per node: Its complexity is O(nk(m+1)), where k is the maximum gap degree and m is the maximum number of dependents per node.",
+        "In contrast, the parsers presented here are data-driven and thus do not need an explicit grammar.",
+        "Furthermore, they are able to parse dependency structures with any number of dependents per node, and their computational complexity is independent of this parameter m.",
+        "In line with the observation that most non-projective structures appearing in practice are only \"slightly\" non-projective (Nivre and Nilsson 2005), we characterize a sense in which the structures appearing in treebanks are only \"slightly\" ill-nested.",
+        "We",
+        "Gomez-Rodriguez, generalize the algorithms WG1 and WGk to parse a proper superset of the set of well-nested structures in polynomial time, and give a characterization of this new set of structures, which includes all the structures in several dependency treebanks.",
+        "The WGk parser for well-nested structures presented previously is based on a bottom-up process, where LINK steps are used to link completed subtrees to a head, and COMBINE steps are used to join subtrees governed by a common head to obtain a larger structure.",
+        "As WGk is a parser for well-nested structures of gap degree up to k, its COMBINER steps correspond to all the ways in which we can join two sets of sibling subtrees meeting these constraints, and having a common head, into another.",
+        "Therefore, this parser does not use COMBINER steps that produce interleaved subtrees, because these would generate items corresponding to ill-nested structures.",
+        "We obtain a polynomial parser for a larger set of structures of gap degree at most k, including some ill-nested ones, by having COMBINER steps representing all ways in which two sets of sibling subtrees of gap degree at most k with a common head can be joined into another, including those producing interleaved subtrees.",
+        "This does not mean that we build every possible ill-nested structure.",
+        "Some structures with complex crossed configurations have gap degree k, but cannot be built by combining two structures of that gap degree.",
+        "More specifically, this algorithm will parse a dependency structure (well-nested or not) if there exists a binarization of that structure that has gap degree at most k. The parser works by implicitly finding such a binarization, because COMBINE steps are always applied to two items and no intermediate item generated by them can exceed gap degree k (not counting the position of the head in the projection)."
+      ]
+    },
+    {
+      "heading": "Definition 7",
+      "text": [
+        "Let w1... wn be a string, and T a dependency tree headed at a node h.A binarization of T is a tree B in which each node has at most two children, such that:",
+        "1.",
+        "Each node in B can be unlabelled, or labelled with a word position i.",
+        "Several nodes may have the same label (in contrast to the dependency graphs, where a word occurrence cannot appear twice in the graph).",
+        "2.",
+        "A node labelled i is a descendant of j in B if and only if i j in T.",
+        "The projection of a node in a binarization is the set of reflexive-transitive children of that node.",
+        "With this, condition (2) of Definition 7 can be rewritten i e[jj B o i e[jj T, and the gap degree of a binarization can be defined as with a dependency structure, allowing us to define mildly ill-nested structures as follows."
+      ]
+    },
+    {
+      "heading": "Definition 8",
+      "text": [
+        "A dependency structure is mildly ill-nested for gap degree k if it has at least one binarization of gap degree < k. Otherwise, it is strongly ill-nested for gap degree k.",
+        "The set of mildly ill-nested structures for gap degree k includes all well-nested structures with gap degree up to k. We define MG1, a parser for mildly ill-nested structures for gap degree 1, as follows.",
+        "Item set and final item set: The item set and the final item set are the same as for WG1, except that items can contain any mildly ill-nested structures for gap degree 1, instead of being restricted to well-nested structures.",
+        "Deduction steps: Deduction steps include those in WG1, plus the following.",
+        "Combine Interleaving: [l'khr+ Coffra Interleaving ^khm,jj m < r + 1",
+        "Combine Interleaving ^l k h, r + 1, u] u > .■ Combine Interleaving [k m, h, r + j] k > l",
+        "These extra COMBINE steps allow the parser to combine interleaved subtrees with simple crossing configurations.",
+        "The MG1 parser still runs in O(n), as these new steps do not use more than seven string positions.",
+        "To generalize this algorithm to mildly ill-nested structures for gap degree k,weadd a COMBINE step for every possible way of joining two structures of gap degree at most k into another.",
+        "This is done in a systematic way by considering a set of strings over an alphabet of three symbols: a and b to represent intervals of words in the projection of each of the structures, and g to represent intervals that are not in the projection of either of the structures and will correspond to gaps in the joined structure.",
+        "The legal combinations of structures for gap degree k will correspond to strings where symbols a and b each appear at most k + 1times, g appears at most k times and is not the first or last symbol, and there is no more than one consecutive appearance of any symbol.",
+        "Given a string of this form, of length n,with a's located at positions a1... ap (1 < a1 < ... < ap < n), b's at positions b1... b,(1 < b1 < ... < b, < n), and g's at positions g1 ...gr(2 < g1 < ... < gr < n - 1), such that p + , + r = n, the corresponding COMBINE step is as follows.",
+        "For example, the COMBINE INTERLEAVING GAP Cstep in MG1 is obtained from the string abgab.",
+        "Therefore, we define the parsing schema for MGk, a parser for mildly ill-nested structures for gap degree k, as the schema where the item set is the same as that of WGk, except that items now contain mildly ill-nested structures for gap degree k;and the set of deduction steps consists of the LINK step in WGk,plusaset of COMBINE steps obtained as explained herein."
+      ]
+    },
+    {
+      "heading": "7.8 Computational Complexity of MG k",
+      "text": [
+        "Because the string used to generate a COMBINER step can have length at most 3k + 2, and the resulting step contains an index for each symbol of the string plus two extra indices, the MGk parser has complexity O(n3k+4) with respect to the length of the input.",
+        "Note that this expression denotes the complexity with respect to n of the MGk parser obtained for a given k: Taking k to be a variable would add an additional O(33k) complexity factor, because the number of different COMBINER steps that can be applied to a given item grows exponentially with k.",
+        "Gomez-Rodriguez,"
+      ]
+    },
+    {
+      "heading": "7.9 Proof of Correctness for MG k",
+      "text": [
+        "As for previous parsers, we only show here a sketch of the proof that MGk is correct.",
+        "The detailed proof has been published previously (Gomez-Rodriguez, Weir, and Carroll 2008; Gomez-Rodriguez 2009)."
+      ]
+    },
+    {
+      "heading": "Theorem 8",
+      "text": [
+        "MGk is correct."
+      ]
+    },
+    {
+      "heading": "Proof 8",
+      "text": [
+        "As with WGk, we define the sets of properly formed trees and coherent items for this algorithm.",
+        "Let T be a dependency tree headed at a node h. We call such a tree a properly formed tree for the algorithm MGk if it satisfies the following.",
+        "1.",
+        "[hj is of the form {h]u \\ (Jg=1[lp..rp]), with 0 < g < k.",
+        "2.",
+        "There is a binarization of T such that all the nodes in it have gap degree at most k except for its root node, which can have gap degree up to k+ 1.",
+        "The sets of coherent and coherent final items are defined as in previous proofs.",
+        "Soundness is shown as for previous algorithms, where we show that consequent trees are properly formed by building a binarization for them from the binarizations obtained from antecedent items.",
+        "This part of the proof involves imposing additional constraints on binarizations, which are useful to provide a suitable way of combining binarizations obtained from antecedents of steps.",
+        "Completeness is proven by showing the following, stronger claim."
+      ]
+    },
+    {
+      "heading": "Proposition 1",
+      "text": [
+        "Let T be a dependency tree headed at node h, and properly formed for MGk.",
+        "Then, if [hj = {h}u \\ Ug=1[lp..rp]),forg < k, the item [i,j,h, {ft,n), ...,(lg,rg))] containing T is derivable under this parser.",
+        "To prove this, we say that a binarization of a properly formed tree is a well-formed binarization for MGk if each of its nodes has gap degree < k except possibly the head, which can have gap degree k + 1.",
+        "We then reduce the proof to establishing the following lemma."
+      ]
+    },
+    {
+      "heading": "Lemma 2",
+      "text": [
+        "Let B be a well-formed binarization of a dependency tree T, headed at a node h and properly formed for MGk.",
+        "If the projection of h in T is [hjT = [hjB = {h}U \\ Upg=1[lp..rp ]), for g < k, the item [i, j, h, r1), ...,(lg, rg ))] containing T is derivable under this parser.",
+        "The lemma is shown by strong induction on the number of nodes of B (denoted #B).",
+        "The base case where #B = 1 is trivial.",
+        "For the induction step, we consider different cases depending on the number and type of children of the head node h of B.",
+        "When h has a single child, we obtain the item corresponding to T from a smaller item, shown to be derivable by the induction hypothesis, by using a LINK step.",
+        "Where h has two children in B, the relevant item is obtained by using a COMBINER step.",
+        "■"
+      ]
+    },
+    {
+      "heading": "Figure 9",
+      "text": [
+        "A structure which is strongly ill-nested for gap degree 1, but only mildly ill-nested for gap degree > 2."
+      ]
+    },
+    {
+      "heading": "7.10 Mildly Ill-Nested Dependency Structures",
+      "text": [
+        "The MGk algorithm parses mildly ill-nested structures for gap degree k in polynomial time.",
+        "The mildly ill-nested structures for gap degree k are those with a binarization of gap degree < k. Because a binarization of a dependency structure cannot have lower gap degree than the original structure, the mildly ill-nested structures for gap degree k all have gap degree < k. Given the relation between MGk and WGk, we know they contain all well-nested structures with gap degree < k. Figure 9 shows a structure with gap degree 1, but which is strongly ill-nested for gap degree 1.",
+        "For all trees up to 10 nodes (excluding the dummy root node at position 0) all structures of gap degree k with length smaller than 10 are well-nested or only mildly ill-nested for that gap degree.",
+        "Even if T is strongly ill-nested for a gap degree, there is always an m G N such that T is mildly ill-nested for m (every structure can be binarized, and binarizations have finite gap degree).",
+        "For example, the structure in Figure 9 is mildly ill-nested for gap degree 2.",
+        "Therefore, MGk parsers have the property of being able to parse any arbitrary dependency structure as long as we make k large enough.",
+        "Structures like the one in Figure 9 do not arise in dependency treebanks.",
+        "None of the treebanks for nine different languages contain structures that are strongly ill-nested for their gap degree (Table 1).",
+        "Therefore, in any of these treebanks, the MGk parser can parse every sentence with gap degree at most k in time O(n3k+)."
+      ]
+    },
+    {
+      "heading": "8. Link Grammar Schemata",
+      "text": [
+        "Link Grammar (LG), introduced by Sleator and Temperley (1991, 1993), is a theory of syntax whose structural representation of sentences is closely related to projective dependency representations, but with some important differences.",
+        "Undirected links: Like dependency formalisms, LG represents the structure of sentences as a set of links between words.",
+        "However, whereas dependency links are directed, the links used in LG are undirected: There is no distinction made between heads and dependents.",
+        "10 Arabic (Hajic et al.",
+        "2004), Czech (Hajic et al.",
+        "2006), Danish (Kromann 2003), Dutch (van der Beek et al.",
+        "2002), Latin (Bamman and Crane 2006), Portuguese (Afonso et al.",
+        "2002), Slovene (Dzeroski et al.",
+        "2006), Swedish (Nilsson, Hall, and Nivre 2005), and Turkish (Atalay, Oflazer, and Say 2003; Oflazer et al.",
+        "2003).",
+        "11 A complete treatment of LG is beyond the scope of this article: Schneider (1998) gives a detailed comparison of Link Grammar and dependency formalisms.",
+        "Gomez-Rodriguez,"
+      ]
+    },
+    {
+      "heading": "Table 1",
+      "text": [
+        "Counts of dependency structures in treebanks for several languages, classified by projectivity, gap degree, and mild and strong ill-nestedness (for their gap degree).",
+        "Language Structures",
+        "Total Nonprojective Cycles: The sets of links representing the structure of sentences in LG may contain cycles, in contrast to dependency structures.",
+        "LG is a grammar-based formalism in which a grammar G consists of a set of words, each of which is associated with a set of linking requirements.",
+        "Given a link grammar G, a set of labelled links between the words of a sentence W1... wn is said to be a linkage for that sentence if it satisfies the following conditions: planarity (the links do not cross when drawn above the words), connectivity (the undirected graph defined by links is connected), and satisfaction (the links satisfy the linking requirements of all the words in the input).",
+        "An input sentence is considered grammatical with respect to a link grammar G if it is possible to build a linkage for the sentence with the grammar G.",
+        "The linking requirements of a word are expressed as a set of rules specifying the labels of the links that can be established between that word and other words located to its left or to its right.",
+        "Linking requirements can include constraints on the order of the links, for example, a requirement can specify that a word w can be linked to two words located to its left in such a way that the link to the farthest (leftmost) word has a particular label L2 and the link to the closest word has a label L1.",
+        "We use the disjunctive form notation (Sleator and Temperley 1991) to denote linking requirements: The requirements of words are expressed as a set of disjuncts.",
+        "Each disjunct corresponds to one way of satisfying the requirements of the word.",
+        "We represent a disjunct for a word w as a pair of strings A = (R1R2 ... R,, L1L2 ...Lp ) where L1, L2,... Lp are the labels of the links that must connect w to words located to the left of w, which must be monotonically increasing in distance from w (e.g., Lp links to the leftmost word that is directly linked to w), and R1, R2, ...Rp are the labels of the links that must connect w to words to its right, also monotonically increasing in distance from w (e.g., R, links to the rightmost word that is directly connected to w).",
+        "Total",
+        "By gap degree",
+        "By nestedness",
+        "Gap",
+        "Gap",
+        "Gap",
+        "Gap",
+        "Well-",
+        "Mildly",
+        "Strongly",
+        "deg",
+        "deg",
+        "deg",
+        "deg",
+        "nested",
+        "ill-",
+        "ill-",
+        "1",
+        "2",
+        "3",
+        "> 3",
+        "nested",
+        "nested",
+        "Arabic",
+        "2,995",
+        "205",
+        "189",
+        "13",
+        "2",
+        "1",
+        "204",
+        "1",
+        "0",
+        "Czech",
+        "87,889",
+        "20,353",
+        "19,989",
+        "359",
+        "4",
+        "1",
+        "20,257",
+        "96",
+        "0",
+        "Danish",
+        "5,430",
+        "864",
+        "854",
+        "10",
+        "0",
+        "0",
+        "856",
+        "8",
+        "0",
+        "Dutch",
+        "13,349",
+        "4,865",
+        "4,425",
+        "427",
+        "13",
+        "0",
+        "4,850",
+        "15",
+        "0",
+        "Latin",
+        "3,473",
+        "1,743",
+        "1,543",
+        "188",
+        "10",
+        "2",
+        "1,552",
+        "191",
+        "0",
+        "Portuguese",
+        "9,071",
+        "1,718",
+        "1,302",
+        "351",
+        "51",
+        "14",
+        "1,711",
+        "7",
+        "0",
+        "Slovene",
+        "1,998",
+        "555",
+        "443",
+        "81",
+        "21",
+        "10",
+        "550",
+        "5",
+        "0",
+        "Swedish",
+        "11,042",
+        "1,079",
+        "1,048",
+        "19",
+        "7",
+        "5",
+        "1,008",
+        "71",
+        "0",
+        "Turkish",
+        "5,583",
+        "685",
+        "656",
+        "29",
+        "0",
+        "0",
+        "665",
+        "20",
+        "0",
+        "Parsing schemata for LG parsers follow the same principles used for constituency and dependency formalisms.",
+        "Item sets for LG parsing schemata are defined as sets of partial syntactic structures, which in this case are partial linkages:"
+      ]
+    },
+    {
+      "heading": "Definition 9",
+      "text": [
+        "Given a link grammar G and a string w1 ... wn,apartial linkage is any edge-labeled undirected graph H such that the following conditions hold.",
+        "• The graph H has n vertices {v1,..., vn}, where each vertex vi is a tuple (wi, i, Ai)suchthat Ai is a disjunct for wi in the grammar G.",
+        "• The graph H is connected and satisfies the planarity requirement with respect to the order v1,..., vn of vertices (i.e., if we draw vertices in that order, with the given links, the links do not cross).",
+        "- Every edge {vi, Vj} with j < i must be labelled Ls for some 1 < s < p.",
+        "- For every pair of edges {vi, Vj}, {vi, Vk} such that k < j < i, we have that {vi, Vj} is labelled Ls1, {vi, Vk} is labelled Ls2,and s1 < s2."
+      ]
+    },
+    {
+      "heading": "- Every edge {V i , V j} with j > i must be labelled R t for some 1 < t <",
+      "text": [
+        "- For every pair of edges {Vi, Vj}, {Vi, Vk} such that k > j > i, we have that {Vi, Vj} is labelled Rt1, {Vi, Vk} is labelled Rt2,and t1 < t2.",
+        "Informally, a partial linkage is the result of choosing a particular disjunct from those available for each word in the input string, and then adding labelled links between words that are compatible with the requirements of the disjunct.",
+        "Compatibility means that, for each word wi associated with a disjunct Ai = (R1R2 ... R,, L1L2 ... Lp), the list of labels of links connecting Vi to words to its right, ordered from the leftmost to the rightmost such word, is of the form Ri1, Ri2,... Rir,with0 < i1 < i2 < ... < ir < , and, symmetrically, the list of labels of links connecting Vi to words to its left, ordered from the rightmost to the leftmost, is of the form Lj1, Lj2,... Lj},with0 < j1 < j2 < ... < j\\ < p. Given such a linkage, the right linking requirements Ri1, Ri2, ... Rir of the word wi are satisfied, and the same for the left linking requirements Lj1,Lj2,.",
+        "..Lj of wi.Linking requirements that are not satisfied (e.g., the requirement of a link Rk in the disjunct associated with word wi,with0 < k < ,,suchthat k G •••, ir}) are said to be unsatisfied.",
+        "The definition of item sets for LG resembles those for dependency parsers (Definition 4), where items come from a partition of the set of partial linkages for a given link grammar G. With these item sets, LG parsing schemata are analogous to the dependency and constituency cases.",
+        "As an example of an LG parsing schema, we describe the original LG parser by Sleator and Temperley (1991), and show how projective parsing schemata, such as those seen in Section 3, can be adapted to obtain new LG parsers."
+      ]
+    },
+    {
+      "heading": "8.1 Sleator and Temperley's LG Parser",
+      "text": [
+        "The LG parser of Sleator and Temperley (1991) is a dynamic programming algorithm that builds linkages top-down: A link between Viand Vk is always added before links between Viand Vj or between Vj and Vk,ifi < j < k. This contrasts with many of the",
+        "Gomez-Rodriguez, dependency parsers seen in previous sections (Eisner 1996; Eisner and Satta 1999; Yamada and Matsumoto 2003), which build dependency graphs bottom-up.",
+        "Item set: The item set for Sleator and Temperley's parser is A B, C G{True,False} and a, ß,y, 5 are strings of link labels} where an item [i, j, a » ß,y » 5, B, C] represents the set of partial linkages over the substring wi ... wj of the input, wi is linked to words in that substring by links labelled a and has right linking requirements ß unsatisfied, wj is linked to words in the substring by links labelled y and has left linking requirements 5 unsatisfied, B is True if and only if there is a direct link between wi and wj,andC is True if and only if all the inner words in the span are transitively reflexively linked to one of the end words wi or wj, and have all of their linking requirements satisfied.",
+        "String positions referenced by the items in TS\\T range from 0 to n + 1.",
+        "Position 0 corresponds to an artificial word w0 (the wall) that the LG formalism inserts at the beginning of every input sentence (Sleator and Temperley 1991).",
+        "Therefore, we assume that strings are extended with this symbol.",
+        "On the other hand, position n +1 corresponds to a dummy word wn+1 that must not be linkable to any other, and is used by the parser for convenience, as in the schema for Yamada and Matsumoto's dependency parser (Section 3.4).",
+        "We use the notation [i, a, ß] as shorthand for the item [i, i, »a, »ß, False, True], which is an item used to select a particular disjunct for a word wi.",
+        "Deduction steps: The set of deduction steps is the following:",
+        "SelectDisjunct:---",
+        "An annotation of the form (Vi < – > Vj ) near the name of a step in this and subsequent LG schemata indicates that the corresponding step adds a link labelled b between nodes Vj and Vj, and can be used to recover a set of complete linkages contained in a final item from each sequence of deduction steps that generates it.",
+        "The SELECTDISJUNCT step chooses one of the available disjuncts for a given word wj.The INITTER step starts the top-down process by constructing a linkage that spans the whole string W1... wn, but where no links have been constructed yet.",
+        "Then, the PREDICT and LINKPREDICT steps repeatedly divide the problem of finding a linkage for a substring wj... Wj into the smaller subproblems of finding linkages for wj... wz and wz ... Wj,with j < z < j.In particular, the LEFTPREDICT step poses the subproblem of finding a linkage for Wj... wzin which Wj is not directly linked to wz,and LeftLinkPredict poses the same problem while building a direct link from wj to wz.RlGHTPREDICT and RIGHTLINKPREDICT proceed analogously for the substring wz ... Wj.",
+        "After these two smaller linkages have been found, they are combined by a COMPLETER step into a larger linkage; the flags b and c in items are used by the COMPLETER step to ensure that its resulting item will contain a valid linkage satisfying the connectivity constraint.",
+        "An example of this process, where a particular substring is parsed by using the LEFTLINKPREDICT and RIGHTPREDICT steps to divide it into smaller substrings, is shown in Figure 10.",
+        "The algorithm runs in time 0(n) with respect to the length of the input, because none of its deduction steps uses more than three independent string position indices.",
+        "Final items: The set of final items is {[0, n + 1, a; ß; B, True]}.",
+        "Items of this form contain full valid linkages for the string W0 ... Wn, because having the second boolean flag set to True implies that their linkages for W0 ... Wn+1 have at most two connected components, and we have assumed that the word Wn+1 cannot be linked to any other, so one of the components must link W0 Wn."
+      ]
+    },
+    {
+      "heading": "8.2 Adapting Projective Dependency Parsers to Link Grammar",
+      "text": [
+        "We now exploit similarities between LG linkages and projective dependency structures to adapt projective dependency parsers to the LG formalism.",
+        "As an example we present an LG version of the parser by Eisner (1996), but the same principles can be applied to other parsers: schemata for LG versions of the parsers by Eisner and Satta (1999) and Yamada and Matsumoto (2003) can be found in Gomez-Rodriguez (2009).",
+        "Item sets from dependency parsers are adapted to LG parsers by considering the forests contained in each dependency item.",
+        "The corresponding LG items contain linkages with the same structure as these forests.",
+        "For example, because each forest in an item of the form [j, j,False,False] in Eisner's dependency parsing schema contains two trees",
+        "LeftLinkPredict",
+        "An example of LG parsing with the schema for Sleator and Temperley's parser.",
+        "Gomez-Rodriguez, Item set: The item set is headed at the words W and Wj, the analogous item in the corresponding LG parsing schema will contain linkages with two connected components, one containing the word W and the other containing Wj.",
+        "The notion of a head is lost in the conversion because the undirected LG linkages do not make distinctions between heads and dependents.",
+        "This simplifies the notation used to denote items in some cases: For instance, we do not need to make a distinction between Eisner items of the form [j,j, True, False]and those of the form [ , j, False, True], because their structure is the same other than the direction of the links.",
+        "Therefore, items in the LG version of Eisner's parser will use a single flag, indicating whether linkages contained in them have one or two connected components.",
+        "The combining and linking steps of the dependency parsers are directly translated to LG.",
+        "If the original dependency steps always produce items containing projective dependency forests, the resulting LG steps produce items with planar linkages.",
+        "When the original dependency steps have constraints related to the position of the head in items (like combiner steps in Eisner's parser, where we can combine [j, j, True, False]with [j, k, True, False]but notwith[j, k,False, True]), we ignore these constraints, allowing any word in a linkage to be its \"head\" for the purpose of linking it to other linkages.",
+        "Because projective dependency parsers do not allow cyclic structures, we add steps or remove constraints to allow cycles, so that the parsers are able to link two words that are already in the same connected component of a linkage.",
+        "In the schema obtained from Eisner's parser, this is done by allowing LINK steps to be applied to items representing fully connected linkages; in the schema corresponding to Eisner and Satta's parser we allow COMBINER steps to create a link in addition to joining two linkages; and in the schema for Yamada and Matsumoto's parser we add a step that creates two links at the same time, combining the functionality of the L-LINK and R-LINK steps.",
+        "Finally, because LG is a grammar-based formalism where the set of valid linkages is constrained by disjuncts associated with words, we include disjunct information in items in order to ensure that only grammatical linkages are constructed.",
+        "This is similar to the schema for Sleator and Temperley's parser, but in this case items need to specify both left and right linking requirements for each of their end words: These bottom-up parsers establish links from end words of an item to words outside the item's span (which can be to the left or to the right of the span) rather than to words inside the span (which are always to the right of the left end word, and to the left of the right end word).",
+        "Based on this, the following is an LG variant of the projective dependency parser of",
+        "Eisner (1996).",
+        "where an item of the form [j,j, CX1 • ß1, a2 • ß2, a3,004, B] represents the set of partial linkages over the substring Wj ... Wj of the input, satisfying the following conditions.",
+        "• All words in positions k,suchthat j < k < j, have all linking requirements satisfied.",
+        "• Thewordinposition j has left linking requirements a3 not satisfied, and right linking requirements o ß1, where the requirements o are satisfied by links to words within the item's span, and the requirements ß 1 are not satisfied.",
+        "Requirements appear in a3 and 001 ß1 in increasing order of link distance.",
+        "• The word in position j has right linking requirements 04 not satisfied, and left linking requirements a2ß2, where the requirements a2 are satisfied by links to words within the item's span, and the requirements ß 2 are not satisfied.",
+        "Requirements appear in 04 and a2ß2 in increasing order of link distance.",
+        "• The partial linkage is connected if B equals True, or has exactly two connected components (one containing the node Vj and the other containing Vj)ifB equals False.",
+        "Deduction steps: The set of deduction steps for this parser is as follows:",
+        "such that Wj has a disjunct Aj = (aR, aL)and Wj+1 has a disjunct Aj+1 = (ßR, ßL).",
+        "These steps resemble those in the schema for Eisner's dependency parser, with the exception that the LINK step is able to build links on items that contain fully connected linkages (equivalent to the [j, j, True, False]and [j, j, False, True] items of the dependency parser).",
+        "A version of the parser restricted to acyclic linkages can be obtained by adding the constraint that B must equal False in the LINK step.",
+        "Fjnal jtems: The set of final items is {[0,n, 0«, ß«, e, e, True]}, corresponding to the set of items containing fully connected linkages for the whole input string.",
+        "LG parsing schemata based on the parsers of Eisner and Satta (1999) and Yamada and Matsumoto (2003) are not shown here for space reasons, but are presented by Gomez-Rodriguez (2009).",
+        "The relationships between these three LG parsing schemata are the same as the corresponding dependency parsing schemata, that is, the LG variants of Eisner and Satta's and Yamada and Matsumoto's dependency parsers are step contractions of the LG variant of Eisner's parser.",
+        "As with the algorithm of Sleator and Temperley, these bottom-up LG parsers run in cubic time with respect to input length."
+      ]
+    },
+    {
+      "heading": "9. Conclusions and Future Work",
+      "text": [
+        "The parsing schemata formalism of Sikkel (1997) has previously been used to define, analyze, and compare algorithms for constituency-based parsing.",
+        "We have shown how to extend the formalism to dependency parsers, as well as the related Link Grammar formalism.",
+        "Deductive approaches have been used in the past to describe individual dependency parsers: In Kuhlmann (2007, 2010) a grammatical deduction system was used to define a parser for regular dependency grammars.",
+        "Gomez-Rodriguez,",
+        "McDonald and Nivre (2007) give an alternative framework for dependency parsers, viewing them as transition systems.",
+        "That model is based on parser configurations and transitions, and has no clear relationship to the approach described here.",
+        "To demonstrate the theoretical uses of dependency parsing schemata, we have used them to describe a wide range of existing projective and non-projective dependency parsers.",
+        "We have also clarified various relations between parsers which were originally formulated very differently – for example, establishing the relation between the dynamic programming algorithm of Eisner (1996) and the transition-based parser of Yamada and Matsumoto (2003).",
+        "We have also used the parsing schemata framework as a formal tool to verify the correctness of parsing algorithms.",
+        "Not only are dependency parsing schemata useful when describing and extending existing parsing algorithms, they can be used to define new parsers.",
+        "We have presented an algorithm that can parse any well-nested dependency structure with gap degree bounded by a constant k with time complexity 0(n2k+5), and additionally, have defined a wider set of structures that we call mildly ill-nested for a given gap degree k,and presented an algorithm that can parse these in time 0(n3k+4).",
+        "The practical relevance of this set of structures can be seen in the data obtained from several dependency treebanks, showing that all the sentences contained in them are mildly ill-nested for their gap degree, and thus they are parsable with this algorithm.",
+        "The strategy used by this algorithm for parsing mildly ill-nested structures has been adapted to solve the problem of finding minimal fanout binarizations of LCFRS to improve parsing efficiency (see Gomez-Rodriguez et al.",
+        "2009).",
+        "An interesting line of future work would be to provide implementations of the mildly non-projective dependency parsers presented here, using probabilistic models to guide their linking decisions, and compare their practical performance and accuracy to those of other non-projective dependency parsers.",
+        "Additionally, our definition of mildly ill-nested structures is closely related to the way the corresponding parser works.",
+        "It would be interesting to find a more grammar-oriented definition that would provide linguistic insight into this set of structures.",
+        "An alternative generalization of the concept of well-nestedness has recently been introduced by Maier and Lichte (2011).",
+        "The definition of this property of structures, called k-jll-nestedness, is more declarative than that of mildly ill-nestedness.",
+        "However, it is based on properties that are not local to projections or subtrees, and there is no evidence that k-ill-nested structures are parsable in polynomial time.",
+        "Finally, we observe that that some well-known parsing algorithms discussed here (Nivre 2003; McDonald et al.",
+        "2005) rely on statistically-driven control mechanisms that fall below the abstraction level of parsing schemata.",
+        "Therefore, it would be useful to have an extension of parsing schemata allowing the description and comparison of these control structures in a general way."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work was partially supported by MEC and FEDER (HUM2007-66607-C04) and Xunta de Galicia",
+        "Proc.",
+        "da Linguaxe e Recup.",
+        "de Informacion, Rede Galega de Lingüistica de Corpus, Bolsas Estadias INCITE/FSE cofinanced)."
+      ]
+    }
+  ]
+}

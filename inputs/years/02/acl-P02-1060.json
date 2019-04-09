@@ -1,0 +1,234 @@
+{
+  "info": {
+    "authors": [
+      "Guodong Zhou",
+      "Jian Su"
+    ],
+    "book": "Annual Meeting of the Association for Computational Linguistics",
+    "id": "acl-P02-1060",
+    "title": "Named Entity Recognition Using an HMM-Based Chunk Tagger",
+    "url": "https://aclweb.org/anthology/P02-1060",
+    "year": 2002
+  },
+  "references": [
+    "acl-E99-1001",
+    "acl-J95-4004",
+    "acl-M93-1010",
+    "acl-M95-1004",
+    "acl-M95-1012",
+    "acl-M98-1007",
+    "acl-M98-1009",
+    "acl-M98-1012",
+    "acl-M98-1015",
+    "acl-M98-1016",
+    "acl-M98-1018",
+    "acl-M98-1019",
+    "acl-M98-1021",
+    "acl-M98-1028",
+    "acl-W00-0726",
+    "acl-W00-0737",
+    "acl-W00-1309",
+    "acl-W97-0312"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper proposes a Hidden Markov Model (HMM) and an HMM-based chunk tagger, from which a named entity (NE) recognition (NER) system is built to recognize and classify names, times and numerical quantities.",
+        "Through the HMM, our system is able to apply and integrate four types of internal and external evidences: 1) simple deterministic internal feature of the words, such as capitalization and digitalization; 2) internal semantic feature of important triggers; 3) internal gazetteer feature; 4) external macro context feature.",
+        "In this way, the NER problem can be resolved effectively.",
+        "Evaluation of our system on MUC-6 and MUC-7 English NE tasks achieves F-measures of 96.6% and 94.1% respectively.",
+        "It shows that the performance is significantly better than reported by any other machine-learning system.",
+        "Moreover, the performance is even consistently better than those based on handcrafted rules."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Named Entity (NE) Recognition (NER) is to classify every word in a document into some predefined categories and \"none-of-the-above\".",
+        "In the taxonomy of computational linguistics tasks, it falls under the domain of \"information extraction\", which extracts specific kinds of information from documents as opposed to the more general task of \"document management\" which seeks to extract all of the information found in a document.",
+        "Since entity names form the main content of a document, NER is a very important step toward more intelligent information extraction and management.",
+        "The atomic elements of information extraction -- indeed, of language as a whole -- could be considered as the \"who\", \"where\" and \"how much\" in a sentence.",
+        "NER performs what is known as surface parsing, delimiting sequences of tokens that answer these important questions.",
+        "NER can also be used as the first step in a chain of processors: a next level of processing could relate two or more NEs, or perhaps even give semantics to that relationship using a verb.",
+        "In this way, further processing could discover the \"what\" and \"how\" of a sentence or body of text.",
+        "While NER is relatively simple and it is fairly easy to build a system with reasonable performance, there are still a large number of ambiguous cases that make it difficult to attain human performance.",
+        "There has been a considerable amount of work on NER problem, which aims to address many of these ambiguity, robustness and portability issues.",
+        "During last decade, NER has drawn more and more attention from the NE tasks [Chinchor95a] [Chinchor98a] in MUCs [MUC6] [MUC7], where person names, location names, organization names, dates, times, percentages and money amounts are to be delimited in text using SGML mark-ups.",
+        "Previous approaches have typically used manually constructed finite state patterns, which attempt to match against a sequence of words in much the same way as a general regular expression matcher.",
+        "Typical systems are Univ.",
+        "of Sheffield's LaSIE-II [Humphreys+98], ISOQuest's NetOwl [Aone+98] [Krupha+98] and Univ.",
+        "of Edinburgh's LTG [Mikheev+98] [Mikheev+99] for English NER.",
+        "These systems are mainly rule-based.",
+        "However, rule-based approaches lack the ability of coping with the problems of robustness and portability.",
+        "Each new source of text requires significant tweaking of rules to maintain optimal performance and the maintenance costs could be quite steep.",
+        "The current trend in NER is to use the machine-learning approach, which is more attractive in that it is trainable and adaptable and the maintenance of a machine-learning system is much cheaper than that of a rule-based one.",
+        "The representative machine-learning approaches used in NER are HMM (BBN's IdentiFinder in [Miller+98] [Bikel+99] and KRDL's system [Yu+98] for Chinese NER.",
+        "), Maximum Entropy (New York Univ.",
+        "'s MEME in [Borthwick+98] [Borthwich99]) and Decision Tree (New York Univ.",
+        "'s system in [Sekine98] and SRA's system in [Bennett+97]).",
+        "Besides, a variant of Eric Brill's transformation-based rules [Brill95] has been applied to the problem [Aberdeen+95].",
+        "Among these approaches, the evaluation performance of HMM is higher than those of others.",
+        "The main reason may be due to its better ability of capturing the locality of phenomena, which indicates names in text.",
+        "Moreover, HMM seems more and more used in NE recognition because of the efficiency of the Viterbi algorithm [Viterbi67] used in decoding the NE-class state sequence.",
+        "However, the performance of a machine-learning system is always poorer than that of a rule-based one by about 2% [Chinchor95b] [Chinchor98b].",
+        "This may be because current machine-learning approaches capture important evidence behind NER problem much less effectively than human experts who handcraft the rules, although machine-learning approaches always provide important statistical information that is not available to human experts.",
+        "As defined in [McDonald96], there are two kinds of evidences that can be used in NER to solve the ambiguity, robustness and portability problems described above.",
+        "The first is the internal evidence found within the word and/or word string itself while the second is the external evidence gathered from its context.",
+        "In order to effectively apply and integrate internal and external evidences, we present a NER system using a HMM.",
+        "The approach behind our NER system is based on the HMM-based chunk tagger in text chunking, which was ranked the best individual system [Zhou+00a] [Zhou+00b] in CoNLL'2000 [Tjong+00].",
+        "Here, a NE is regarded as a chunk, named \"NE-Chunk\".",
+        "To date, our system has been successfully trained and applied in English NER.",
+        "To our knowledge, our system outperforms any published machine-learning systems.",
+        "Moreover, our system even outperforms any published rule-based systems.",
+        "The layout of this paper is as follows.",
+        "Section 2 gives a description of the HMM and its application in NER: HMM-based chunk tagger.",
+        "Section 3 explains the word feature used to capture both the internal and external evidences.",
+        "Section 4 describes the back-off schemes used to tackle the sparseness problem.",
+        "Section 5 gives the experimental results of our system.",
+        "Section 6 contains our remarks and possible extensions of the proposed work.",
+        "The second item in (2-1) is the mutual information between T1n and G1 .",
+        "In order to simplify the computation of this item, we assume mutual information independence:"
+      ]
+    },
+    {
+      "heading": "2.1 HMM Modeling",
+      "text": [
+        "Given a token sequence G1n = g1g2 Lgn , the goal of NER is to find a stochastic optimal tag sequence T1n = t1t2 L tn that maximizes (2-1)",
+        "The basic premise of this model is to consider the raw text, encountered when decoding, as though it had passed through a noisy channel, where it had been originally marked with NE tags.",
+        "The job of our generative model is to directly generate the original NE tags from the output words of the noisy channel.",
+        "It is obvious that our generative model is reverse to the generative model of traditional HMM1, as used in BBN's IdentiFinder, which models the original process that generates the NE-class annotated words from the original NE tags.",
+        "Another difference is that our model assumes mutual information independence (2-2) while traditional HMM assumes conditional probability independence (I-1).",
+        "Assumption (2-2) is much looser than assumption (I-1) because assumption (I-1) has the same effect with the sum of assumptions (2-2) and (I-3)2.",
+        "In this way, our model can apply more context information to determine the tag of current token.",
+        "From equation (2-4), we can see that:",
+        "1) The first item can be computed by applying chain rules.",
+        "In ngram modeling, each tag is assumed to be probabilistically dependent on the N-1 previous tags.",
+        "2) The second item is the summation of log probabilities of all the individual tags.",
+        "3) The third item corresponds to the \"lexical\" component of the tagger.",
+        "We will not discuss both the first and second items further in this paper.",
+        "This paper will focus on n the third item∑log P(ti |G; ) , which is the main",
+        "difference between our tagger and other traditional HMM-based taggers, as used in BBN's IdentiFinder.",
+        "Ideally, it can be estimated by using the forward-backward algorithm [Rabiner89] recursively for the 1st-order [Rabiner89] or 2nd order HMMs [Watson+92].",
+        "However, an alternative back-off modeling approach is applied instead in this paper (more details in section 4)."
+      ]
+    },
+    {
+      "heading": "2.2 HMM-based Chunk Tagger",
+      "text": [
+        "arg max log P(T1n |G')",
+        "Then we assume conditional probability",
+        "and have: arg max log P(T1n |Gn )",
+        "For NE-chunk tagging, we have token gi =< fi , wi > , where Wln = Mw2 • • • wn is the word sequence and Fln = fif2 ... fn is the word-feature sequence.",
+        "In the meantime, NE-chunk tag ti is structural and consists of three parts:",
+        "1) Boundary Category: BC = {0, 1, 2, 3}.",
+        "Here 0 means that current word is a whole entity and 1/2/3 means that current word is at the beginning/in the middle/at the end of an entity.",
+        "2) Entity Category: EC.",
+        "This is used to denote the class of the entity name.",
+        "3) Word Feature: WF.",
+        "Because of the limited number of boundary and entity categories, the word feature is added into the structural tag to represent more accurate models.",
+        "Obviously, there exist some constraints between ti1 and ti on the boundary and entity categories, as shown in Table 1, where \"valid\" / \"invalid\" means the tag sequence ti1ti is valid / invalid while \"valid on\" means ti1ti is valid with an additional condition ECi1 = ECi .",
+        "Such constraints have been"
+      ]
+    },
+    {
+      "heading": "3 Determining Word Feature",
+      "text": [
+        "As stated above, token is denoted as ordered pairs of word-feature and word itself: gi =< fi , wi > .",
+        "Here, the word-feature is a simple deterministic computation performed on the word and/or word string with appropriate consideration of context as looked up in the lexicon or added to the context.",
+        "In our model, each word-feature consists of several sub-features, which can be classified into internal sub-features and external sub-features.",
+        "The internal sub-features are found within the word and/or word string itself to capture internal evidence while external sub-features are derived within the context to capture external evidence."
+      ]
+    },
+    {
+      "heading": "3.1 Internal Sub-Features",
+      "text": [
+        "Our model captures three types of internal sub-features: 1) f1 : simple deterministic internal feature of the words, such as capitalization and digitalization; 2) f2: internal semantic feature of important triggers; 3) f3: internal gazetteer feature.",
+        "model, as shown in Table 2 with the descending order of priority.",
+        "For example, in the case of non-disjoint feature classes such as ContainsDigitAndAlpha and ContainsDigitAndDash, the former will take precedence.",
+        "The first eleven features arise from the need to distinguish and annotate monetary amounts, percentages, times and dates.",
+        "The rest of the features distinguish types of capitalization and all other words such as punctuation marks.",
+        "In particular, the FirstWord feature arises from the fact that if a word is capitalized and is the first word of the sentence, we have no good information as to why it is capitalized (but note that AllCaps and CapPeriod are computed before FirstWord, and take precedence.)",
+        "This sub-feature is language dependent.",
+        "Fortunately, the feature computation is an extremely small part of the implementation.",
+        "This kind of internal sub-feature has been widely used in machine-learning systems, such as BBN's IdendiFinder and New York Univ.",
+        "'s MENE.",
+        "The rationale behind this sub-feature is clear: a) capitalization gives good evidence of NEs in Roman languages; b) Numeric symbols can automatically be grouped into categories.",
+        "2) f2 is the semantic classification of important triggers, as seen in Table 3, and is unique to our system.",
+        "It is based on the intuitions that important triggers are useful for NER and can be classified according to their semantics.",
+        "This sub-feature applies to both single word and multiple words.",
+        "This set of triggers is collected semi-automatically from the NEs and their local context of the training data.",
+        "3) Sub-feature f3 , as shown in Table 4, is the internal gazetteer feature, gathered from the lookup gazetteers: lists of names of persons, organizations, locations and other kinds of named entities.",
+        "This sub-feature can be determined by finding a match in the gazetteer of the corresponding NE type where n (in Table 4) represents the word number in the matched word string.",
+        "In stead of collecting gazetteer lists from training data, we collect a list of 20 public holidays in several countries, a list of 5,000 locations from websites such as GeoHive3, a list of 10,000 organization names from websites such as Yahoo4 and a list of 10,000 famous people from websites such as Scope Systems5.",
+        "Gazetters have been widely used in NER systems to improve performance."
+      ]
+    },
+    {
+      "heading": "3.2 External Sub-Features",
+      "text": [
+        "For external evidence, only one external macro context feature f 4 , as shown in Table 5, is captured in our model.",
+        "f4 is about whether and how the encountered NE candidate is occurred in the list of NEs already recognized from the document, as shown in Table 5 (n is the word number in the matched NE from the recognized NE list and m is the matched word number between the word string and the matched NE with the corresponding NE type.).",
+        "This sub-feature is unique to our system.",
+        "The intuition behind this is the phenomena of name alias.",
+        "During decoding, the NEs already recognized from the document are stored in a list.",
+        "When the system encounters a NE candidate, a name alias algorithm is invoked to dynamically determine its relationship with the NEs in the recognized list.",
+        "Initially, we also consider part-of-speech (POS) sub-feature.",
+        "However, the experimental result is disappointing that incorporation of POS even decreases the performance by 2%.",
+        "This may be because capitalization information of a word is submerged in the muddy of several POS tags and the performance of POS tagging is not satisfactory, especially for unknown capitalized words (since many of NEs include unknown capitalized words.).",
+        "Therefore, POS is discarded."
+      ]
+    },
+    {
+      "heading": "4 Back-off Modeling",
+      "text": [
+        "Given the model in section 2 and word feature in section 3, the main problem is how to",
+        "sufficient training data for every event whose conditional probability we wish to calculate.",
+        "Unfortunately, there is rarely enough training data to compute accurate probabilities when decoding on new data, especially considering the complex word feature described above.",
+        "In order to resolve the sparseness problem, two levels of back-off modeling are applied to approximate P(ti / G,) : 1) First level back-off scheme is based on different contexts of word features and words themselves, and Gl in P(ti / G,) is approximated in the descending order{{ of fi -2Ji-1J iwi , fi J i {{w�� ifi+1.f +2 J i-1 J i wi , fi wi J i+1 , fi-1 wi-1 fi , fi+1wi+1 , fi2fi1fi , fiJ i+1 fi+2 , fiwi , J i-2Ji-1fi , fi fi+1 and fi .",
+        "2) The second level back-off scheme is based on different combinations of the four sub-features described in section 3, and fk is approximated in the descending order of fk fk fk fk , 13 fk fk , fk fk ,Afk"
+      ]
+    },
+    {
+      "heading": "5 Experimental Results",
+      "text": [
+        "In this section, we will report the experimental results of our system for English NER on MUC-6 and MUC-7 NE shared tasks, as shown in Table 6, and then for the impact of training data size on performance using MUC-7 training data.",
+        "For each experiment, we have the MUC dry-run data as the held-out development data and the MUC formal test data as the held-out test data.",
+        "For both MUC-6 and MUC-7 NE tasks, Table 7 shows the performance of our system using MUC evaluation while Figure 1 gives the comparisons of our system with others.",
+        "Here, the precision (P) measures the number of correct NEs in the answer file over the total number of NEs in the answer file and the recall (R) measures the number of correct NEs in the answer file over the total number of NEs in the key file while F-measure is the weighted harmonic mean of precision and recall:",
+        "performance is significantly better than reported by any other machine-learning system.",
+        "Moreover, the performance is consistently better than those based on handcrafted rules.",
+        "With any learning technique, one important question is how much training data is required to achieve acceptable performance.",
+        "More generally how does the performance vary as the training data size changes?",
+        "The result is shown in Figure 2 for MUC-7 NE task.",
+        "It shows that 200KB of training data would have given the performance of 90% while reducing to 100KB would have had a significant decrease in the performance.",
+        "It also shows that our system still has some room for performance improvement.",
+        "This may be because of",
+        "Another important question is about the effect of different sub-features.",
+        "Table 8 answers the question on MUC-7 NE task:",
+        "1) Applying only f l gives our system the performance of 77.6%.",
+        "2) f2 is very useful for NER and increases the performance further by 10% to 87.4%.",
+        "3) f4 is impressive too with another 5.5% performance improvement.",
+        "4) However, f3 contributes only further 1.2% to",
+        "the performance.",
+        "This may be because information included in f3 has already been captured by f2 and f4 .",
+        "Actually, the experiments show that the contribution of f3 comes from where there is no explicit indicator information in/around the NE and there is no reference to other NEs in the macro context of the document.",
+        "The NEs contributed by f3 are always well-known ones, e.g. Microsoft, IBM and Bach (a composer), which are introduced in texts without much helpful context."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "This paper proposes a HMM in that a new generative model, based on the mutual information independence assumption (2-3) instead of the conditional probability independence assumption (I-1) after Bayes' rule, is applied.",
+        "Moreover, it shows that the HMM-based chunk tagger can effectively apply and integrate four different kinds of sub-features, ranging from internal word information to semantic information to NE gazetteers to macro context of the document, to capture internal and external evidences for NER problem.",
+        "It also shows that our NER system can reach \"near human performance\".",
+        "To our knowledge, our NER system outperforms any published machine-learning system and any published rule-based system.",
+        "While the experimental results have been impressive, there is still much that can be done potentially to improve the performance.",
+        "In the near feature, we would like to incorporate the following into our system:",
+        "• List of domain and application dependent person, organization and location names.",
+        "• More effective name alias algorithm.",
+        "• More effective strategy to the back-off modeling and smoothing."
+      ]
+    }
+  ]
+}

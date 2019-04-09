@@ -1,0 +1,157 @@
+{
+  "info": {
+    "authors": [
+      "Qin Lu",
+      "Shiu Tong Chan",
+      "Ruifeng Xu",
+      "T. S. Chiu",
+      "Baoli Li",
+      "Shiwen Yu"
+    ],
+    "book": "SIGHAN Workshop on Chinese Language Processing",
+    "id": "acl-W03-1725",
+    "title": "A Unicode Based Adaptive Segmentor",
+    "url": "https://aclweb.org/anthology/W03-1725",
+    "year": 2003
+  },
+  "references": [],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper presents a Unicode based Chinese word segmentor.",
+        "It can handle Chinese text in Simplified, Traditional, or mixed mode.",
+        "The system uses the strategy of divide-and-conquer to handle the recognition of personal names, numbers, time and numerical values, etc in the preprocessing stage.",
+        "The segmentor further uses tagging information to work on disambiguation.",
+        "Adopting a modular design approach, different functional parts are separately implemented using different modules and each module tackles one problem at a time providing more flexibility and extensibility.",
+        "Results show that with added preprocessing modules and accessorial modules, the accuracy of the segmentor is increased and the system is easily adaptive to different applications."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "The most difficult problem in Chinese word segmentation is due to overlapping ambiguities [1- 2].",
+        "The recognition of names, foreign names, and organizations are quite unique for Chinese.",
+        "Some systems can already achieve very high accuracy [3], but they heavily rely on manual work in getting the system to be trained to work certain language environment.",
+        "However, for many applications, we need to look at the cost to achieve high accuracy.",
+        "In a competitive environment, we also need to have systems that are quickly adaptive to new requirements with limited resources available.",
+        "In this paper, we report a Unicode based Chinese word segmentor.",
+        "The segmentor can handle Chinese text in Simplified, Traditional, or mixed mode where internally only one dictionary is needed.",
+        "The system uses the strategy of divide-and-conquer to handle the recognition of personal names, numbers, time and numerical values.",
+        "The system has a built-in new word extractor that can extract new words from running text, thus save time on training and getting the system quickly adaptive to new language environment.",
+        "The Bakeoff results in the open text for our system in all categories have shown that it works reasonably good for all different corpora.",
+        "The rest of the paper is organized as follows.",
+        "Section 2 presents our system design objectives and components.",
+        "Section 3 discusses more implementation details.",
+        "Section 4 gives some performance evaluations.",
+        "Section 5 is the conclusion."
+      ]
+    },
+    {
+      "heading": "2 Design Objectives and Components",
+      "text": [
+        "With the wide use of Unicode based operating systems such as Window 2000 and Window XP, we now see more and more text data written in both the Simplified form and the Traditional form to coexist on the same system.",
+        "It is also likely that text written in mixed mode.",
+        "Because of this reality, the first design objective of this system is its ability to handle the segmentation of Chinese text written in either Simplified Chinese, Traditional Chinese, or mixed mode.",
+        "As an example, we should be able to segment the same sentence in different forms such as the example given below: The second design objective is to adopt the modular design approach where different functional parts are separately implemented using independent modules and each module tackles one problem at a time.",
+        "Using this modular approach, we can isolate problems and fine tune each module with minimal effect on other modules in the system.",
+        "Special features like adding new rules or new dictionary can be easily done without affecting other modules.",
+        "Consequently, the system is more flexible and can be easily extended.",
+        "The third design objective of the system is to make the segmentor adaptive to different application domains.",
+        "We consider it having more practical value if the segmentor can be easily trained using some semi-automatic process to work in different domains and work well for text with different regional variations.",
+        "We consider it essential that the segmentor has tools to help it to obtain regional related information quickly even if annotated corpora are not available.",
+        "For instance, when it runs text from Hong Kong, it must be able to recognize the personal names such as if such a name(quadra-gram) appears in the text often.",
+        "Figure 1 shows the two major components, the segmentor and data manager.",
+        "The segmentor is the core component of the system.",
+        "It has a preprocessor, the kernel, and a post-processor.",
+        "As the system has to maintain a number of tables such as the dictionaries, family name list, etc., a separate component called data manager is responsible in handling the maintenance of these data.",
+        "The preprocessor has separate modules to handle paragraphs, ASCII code, numbers, time, and proper names including personal names, place and organizational names, and foreign names.",
+        "The kernel supports different segmentation algorithms.",
+        "It is the application or user’s choice to invoke the preferred segmentation algorithms that at current time include the basic maximum matching and minimum matching in both forward and backward mode.",
+        "These can also be used to build more complicated algorithms later on.",
+        "In addition, the system provides segmentation using part-of-speech tagging information to help resolve ambiguity.",
+        "The post processor applies morphological rules which cannot be easily applied using a dictionary.",
+        "The data manager helps to maintain the knowledge base in the system.",
+        "It also has an accessory software called the new word extractor which can collect statistical information based on character bi-grams, trigrams and quadra-grams to semi-automatically extract words and names so that they can be used by the segmentor to improve performance especially when switching to a new domain.",
+        "Another characteristic of this segmentor is that it provides tagging information for segmented text.",
+        "The tagging information can be optionally omitted if not needed by an application."
+      ]
+    },
+    {
+      "heading": "3 Implementation Details",
+      "text": [
+        "The basic dictionary of this system was provided by Peking University [4] and we also used the tagging data from [4].",
+        "The data structure for our dictionaries are very similar to that discussed in [5].",
+        "As our program needs to handle both Simplified and Traditional Chinese characters, Unicode is the only solution for dealing with more than one script at the same time.",
+        "Even though it is our design objective to support both Simplified and Traditional Chinese, we do not want to keep two different sets of dictionaries for Simplified and Traditional Chinese.",
+        "Even if two versions are kept, it would not serve well for text in mixed mode.",
+        "For example, Traditional Chinese word of “the day after tomorrow” should be , and for Simplified Chinese, it should be .",
+        "However sometimes we can see the word appears in a Traditional Chinese text.",
+        "We cannot say that it is wrong because the sentence is still semantically correct especially in Unicode environment.",
+        "Therefore the segmentor should be able to segment those words correctly such as in the examples: “ ”.",
+        "We must also deal with dictionary maintenance related to Chinese variants.",
+        "For example, characters are variants, so are .",
+        "In order to keep the dictionary maintenance simple, our system uses a single dictionary which only keeps the so called canonical form of a word.",
+        "In our system, the canonical form of a word is its “simplified form”.",
+        "We quoted the word “simplified” because only certain characters have simplified forms such as to , but for , there is no simplified form.",
+        "In the case of variants, we simply choose one of them as the canonical character.",
+        "The canonical characters are maintained in the traditional-simplified character conversion table as well as in a variant table.",
+        "Whenever a new word, item, is added into the dictionary, it must be added using a function CanonicalConversion(), which takes item as an input.",
+        "During segmentation, the corresponding dictionary look up function will first convert the token to its canonical form before looking up in the dictionary.",
+        "The personal name recognizers (separate for Chinese names and foreign names) use the maximum-likelihood algorithm with consideration of commonly used Chinese family names, given names, and foreign name characters.",
+        "It works for Chinese names of length up to 5 characters.",
+        "In the following examples you can see that our system successfully recognized the name .",
+        "This is done using our algorithm, not by putting her name in our dictionary: Organization names and place names are recognized mainly using special purpose dictionaries.",
+        "The segmentor uses tagging information to help resolve ambiguity.",
+        "The disambiguation is mostly based on rules such as p + (n + f) -> p + n + f which would word to correct basic statistical data include bi-gram frequency, trigram frequency, and quadra-gram frequencies.",
+        "In order to further example whether a bi-gram, say , is indeed a word, we further collect forward conditional frequency of , and the backward conditional frequency of , .",
+        "For an i-gram token, we also use the (i+1)-gram statistics to eliminate those i-grams that are only a part of (i+1) – gram word.",
+        "For instance, if the frequency of bi-gram is very close to the frequency of trigram , it is less likely that is a word.",
+        "Of course, whether is a word depends on quadra-gram results.",
+        "Using the statistical result, a set of rules was applied to these i-grams to eliminate entries that are not considered new words.",
+        "Minimal manual work is required to identify whether the remaining candidates are new words.",
+        "Before words are added into the dictionary, part-of-speech information are added manually (although not necessary) before using the canonical function.",
+        "The following table shows examples of bi-grams which are found by the new word extractor using one year Hong Kong Commercial Daily News data.",
+        "For efficiency reasons, our system uses only about 20 rules.",
+        "The system is flexible enough for new rules to be added to improve performance.",
+        "The new word extractor is an accessory program to extract new words from running text based on statistical data which can either be grabbed from the internet or collected from other sources.",
+        "The"
+      ]
+    },
+    {
+      "heading": "4 Performance Evaluation",
+      "text": [
+        "The valuation metrics used in [6] were adopted here.",
+        "The following table summarizes the execution speed of our program for the 4 different sources:",
+        "rate of segmentation on the average is around 7,500 characters for the first three corpora.",
+        "It seems that the processing speed for Peking U. data is faster.",
+        "This may be because the dictionaries we used are closer to the PK system, thus it would take less time to work on disambiguation."
+      ]
+    },
+    {
+      "heading": "5 Conclusion Acknowledgement",
+      "text": [
+        "We thank the PI of ITF Grant by ITC of HKSARG (ITS/024/01) entitled: Towards Cost-Effective E-business in the News Media & Publishing Industry for the use of HK Commercial Daily.",
+        "where N 1 denotes the numberofwords inthe annotatedcorpus, N 2 denotes the numberofwords identifiedby the segmentationalgorithm , and N 3 is the numberofwords correctly identified.",
+        "We participated in the open tests for all four corpora.",
+        "The results are shown in the following table.",
+        "The worstperformance inthe 4 tests were forthe CTB(UPenn) data.",
+        "Fromthe observationfromthe testing data, we foundthatthe mainproblemwith have with CTB datais the difference inword granularity.",
+        "To confirmourobservation, we have done ananalysis ofcombining errors and overlapping errors.",
+        "The results showthatthe ratios ofcombiningerrors inall the errortypes are 0.8425(AS), 0.87684(CTB), 0.82085(HK), and 0.77102(PK).",
+        "The biggestproblemwe have with AS data, onthe otherhandis due to outof vocabulary mistakes.",
+        "Eventhough ournew word extractorcanhelp us to reduce this problem, but we have nottrainedoursystemusing datafrom Taiwan.",
+        "Ourbestperformance was onPKdata because we usedavery similardictionary .",
+        "The additional training of data for HK was done using one year Commercial Daily( ).",
+        "The programinitializationneeds around2.25 seconds mainly to loadthe dictionaries andother datainto the memory before the segmentationcan start .",
+        "If we only count the segmentation time, the Inthis paper, designandalgorithms ofa general-purposedUnicode based segmentor is proposed.",
+        "It is able to process SimplifiedandTraditional Chinese appearinthe same text.",
+        "Sophisticatedpre-processing andotherauxiliary modules help segmenting textmore accurately.",
+        "Userinteractions andmodules canbe easily addedwith the help of its modulardesign.",
+        "A built-in newwordextractor is also implementedforextractingnew words from running text.",
+        "It saves much time on training and thus it can be quickly adapted to new environments.",
+        "References"
+      ]
+    }
+  ]
+}

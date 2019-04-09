@@ -1,0 +1,353 @@
+{
+  "info": {
+    "authors": [
+      "Libin Shen",
+      "Anoop Sarkar",
+      "Franz Josef Och"
+    ],
+    "book": "Human Language Technology Conference and Meeting of the North American Association for Computational Linguistics",
+    "id": "acl-N04-1023",
+    "title": "Discriminative Reranking for Machine Translation",
+    "url": "https://aclweb.org/anthology/N04-1023",
+    "year": 2004
+  },
+  "references": [
+    "acl-J90-2002",
+    "acl-J97-3002",
+    "acl-P01-1067",
+    "acl-P02-1034",
+    "acl-P02-1038",
+    "acl-P03-1011",
+    "acl-P03-1021",
+    "acl-P98-2162",
+    "acl-P98-2221",
+    "acl-W03-0402",
+    "acl-W99-0604"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper describes the application of discriminative reranking techniques to the problem of machine translation.",
+        "For each sentence in the source language, we obtain from a baseline statistical machine translation system, a ranked - best list of candidate translations in the target language.",
+        "We introduce two novel perceptron-inspired reranking algorithms that improve on the quality of machine translation over the baseline system based on evaluation using the BLEU metric.",
+        "We provide experimental results on the NIST 2003 Chinese-English large data track evaluation.",
+        "We also provide theoretical analysis of our algorithms and experiments that verify that our algorithms provide state-of-the-art performance in machine translation."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "The noisy-channel model (Brown et al., 1990) has been the foundation for statistical machine translation (SMT) for over ten years.",
+        "Recently so-called reranking techniques, such as maximum entropy models (Och and Ney, 2002) and gradient methods (Och, 2003), have been applied to machine translation (MT), and have provided significant improvements.",
+        "In this paper, we introduce two novel machine learning algorithms specialized for the MT task.",
+        "Discriminative reranking algorithms have also contributed to improvements in natural language parsing and tagging performance.",
+        "Discriminative reranking algorithms used for these applications include Perceptron, Boosting and Support Vector Machines (SVMs).",
+        "In the machine learning community, some novel discriminative ranking (also called ordinal regression) algorithms have been proposed in recent years.",
+        "Based on this work, in this paper, we will present some novel discriminative reranking techniques applied to machine translation.",
+        "The reranking problem for natural language is neither a classification problem nor a regression problem, and under certain conditions MT reranking turns out to be quite different from parse reranking.",
+        "In this paper, we consider the special issues of applying reranking techniques to the MT task and introduce two perceptron-like reranking algorithms for MT reranking.",
+        "We provide experimental results that show that the proposed algorithms achieve start-of-the-art results on the NIST 2003 Chinese-English large data track evaluation."
+      ]
+    },
+    {
+      "heading": "1.1 Generative Models for MT",
+      "text": [
+        "The seminal IBM models (Brown et al., 1990) were the first to introduce generative models to the MT task.",
+        "The IBM models applied the sequence learning paradigm well-known from Hidden Markov Models in speech recognition to the problem of MT.",
+        "The source and target sentences were treated as the observations, but the alignments were treated as hidden information learned from parallel texts using the EM algorithm.",
+        "This source-channel model treated the task of finding the probability , where is the translation in the target (English) language for a given source (foreign) sentence , as two generative probability models: the language model which is a generative probability over candidate translations and the translation model which is a generative conditional probability of the source sentence given a candidate translation .",
+        "The lexicon of the single-word based IBM models does not take word context into account.",
+        "This means unlikely alignments are being considered while training the model and this also results in additional decoding complexity.",
+        "Several MT models were proposed as extensions of the IBM models which used this intuition to add additional linguistic constraints to decrease the decoding perplexity and increase the translation quality.",
+        "Wang and Waibel (1998) proposed an SMT model based on phrase-based alignments.",
+        "Since their translation model reordered phrases directly, it achieved higher accuracy for translation between languages with different word orders.",
+        "In (Och and Weber, 1998; Och et al., 1999), a two-level alignment model was employed to utilize shallow phrase structures: alignment between templates was used to handle phrase reordering, and word alignments within a template were used to handle phrase to phrase translation.",
+        "However, phrase level alignment cannot handle long distance reordering effectively.",
+        "Parse trees have also been used in alignment models.",
+        "Wu (1997) introduced constraints on alignments using a probabilistic synchronous context-free grammar restricted to Chomskynormal form.",
+        "(Wu, 1997) was an implicit or self-organizing syntax model as it did not use a Treebank.",
+        "Yamada and Knight (2001) used a statistical parser trained using a Treebank in the source language to produce parse trees and proposed a tree to string model for alignment.",
+        "Gildea (2003) proposed a tree to tree alignment model using output from a statistical parser in both source and target languages.",
+        "The translation model involved tree alignments in which subtree cloning was used to handle cases of reordering that were not possible in earlier tree-based alignment models."
+      ]
+    },
+    {
+      "heading": "1.2 Discriminative Models for MT",
+      "text": [
+        "Och and Ney (2002) proposed a framework for MT based on direct translation, using the conditional model estimated using a maximum entropy model.",
+        "A small number of feature functions defined on the source and target sentence were used to rerank the translations generated by a baseline MT system.",
+        "While the total number of feature functions was small, each feature function was a complex statistical model by itself, as for example, the alignment template feature functions used in this approach.",
+        "Och (2003) described the use of minimum error training directly optimizing the error rate on automatic MT evaluation metrics such as BLEU.",
+        "The experiments showed that this approach obtains significantly better results than using the maximum mutual information criterion on parameter estimation.",
+        "This approach used the same set of features as the alignment template approach in (Och and Ney, 2002).",
+        "SMT Team (2003) also used minimum error training as in Och (2003), but used a large number of feature functions.",
+        "More than 450 different feature functions were used in order to improve the syntactic well-formedness of MT output.",
+        "By reranking a 1000-best list generated by the baseline MT system from Och (2003), the BLEU (Pa-pineni et al., 2001) score on the test dataset was improved from 31.6% to 32.9%."
+      ]
+    },
+    {
+      "heading": "2 Ranking and Reranking",
+      "text": []
+    },
+    {
+      "heading": "2.1 Reranking for NLP tasks",
+      "text": [
+        "Like machine translation, parsing is another field of natural language processing in which generative models have been widely used.",
+        "In recent years, reranking techniques, especially discriminative reranking, have resulted in significant improvements in parsing.",
+        "Various machine learning algorithms have been employed in parse reranking, such as Boosting (Collins, 2000), Perceptron (Collins and Duffy, 2002) and Support Vector Machines (Shen and Joshi, 2003).",
+        "The reranking techniques have resulted in a 13.5% error reduction in labeled recall/precision over the previous best generative parsing models.",
+        "Discriminative reranking methods for parsing typically use the notion of a margin as the distance between the best candidate parse and the rest of the parses.",
+        "The reranking problem is reduced to a classification problem by using pairwise samples.",
+        "In (Shen and Joshi, 2004), we have introduced a new perceptron-like ordinal regression algorithm for parse reranking.",
+        "In that algorithm, pairwise samples are used for training and margins are defined as the distance between parses of different ranks.",
+        "In addition, the uneven margin technique has been used for the purpose of adapting ordinal regression to reranking tasks.",
+        "In this paper, we apply this algorithm to MT reranking, and we also introduce a new perceptron-like reranking algorithm for MT."
+      ]
+    },
+    {
+      "heading": "2.2 Ranking and Ordinal Regression",
+      "text": [
+        "In the field of machine learning, a class of tasks (called ranking or ordinal regression) are similar to the reranking tasks in NLP.",
+        "One of the motivations of this paper is to apply ranking or ordinal regression algorithms to MT reranking.",
+        "In the previous works on ranking or ordinal regression, the margin is defined as the distance between two consecutive ranks.",
+        "Two large margin approaches have been used.",
+        "One is the PRank algorithm, a variant of the perceptron algorithm, that uses multiple biases to represent the boundaries between every two consecutive ranks (Crammer and Singer, 2001; Harrington, 2003).",
+        "However, as we will show in section 3.7, the PRank algorithm does not work on the reranking tasks due to the introduction of global ranks.",
+        "The other approach is to reduce the ranking problem to a classification problem by using the method of pairwise samples (Her-brich et al., 2000).",
+        "The underlying assumption is that the samples of consecutive ranks are separable.",
+        "This may become a problem in the case that ranks are unreliable when ranking does not strongly distinguish between candidates.",
+        "This is just what happens in reranking for machine translation."
+      ]
+    },
+    {
+      "heading": "3 Discriminative Reranking for MT",
+      "text": [
+        "The reranking approach for MT is defined as follows: First, a baseline system generates best candidates.",
+        "Features that can potentially discriminate between good vs. bad translations are extracted from these best candidates.",
+        "These features are then used to determine a new ranking for the best list.",
+        "The new top ranked candidate in this best list is our new best candidate translation."
+      ]
+    },
+    {
+      "heading": "3.1 Advantages of Discriminative Reranking",
+      "text": [
+        "Discriminative reranking allows us to use global features which are unavailable for the baseline system.",
+        "Second, we can use features of various kinds and need not worry about fine-grained smoothing issues.",
+        "Finally, the statistical machine learning approach has been shown to be effective in many NLP tasks.",
+        "Reranking enables rapid experimentation with complex feature functions, because the complex decoding steps in SMT are done once to generate the N-best list of translations."
+      ]
+    },
+    {
+      "heading": "3.2 Problems applying reranking to MT",
+      "text": [
+        "First, we consider how to apply discriminative reranking to machine translation.",
+        "We may directly use those algorithms that have been successfully used in parse reranking.",
+        "However, we immediately find that those algorithms are not as appropriate for machine translation.",
+        "Let be the candidate ranked at the th position for the source sentence, where ranking is defined on the quality of the candidates.",
+        "In parse reranking, we look for parallel hyperplanes successfully separating and for all the source sentences, but in MT, for each source sentence, we have a set of reference translations instead of a single gold standard.",
+        "For this reason, it is hard to define which candidate translation is the best.",
+        "Suppose we have two translations, one of which is close to reference translation ref while the other is close to reference translation ref .",
+        "It is difficult to say that one candidate is better than the other.",
+        "Although we might invent metrics to define the quality of a translation, standard reranking algorithms cannot be directly applied to MT.",
+        "In parse reranking, each training sentence has a ranked list of 27 candidates on average (Collins, 2000), but for machine translation, the number of candidate translations in the best list is much higher.",
+        "(SMT Team, 2003) show that to get a reasonable improvement in the BLEU score at least 1000 candidates need to be considered in the best list.",
+        "In addition, the parallel hyperplanes separating and actually are unable to distinguish good translations from bad translations, since they are not trained to distinguish any translations in .",
+        "Furthermore, many good translations in may differ greatly from , since there are multiple references.",
+        "These facts cause problems for the applicability of reranking algorithms."
+      ]
+    },
+    {
+      "heading": "3.3 Splitting",
+      "text": [
+        "Our first attempt to handle this problem is to redefine the notion of good translations versus bad translations.",
+        "Instead of separating and , we say the top of the best translations are good translations, and the bottom of the best translations are bad translations, where .",
+        "Then we look for parallel hyperplanes splitting the top translations and bottom translations for",
+        "each sentence.",
+        "Figure 1 illustrates this situation, where and ."
+      ]
+    },
+    {
+      "heading": "3.4 Ordinal Regression",
+      "text": [
+        "Furthermore, if we only look for the hyperplanes to separate the good and the bad translations, we, in fact, discard the order information of translations of the same class.",
+        "Maybe knowing that is better than may be useless for training to some extent, but knowing is better than is useful, if .",
+        "Although we cannot give an affirmative answer at this time, it is at least reasonable to use the ordering information.",
+        "The problem is how to use the ordering information.",
+        "In addition, we only want to maintain the order of two candidates if their ranks are far away from each other.",
+        "On the other hand, we do not care the order of two translations whose ranks are very close, e.g. 100 and 101.",
+        "Thus insensitive ordinal regression is more desirable and is the approach we follow in this paper."
+      ]
+    },
+    {
+      "heading": "3.5 Uneven Margins",
+      "text": [
+        "However, reranking is not an ordinal regression problem.",
+        "In reranking evaluation, we are only interested in the quality of the translation with the highest score, and we do not care the order of bad translations.",
+        "Therefore we cannot simply regard a reranking problem as an ordinal regression problem, since they have different definitions for the loss function.",
+        "As far as linear classifiers are concerned, we want to maintain a larger margin in translations of high ranks and a smaller margin in translations of low ranks.",
+        "For example, The reason is that the scoring function will be penalized"
+      ]
+    },
+    {
+      "heading": "3.6 Large Margin Classifiers",
+      "text": [
+        "There are quite a few linear classifiers1 that can separate samples with large margin, such as SVMs (Vapnik, 1998), Boosting (Schapire et al., 1997), Winnow (Zhang, 2000) and Perceptron (Krauth and Mezard, 1987).",
+        "The performance of SVMs is superior to other linear classifiers because of their ability to margin maximization.",
+        "However, SVMs are extremely slow in training since they need to solve a quadratic programming search.",
+        "For example, SVMs even cannot be used to train on the whole Penn Treebank in parse reranking (Shen and Joshi, 2003).",
+        "Taking this into account, we use perceptron-like algorithms, since the perceptron algorithm is fast in training which allow us to do experiments on real-world data.",
+        "Its large margin version is able to provide relatively good results in general."
+      ]
+    },
+    {
+      "heading": "3.7 Pairwise Samples",
+      "text": [
+        "In previous work on the PRank algorithm, ranks are defined on the entire training and test data.",
+        "Thus we can define boundaries between consecutive ranks on the entire data.",
+        "But in MT reranking, ranks are defined over every single source sentence.",
+        "For example, in our data set, the rank of a translation is only the rank among all the translations for the same sentence.",
+        "The training data includes about 1000 sentences, each of which normally has 1000 candidate translations with the exception of short sentences that have a smaller number of candidate translations.",
+        "As a result, we cannot use the PRank algorithm in the reranking task, since there are no global ranks or boundaries for all the samples.",
+        "However, the approach of using pairwise samples does work.",
+        "By pairing up two samples, we compute the relative distance between these two samples in the scoring metric.",
+        "In the training phase, we are only interested in whether the relative distance is positive or negative.",
+        "However, the size of generated training samples will be very large.",
+        "For samples, the total number of pairwise samples in (Herbrich et al., 2000) is roughly .",
+        "In the next section, we will introduce two perceptron-like algorithms that utilize pairwise samples while keeping the complexity of data space unchanged."
+      ]
+    },
+    {
+      "heading": "4 Reranking Algorithms",
+      "text": [
+        "Considering the desiderata discussed in the last section, we present two perceptron-like algorithms for MT reranking.",
+        "The first one is a splitting algorithm specially designed for MT reranking, which has similarities to a",
+        "classification algorithm.",
+        "We also experimented with an ordinal regression algorithm proposed in (Shen and Joshi, 2004).",
+        "For the sake of completeness, we will briefly describe the algorithm here."
+      ]
+    },
+    {
+      "heading": "4.1 Splitting",
+      "text": [
+        "In this section, we will propose a splitting algorithm which separates translations of each sentence into two parts, the top translations and the bottom translations.",
+        "All the separating hyperplanes are parallel by sharing the same weight vector .",
+        "The margin is defined on the distance between the top items and the bottom items in each cluster, as shown in Figure 1.",
+        "Let be the feature vector of the translation of the sentence, and be the rank for this translation among all the translations for the sentence.",
+        "Then the set of training samples is: where is the number of clusters and is the length of ranks for each cluster.",
+        "Let be a linear function, where is the feature vector of a translation, and is a weight vector.",
+        "We construct a hypothesis function with as follows.",
+        "where is a function that takes a list of scores for the candidate translations computed according to the evaluation metric and returns the rank in that list.",
+        "For example .",
+        "The splitting algorithm searches a linear function that successfully splits the top ranked and bottom ranked translations for each sentence, where .",
+        "Formally, let for any linear function .",
+        "We look for the function such that if (1) if (2) which means that can successfully separate the good translations and the bad translations.",
+        "Suppose there exists a linear function satisfying (1) and (2), we say is by given and .",
+        "Furthermore, we can define the splitting margin for the translations of the sentence as follows.",
+        "The minimal splitting margin, ,for given and is defined as follows.",
+        "Algorithm 1 is a perceptron-like algorithm that looks for a function that splits the training data.",
+        "The idea of the algorithm is as follows.",
+        "For every two translations and , if the weight vector can not successfully separate and with a learning margin , , then we need to update with the addition of .",
+        "However, the updating is not executed until all the inconsistent pairs in a sentence are found for the purpose of speeding up the algorithm.",
+        "When sentence is selected, we first compute and store for all .",
+        "Thus we do not need to recompute again in the inner loop.",
+        "Now the complexity of a repeat iteration is , where is the average number of active features in vector .",
+        "If we updated the weight vector whenever an inconsistent pair was found, the complexity of a loop would be .",
+        "The following theorem will show that Algorithm 1 will stop in finite steps, outputting a function that splits the training data with a large margin, if the training data is splittable.",
+        "Due to lack of space, we omit the proof for Theorem 1 in this paper.",
+        "Theorem 1 Suppose the training samples",
+        "Let .",
+        "Then Algorithm 1 makes at most mistakes on the pairwise samples during the Algorithm 2 ordinal regression with uneven margin Require: a positive learning margin .",
+        "1: , initialize ; 2: repeat 3: for (sentence ) do 4: compute and for all ; 5: for ( ) do 6: if and and"
+      ]
+    },
+    {
+      "heading": "4.2 Ordinal Regression",
+      "text": [
+        "The second algorithm that we will use for MT reranking is the insensitive ordinal regression with uneven margin, which was proposed in (Shen and Joshi, 2004), as shown in Algorithm 2.",
+        "In Algorithm 2, the function is used to control the level of insensitivity, and the function is used to control the learning margin between pairs oftranslations with different ranks as described in Section 3.5.",
+        "There are many candidates for .",
+        "The following definition for is one of the simplest solutions.",
+        "We will use this function in our experiments on MT reranking."
+      ]
+    },
+    {
+      "heading": "5 Experiments and Analysis",
+      "text": [
+        "We provide experimental results on the NIST 2003 Chinese-English large data track evaluation.",
+        "We use the data set used in (SMT Team, 2003).",
+        "The training data consists of about 170M English words, on which the baseline translation system is trained.",
+        "The training data is also used to build language models which are used to define feature functions on various syntactic levels.",
+        "The development data consists of 993 Chinese sentences.",
+        "Each Chinese sentence is associated with 1000-best English translations generated by the baseline MT system.",
+        "The development data set is used to estimate the parameters for the feature functions for the purpose of reranking.",
+        "The",
+        "test data consists of 878 Chinese sentences.",
+        "Each Chinese sentence is associated with 1000-best English translations too.",
+        "The test set is used to assess the quality of the reranking output.",
+        "In (SMT Team, 2003), 450 features were generated.",
+        "Six features from (Och, 2003) were used as baseline features.",
+        "Each of the 450 features was evaluated independently by combining it with 6 baseline features and assessing on the test data with the minimum error training.",
+        "The baseline BLEU score on the test set is 31.6%.",
+        "Table 1 shows some of the best performing features.",
+        "In (SMT Team, 2003), aggressive search was used to combine features.",
+        "After combining about a dozen features, the BLEU score did not improve any more, and the score was 32.9%.",
+        "It was also noticed that the major improvement came from the Model 1 feature.",
+        "By combining the four features, Model 1, matched parentheses, matched quotation marks and POS language model, the system achieved a BLEU score of 32.6%.",
+        "In our experiments, we will use 4 different kinds of feature combinations: Baseline: The 6 baseline features used in (Och, 2003), such as cost of word penalty, cost of aligned template penalty.",
+        "Best Feature: Baseline + IBM Model 1 + matched parentheses + matched quotation marks + POS language model.",
+        "Top Twenty: Baseline + 14 features with individual BLEU score no less than 31.9% with the minimum error training.",
+        "Large Set: Baseline + 50 features with individual BLEU score no less than 31.7% with the minimum error training.",
+        "Since the baseline is 31.6% and the 95% confidence range is 0.9%, most of the features in this set are not individually discriminative with respect to the BLEU metric.",
+        "We apply Algorithm 1 and 2 to the four feature sets.",
+        "For algorithm 1, the splitting algorithm, we set in the 1000-best translations given by the baseline MT system.",
+        "For algorithm 2, the ordinal regression algorithm, we set the updating condition as and , which means one’s rank number is at most half of the other’s and there are at least 20 ranks in between.",
+        "Figures 2-9 show the results of using Algorithm 1 and 2 with the four feature sets.",
+        "The axis represents the number of iterations in the training.",
+        "The left axis stands for the BLEU% score on the test data, and the right axis stands for log of the loss function on the development data.",
+        "Algorithm 1, the splitting algorithm, converges on the first three feature sets.",
+        "The smaller the feature set is, the faster the algorithm converges.",
+        "It achieves a BLEU score of 31.7% on the Baseline, 32.8% on the Best Feature, but only 32.6% on the Top Twenty features.",
+        "However it is within the range of 95% confidence.",
+        "Unfortunately on the Large Set, Algorithm 1 converges very slowly.",
+        "In the Top Twenty set there are a fewer number of individually non-discriminative feature making the pool of features “better”.",
+        "In addition, generalization performance in the Top Twenty set is better than the Large Set due to the smaller set of “better” features, cf. (Shen and Joshi, 2004).",
+        "If the number of the non-discriminative features is large enough, the data set becomes unsplittable.",
+        "We have tried using the trick as in (Li et al., 2002) to make data separable artificially, but the performance could not be improved with such features.",
+        "We achieve similar results with Algorithm 2, the ordinal regression with uneven margin.",
+        "It converges on the first 3 feature sets too.",
+        "On the Baseline, it achieves 31.4%.",
+        "We notice that the model is over-trained on the development data according to the learning curve.",
+        "In the Best Feature category, it achieves 32.7%, and on the Top Twenty features, it achieves 32.9%.",
+        "This algorithm does not converge on the Large Set in 10000 iterations.",
+        "We compare our perceptron-like algorithms with the minimum error training used in (SMT Team, 2003) as shown in Table 2.",
+        "The splitting algorithm achieves slightly better results on the Baseline and the Best Feature set, while the minimum error training and the regression algorithm tie for first place on feature combinations.",
+        "However, the differences are not significant.",
+        "We notice in those separable feature sets the performance on the development data and the test data are tightly consistent.",
+        "Whenever the log-loss on the development set is decreased, and BLEU score on the test set goes up, and vice versa.",
+        "This tells us the merit of these two algorithms; By optimizing on the loss function for",
+        "the development data, we can improve performance on the test data.",
+        "This property is guaranteed by the theoretical analysis and is borne out in the experimental results."
+      ]
+    },
+    {
+      "heading": "6 Conclusions and Future Work",
+      "text": [
+        "In this paper, we have successfully applied the discriminative reranking to machine translation.",
+        "We applied a new perceptron-like splitting algorithm and ordinal regression algorithm with uneven margin to reranking in MT.",
+        "We provide a theoretical justification for the performance of the splitting algorithms.",
+        "Experimental results provided in this paper show that the proposed algorithms provide state-of-the-art performance in the NIST 2003 Chinese-English large data track evaluation."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This material is based upon work supported by the National Science Foundation under Grant No.",
+        "0121285.",
+        "The first author was partially supported by JHU post-workshop fellowship and NSF Grant ITR-0205456.",
+        "The second author is partially supported by NSERC, Canada (RGPIN: 264905).",
+        "We thank the members of the SMT team of JHU Workshop 2003 for help on the dataset and three anonymous reviewers for useful comments."
+      ]
+    }
+  ]
+}

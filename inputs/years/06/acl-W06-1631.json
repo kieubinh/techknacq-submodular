@@ -1,0 +1,329 @@
+{
+  "info": {
+    "authors": [
+      "Abdusalam F. A. Nwesri",
+      "S. M. M. Tahaghoghi",
+      "Falk Scholer"
+    ],
+    "book": "Conference on Empirical Methods in Natural Language Processing",
+    "id": "acl-W06-1631",
+    "title": "Capturing Out-Of-Vocabulary Words in Arabic Text",
+    "url": "https://aclweb.org/anthology/W06-1631",
+    "year": 2006
+  },
+  "references": [
+    "acl-W98-1005"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "The increasing flow of information between languages has led to a rise in the frequency of non-native or loan words, where terms of one language appear transliterated in another.",
+        "Dealing with such out of vocabulary words is essential for successful cross-lingual information retrieval.",
+        "For example, techniques such as stemming should not be applied indiscriminately to all words in a collection, and so before any stemming, foreign words need to be identified.",
+        "In this paper, we investigate three approaches for the identification of foreign words in Arabic text: lexicons, language patterns, and n-grams and present that results show that lexicon-based approaches outperform the other techniques."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Arabic words are derived from roots having three, four, or, in rare instances, five characters.",
+        "The derivation process consistently follows patterns that are based on the three letter verb _� (/fa�ala/ to do)1.",
+        "Each root word matches a base pattern.",
+        "Characters are added at the beginning, the middle, or end of the root, but the base characters that match the pattern remain unchanged.",
+        "The pronunciation of Arabic characters is associated with short vowels; these are represented by diacritics, and attached to other characters to show how the characters should be pronounced.",
+        "An Arabic character can be pronounced in several different ways.",
+        "For example, the letter u� with the",
+        "diacritic Fatha u is pronounced /ba/, with the diacritic Kasra u is pronounced /bi/, and with having the diacritic Damma u is pronounced /bo/.",
+        "Diacritics are not shown in general written Arabic, and the reader must rely on the context to determine the implicit diacritics and therefore the pronunciation of each word.",
+        "For example, the word `,Aa can represent (/Oahaba/ = went),",
+        "Pure Arabic words follow restricted rules in their construction to keep them short and easy to pronounce.",
+        "Their sounds usually follow the CVCV pattern, where C stands for a consonant and V stands for a Vowel.",
+        "An Arabic word never has two consecutive consonants nor four consecutive vowels (Al-Shanti, 1996).",
+        "Foreign words are words that are borrowed from other languages.",
+        "Some are remodelled to conform with Arabic word paradigms, and become part of the Arabic lexicon; others are transliterated into Arabic as they are pronounced by different Arabic speakers, with some segmental and vowel changes.",
+        "The latter are called Out-Of-Vocabulary (OOV) words as they are not found in a standard Arabic lexicon.",
+        "Such OOV words are increasingly common due to the inflow of information from foreign sources, and include terms that are either new and have yet to be translated into native equivalents, or proper nouns that have had their phonemes replaced by Arabic ones.",
+        "Examples include words such as �uf�h /margr�t/ (Margaret) or `�����/links/ (Linux).",
+        "This process often results in different Arabic spellings for the same word.",
+        "Current Arabic Information Retrieval (AIR) systems do not handle the problem of retrieving the different versions of the same foreign",
+        "Sydney, July 2006. c�2006 Association for Computational Linguistics word (Abdelali et al., 2004), and instead typically retrieve only the documents containing the same spelling of the word as used in the query.",
+        "One solution to this problem has been used in cross-lingual information retrieval, where OOV words in the query are transliterated into their possible equivalents.",
+        "Transliterating terms in English queries into multiple Arabic equivalents using an English-Arabic dictionary has been shown to have a positive impact on retrieval results (Abduljaleel and Larkey, 2003).",
+        "However, we are aware of no work on handling OOV terms in Arabic queries.",
+        "For this, proper identification of foreign words is essential.",
+        "Otherwise, query expansion for such words is not likely to be effective: many Arabic words could be wrongly expanded, resulting in long queries with many false transliterations of Arabic words.",
+        "Furthermore, proper identification of foreign words would be helpful because such words could then be treated differently using techniques such as approximate string matching (Zobel and Dart, 1995).",
+        "In this paper, we examine possible techniques to identify foreign words in Arabic text.",
+        "In the following sections we categorise and define foreign words in Arabic, and follow in section 2 with a discussion of possible different approaches that can identify them in Arabic text.",
+        "In section 3 we present an initial evaluation of these approaches, and describe improvements in section 4 that we then explore in a second experiment in section 5.",
+        "We discuss results in section 6 and finally conclude our work in section 7."
+      ]
+    },
+    {
+      "heading": "1.1 Foreign words in Arabic",
+      "text": [
+        "Arabic has many foreign words, with varying levels of assimilation into the language.",
+        "Words borrowed from other languages usually have different style in writing and construction, and Arabic linguists have drawn up rules to identify them.",
+        "For example, any root Arabic word that has four or more characters should have one or more of the “Dalaga” letters ( j, �, �, v, J, u�).",
+        "Those that have no such letters are considered foreign (Al-Shanti, 1996).",
+        "However, while such rules could be useful for linguistic purposes, they have limited application in Information Retrieval (IR); based on rules, many foreign words that have long been absorbed into the language and are spelled consistently would be considered to be OOV.",
+        "From the IR perspective, foreign words can be split into two",
+        "Translated: These are foreign words that are modified or remodelled to conform with Arabic word paradigms; they are well assimilated into Arabic, and are sometimes referred to as Arabicised words (Aljlayl and Frieder, 2002).",
+        "This process includes changes in the structure of the borrowed word, including segmental and vowel changes, and the addition, deletion, and modification of stress patterns (Al-Qinal, 2002).",
+        "This category of foreign words usually has a single spelling version that is used consistently.",
+        "Examples include words such as v (/bustxn/ = garden), C�j (/bur3/ =tower), *?",
+        ".)",
+        "I (/rxduu/ = radio), and U.Li (/qunbula = bomb).",
+        "Transliterated: Words in this category are transliterated into Arabic by replacing phonemes with their nearest Arabic equivalents.",
+        "Although Arabic has a broad sound system that contains most phonemes used in other languages, not all phonemes have Arabic equivalents.",
+        "In practice, such phonemes may be represented in different ways by different persons, resulting in several spelling versions for the same foreign word.",
+        "For example, we observed 28 transliterated versions for the name of the former Serbian leader (Milosevic) in the TREC 2002 Arabic collection; these are shown in Table 1.",
+        "Transliteration has become more common than translation due to the need for instant access to new foreign terms.",
+        "It can take considerable time for a new foreign term to be included in reference",
+        "to dictionaries.",
+        "However, users often need to immediately use a particular term, and cannot wait until a standard form of the word is created; news agencies form an important category of such users.",
+        "This transliteration process often results in multiple spellings in common usage."
+      ]
+    },
+    {
+      "heading": "1.2 Related work",
+      "text": [
+        "In the context of information retrieval, most work on foreign words in Arabic has been based on transliteration, and carried out under machine translation and cross-lingual information retrieval (CLIR) tasks, where English queries are used to search for Arabic documents, or vice versa.",
+        "This often involves the use of a bilingual dictionary to translate queries and transliterate OOV words into their equivalents in Arabic.",
+        "Expanding a foreign word to its possible variants in a query has been shown to increase the precision of search results (Abduljaleel and Larkey, 2003).",
+        "However, OOV words in the query are easily recognised based on English rules and an English-Arabic dictionary: capitalised words are marked as nouns, and the remaining words are translated using the dictionary.",
+        "Words not found in the dictionary are marked as OOV and are transliterated into probable Arabic forms.",
+        "In contrast, we aim to identify foreign words as a within Arabic text which is made difficult by the absence of such easily perceptible difference.",
+        "Stalls and Knight (1998) describe research to determine the original foreign word from its Arabic version; this is known as back transliteration.",
+        "However, rather than using automatic methods to identify foreign words, they used a list of 2 800 names to test the accuracy of the back transliteration algorithm.",
+        "Of these, only 900 names were successfully transliterated to their source names.",
+        "While this approach can be used to identify transliterated foreign words, its effectiveness is not known on normal Arabic words as only names were used to test the algorithm.",
+        "Jeong et al.",
+        "(1999) used statistical differences in syllable unigram and bigram patterns between pure Korean words and foreign words to identify foreign words in Korean documents.",
+        "This approach was later enhanced by Kang and Choi (2002) to incorporate word segmentation.",
+        "A related area is language identification, where statistics derived from a language model are used to automatically identify languages (Dunning, 1994).",
+        "Using N-gram counting produces good accuracy for long strings with 50 or more characters, and moderately well with 10-character-long strings.",
+        "It is unclear how well this approach would work on individual words with five characters on average."
+      ]
+    },
+    {
+      "heading": "2 Identifying foreign words",
+      "text": [
+        "We categorise three general approaches for recognising foreign words in Arabic text:"
+      ]
+    },
+    {
+      "heading": "Arabic lexicon",
+      "text": [
+        "OOV words can be easily captured by checking whether they exist in an Arabic lexicon.",
+        "However, the lexicon is unlikely to include all Arabic words, while at the same time it could contain some foreign words.",
+        "Moreover, this approach will identify misspelled Arabic words as foreign."
+      ]
+    },
+    {
+      "heading": "Arabic patterns system",
+      "text": [
+        "Arabic uses a pattern system to derive words from their roots.",
+        "Roots are three, four or some����",
+        "(/bx 0a/ = searched) can be represented by this pattern through mapping J to �, to _�_, and � j_.",
+        "Many stems can be generated from this root using standard patterns.",
+        "For instance, jcli (/fxe Il/ = ,o doer) , and (/yfflo/ = is doing) are two different patterns that respectively represent the active participle, and present tense verb from the pattern j__;;_i.",
+        "By placing the appropriate core letters and adding additional letters in each pattern, we can generate words such as `.>l (/bxm0/ = re",
+        "tively.",
+        "New words can further accept prefixes and suffixes.",
+        "We can recognise whether a word is an Arabic or foreign word by reversing the process and testing the different patterns.",
+        "If, after all possible affixes have been removed, the remaining stem matches an Arabic pattern, the word is likely to be an Arabic word.",
+        "For example, to check whether the word `.>lJI9 (/walbxm0/ = and the researcher) is a foreign word, we first remove the prefixes 3 and �I to get the stem `,.>U; we find that this word matches the pattern jcli – it has the same length, and the letter l_ is in the same po",
+        "sition – and conclude that it is therefore an Arabic word.",
+        "Note that we must perform this determination without relying on diacritics.",
+        "This approach is not perfect, as general Arabic text does not include explicit diacritics; if parts of a foreign word match a pattern, it will be marked as being Arabic.",
+        "Similarly, misspelled words may be classified as foreign words if no matching pattern is found."
+      ]
+    },
+    {
+      "heading": "N-gram approach",
+      "text": [
+        "Transliterated foreign words exhibit construction patterns that are often different from Arabic patterns.",
+        "By counting the N-grams of a sample of foreign words, a profile can be constructed to identify similar words.",
+        "This approach has been used in language identification, although it is reported to have only moderate effectiveness in identifying short strings (Cavnar and Trenkle, 1994; Dunning, 1994)."
+      ]
+    },
+    {
+      "heading": "2.1 Resources",
+      "text": [
+        "For the lexicon approach, we used three lexicons: the Khoja root lexicon (Khoja and Garside, 1999), the Buckwalter Lexicon (Buckwalter, 2002), and the Microsoft office 2003 lexicon (Microsoft Corporation, 2002).",
+        "The Khoja stemmer has an associated compressed language dictionary that contains well-known roots.",
+        "The stemmer strips prefixes and suffixes and matches the remaining stem with a list of Arabic patterns.",
+        "If a match is found, the root is extracted and checked against the dictionary of root words.",
+        "If no entry is found, the word is considered to be a non-Arabic word.",
+        "We call this the Khoja Lexicon Approach (KLA).",
+        "The Buckwalter morphological analyser is a lexicon that uses three tables and an algorithm to check possible affixes.",
+        "The algorithm checks a word and analyses its possible prefixes and suffixes to determine possible segmentation for an Arabic word.",
+        "If the algorithm fails to find any possible segmentation, the word is considered not found in the lexicon.",
+        "We name this approach the Buckwalter Lexicon Approach (BLA).",
+        "The Microsoft office lexicon is the one used in the Microsoft Office 2003 spell-checker.",
+        "We test whether an Arabic word is found in this lexicon, and classify those that are not in the lexicon to be foreign words.",
+        "We call this approach the Office Lexicon Approach (OLA).",
+        "To use Arabic patterns, we modified the Khoja stemmer to check whether there is a match between a word and a list of patterns after stemming without further checking against the root dictionary.",
+        "If there is no match, the word is considered a foreign word.",
+        "This approach is similar to the approach used by Taghva et al.",
+        "(2005).",
+        "We adopted the patterns of the Khoja stemmer and added 37 patterns compiled from Arabic grammar books, these are shown in Table 2.",
+        "We call these approaches the Khoja Pattern Approach (KPA), and Modified Khoja Pattern Approach (MKP) respectively.",
+        "A word is also considered to be an Arabic word if the remaining stem has three or fewer letters.",
+        "We evaluate the effectiveness of the n-gram method in two ways.",
+        "First, we extend the n-gram text categorisation method presented by Cavnar and Trenkle (1994).",
+        "The method uses language profiles where, for each language, all n-grams that occur in a training corpus are sorted in order of decreasing frequency of occurrence, for n ranging from 1 to 5.",
+        "To classify a text t, we build its n-gram frequency profile, and compute the distance between each n-gram in the text and in each language profile lj.",
+        "The total distance is computed by summing up all differences between the position of the n-gram in the text profile and the position of the same n-gram in the language profile:",
+        "where Dj is the total distance between a text t with Ni n-grams, and a language profile lj with Nj n-grams; and rank is the position of the n-gram in the frequency-sorted list of all n-grams for either the text or language profile.",
+        "In our work, we build two language profiles, one",
+        "for native Arabic words and another for foreign words.",
+        "We compare the n-grams in each word in our list against these two profiles.",
+        "If the total distance between the word and the foreign words profile is smaller than the total distance between the word and the Arabic words profile, then it is classified as a foreign word.",
+        "As the two language profiles are not in same size, we compute the relative position of each n-gram by dividing its position in the list by the number of the n-grams in the language profile.",
+        "We call this approach the n-gram approach (NGR).",
+        "We also tried a simpler approach based on the construction of two trigram models: one from Arabic words, and another from foreign words.",
+        "The probability that a string is a foreign word is determined by comparing the frequency of its trigrams with each language model.",
+        "A word is considered foreign if the sum of the relative frequency of its trigrams in the foreign words profile is higher than the sum of the relative frequency of its trigrams in the Arabic words profile.",
+        "We call this approach trigram (TRG)."
+      ]
+    },
+    {
+      "heading": "3 Training Experiments",
+      "text": [
+        "In this section, we describe how we formed a development data set using Arabic text from the Web, and how we evaluated and improved techniques for identification of foreign words."
+      ]
+    },
+    {
+      "heading": "3.1 Data",
+      "text": [
+        "To form our development data set, we crawled the Arabic web sites of the Al-Jazeera news channel1, the Al-Anwar2 and El-Akhbar3 newspapers.",
+        "A list of 285 482 Arabic words was extracted.",
+        "After removing Arabic stop words such as pronouns and prepositions, the list had 246 281 Arabic words with 25 492 unique words.",
+        "In the absence of diacritics, we decided to remove words with three or fewer characters, as these words could be interpreted as being either Arabic or foreign in different situations.",
+        "For example, the word����(/bi/) could be interpreted as the Arabic word meaning “in me”, or the English letter B.",
+        "After this step, 24 218 unique words remained.",
+        "We examined these words and categorised each of them either as Arabic word (AW), or a translit",
+        "erated foreign word (FW).",
+        "We also had to classify some terms as misspelled Arabic word (MW).",
+        "We used the Microsoft Office spell-checker as a first-pass filter to identify misspelled words, and then manually inspected each word to identify any that were actually correct; the spell-checker fails to recognise some Arabic words, especially those with some complex affixes.",
+        "The list also had some local Arabic dialect spellings that we chose to classify as misspelled.",
+        "The final list had three categories: 22 295 correct Arabic words, 1218 foreign words and 705 misspelled words.",
+        "To build language models for the trigram approaches (NRG and TRG), we used the TREC 2001 Arabic collection (Gey and Oard, 2001).",
+        "We manually selected 3 046 foreign words out of the OOV words extracted from the collection using the Microsoft office spell-checker.",
+        "These foreign words are transliterated foreign words.",
+        "We built the Arabic language model using 100 000 words extracted from the TREC collection using the same spell-checker.",
+        "However, we excluded any word that could be a proper noun, to avoid involving foreign words.",
+        "We used an algorithm to exclude any word that does not accept the suffix haa (4-), as transliterated proper nouns can not accept Arabic affixes."
+      ]
+    },
+    {
+      "heading": "3.2 Evaluation",
+      "text": [
+        "We measure the accuracy of each approach by examining the number of foreign words correctly identified, and the number of incorrect classifications.",
+        "The precision of each approach is calculated as the ratio of correctly identified foreign words to the total number of words identified as foreign The latter could be correct or misspelled Arabic words identified as foreign plus the actual foreign words identified.",
+        "The recall is calculated as the ratio of correctly identified foreign words to the number of words marked manually as foreign.",
+        "Although there is generally a compromise between precision and recall, we consider precision to be more important, since incorrectly classifying Arabic words as foreign would be more likely to harm general retrieval performance.",
+        "The left-hand side of Table 3 shows the results of our experiments.",
+        "We have included the MW results to illustrate the effects of misspelled words on each approach The results show that the n-gram approach (NGR) has the highest precision, while the",
+        "lexicon-based OLA approach gives the highest recall.",
+        "The pattern approaches (KPA) and (MKP) perform well compared to the combination of patterns and the root lexicon (KLA), although the latter produces higher recall.",
+        "There is a slight improvement in precision when adding more patterns, but recall is sightly reduced.",
+        "The KLA approach produces the poorest precision, but has better recall rate than the NGR approach.",
+        "The results show that many Arabic native words are mistakenly caught in the foreign words net.",
+        "Our intention is to handle foreign words differently from Arabic native words.",
+        "Our approach is based on normalising the different forms of the same foreign word to one form at the index level rather than expanding the foreign word to its possible variants at the query level.",
+        "Retrieval precision will be negatively affected by incorrect classification of native and foreign words.",
+        "Consequently, we consider that keeping the proportion of false positives – correct Arabic words identified as foreign (precision) – low to be more important than correctly identifying a higher number of foreign words (recall).",
+        "Some of the Arabic words categorised as foreign are in fact misspelled; we believe that these have limited effect on retrieval precision, and there is limited value in identifying such words in a query unless the retrieval system incorporates a correction process."
+      ]
+    },
+    {
+      "heading": "4 Enhanced rules",
+      "text": [
+        "To reduce the false identification rate of foreign words, we analysed the lists of foreign words, correct Arabic words identified as foreign, and Arabic misspelled words identified as foreign.",
+        "We noticed that some Arabic characters rarely exist in transliterated foreign words, and used these to separate Arabic words – correctly or incorrectly spelled",
+        "of 3 046 foreign words – from true foreign words.",
+        "Table 4 shows the count of each character in the sample of 3 046 foreign words; foreign words tend to have vowels inserted between consonants to maintain the CVCV paradigm.",
+        "We also noticed that most of transliterated foreign words do not start with the definite article J I, or end with the Taa Marbuta i.",
+        "Foreign words also rarely end with two Arabic suffixes.",
+        "We also noticed that lexicon based approaches fail to recognise some correct Arabic words for the following reasons: • Words with the letter I (Alef) with or without the diacritics Hamza (I, IL), or the diacritic Madda (I) are not recognised as correct in many cases.",
+        "Many words are also categorised incorrectly if the Hamza is wrongly placed above or below the initial Alef or the Madda is absent.",
+        "In modern Arabic text, the Alef often appears without the Hamza diacritic and",
+        "the Madda is sometimes dropped.",
+        "• Correct Arabic words are not recognised with particular suffixes.",
+        "For example, words that have the object suffix, such as the suffix �_ in�����������(/yo�alImunakaha/ = they teach it to you).",
+        "• Some Arabic words are compound words,",
+        "written attached to each other most of the time.",
+        "For example, compound nouns such as �.",
+        ")�x�1����(/�bdul�adI�/), although composed of two words that are individually identified as being correct, are flagged as incorrect when combined.",
+        "• Some common typographical shortcuts result",
+        "in words being written without white space between them.",
+        "Where a character that always terminates a word (for example o ) is found in the apparent middle of a word, it is clear that this problem has occurred.",
+        "From these observations, we constructed the following rules.",
+        "Whenever one of the following conditions is met, a word is not classified as foreign: 1. the word contains any of the Arabic characters: L1,1L,Æ1,��,��,S,��; 2. the word starts with the definite article ( J 1); 3. the word has more than one Arabic suffix (pronouns attached at the end of the word); 4. the word has no vowels between the second and penultimate character (inclusive); or 5. the word contains one of the strings: o, S, �, 11, J4, J1� , J1��,J1.",
+        "), J1�.",
+        "), J1�, J11, and when split into two parts at the first character of any sequence, the first part is three characters or longer, and the second part is four characters or longer.",
+        "The right-hand side of Table 3 shows the improvements achieved using these rules.",
+        "It can be seen that they have a large positive impact.",
+        "Overall, OLA performs the best, with precision at 69% and recall at 71%.",
+        "Figure 1 shows the precision obtained before and after applying these rules.",
+        "Improvement is consistent across all approaches, with an increase in precision between 10% and 25%."
+      ]
+    },
+    {
+      "heading": "5 Verification Experiments",
+      "text": [
+        "To verify our results, we used another data set of similar size to the first to verify our approach.",
+        "We collected a list of 23 466 unique words from the Dar-al-Hayat newspaper4.",
+        "Words, and classified and marked words in the same way as for the first data set (described in Section 3.1).",
+        "We determined this new set to comprise 22 800 Arabic words (AW), 536 Foreign words (FW), and 130 Misspelled words (MW).",
+        "Table 5 shows the initial results and improvements using the enhanced rules obtained by each approach using this data set.",
+        "The results on this unseen data are relatively consistent with the previous experiment, but precision in this sample is expectedly lower."
+      ]
+    },
+    {
+      "heading": "6 Discussion",
+      "text": [
+        "We have seen that foreign words are not easily recognised in Arabic text, and a large number of Arabic words are affected when we try to exclude foreign words.",
+        "We found the lexicon approach to be the best in identifying foreign words.",
+        "However, current lexicons are relatively small, and the variety of Arabic inflection makes it very difficult to include all correct word forms.",
+        "Furthermore, current lexicons include many foreign words; for example when using OLA approach, 1017 foreign words out of 1218 are OOV, indicating that about 200 foreign words are present in that lexicon.",
+        "The pattern approach is more efficient but the lack of diacritics in general written Arabic makes it very difficult to precisely match a pattern with a",
+        "word, resulting in many foreign words being incorrectly identified as Arabic.",
+        "Passing the list of all 3 046 manually judged foreign words to the pattern approach, some 2 017 words of this list were correctly judged as foreign, and about one third (1029) were incorrectly judged to be Arabic.",
+        "The n-gram method produced reasonable precision compared to the lexicon-based methods.",
+        "In contrast, TRG had the worst results.",
+        "This could be due to the limited size of the training corpus.",
+        "However, we expect that improvements to this approach will remain limited due to the fact that many Arabic and foreign words share the same trigrams.",
+        "It is clear that all the approaches are improved dramatically when applying the enhancement rules.",
+        "The improvements of the NGR wasn’t as equal as other approaches.",
+        "This is because some of the rules are implicitly applied within the n-gram approach.",
+        "The lack of diacritics also makes it very difficult to distinguish between certain foreign and Arabic words.",
+        "For example, without diacritics, the word .rcould be (/klIn ton/ = Clinton), or l� � (/kalinatin/ = as two date trees).",
+        "The pronunciation is different in the two cases, but only context or diacritics can make it clear which word is being used."
+      ]
+    },
+    {
+      "heading": "7 Conclusion",
+      "text": [
+        "Identifying foreign words in Arabic text is an important problem for cross-lingual information retrieval, since commonly-used techniques such as stemming should not be applied indiscriminately to all words in a collection.",
+        "We have presented three approaches for identifying foreign words in Arabic text: lexicons, patterns, and n-grams.",
+        "We have presented results that show that the lexicon approach outperforms the other approaches, and have described improvements to minimise the false identification of foreign words.",
+        "These rules result in improved precision, but have a small negative impact on recall.",
+        "Overall, the results are relatively low for practical applications, and more work is needed to deal with this problem.",
+        "As foreign words are characterised by having different versions, an algorithm that collapse those versions to one form could be useful in identifying foreign words.",
+        "We are presently exploring algorithms to normalise foreign words in Arabic text.",
+        "This will allow us to identify normalised forms for foreign words and use a single consistent version for indexing and retrieval."
+      ]
+    },
+    {
+      "heading": "8 Acknowledgements",
+      "text": [
+        "We thank Microsoft Corporation for providing us with a copy of Microsoft Office Proofing Tools 2003."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+{
+  "info": {
+    "authors": [
+      "Robert Wing Pong Luk"
+    ],
+    "book": "International Conference on Computational Linguistics",
+    "id": "acl-C96-2200",
+    "title": "Chinese String Searching Using the KMP Algorithm",
+    "url": "https://aclweb.org/anthology/C96-2200",
+    "year": 1996
+  },
+  "references": [],
+  "sections": [
+    {
+      "heading": "CHINESE STRING SEARCHING USING THE KMP ALGORITHM",
+      "text": []
+    },
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper is about the modification of KMP (Knuth, Morris and Pratt) algorithm for string searching of Chinese text.",
+        "The difficulty is searching through a text string of single and multi-byte characters.",
+        "We showed that proper decoding of the input as sequences of characters instead of bytes is necessary.",
+        "The standard KMP algorithm can easily be modified for Chinese string searching but at the worst-case time-complexity of 0(3n) in terms of the number of comparisons.",
+        "The finite-automaton implementation can achieve worst-case time complexity of 0(2n) but constructing the transition table depends on the size of the alphabet, E, which is large for Chinese (for Big-5, E > 13,000).",
+        "A mapping technique reduces the size the alphabet to at most IPA where P is the pattern string."
+      ]
+    },
+    {
+      "heading": "1. Introduction",
+      "text": [
+        "The alphabet size of Chinese (to be more precise Hanyu) is relatively large (e.g. about 55,000 in Hanyu Da Cidian) compared with Indo-European languages.",
+        "Various internal codes (e.g. GB, Big5, and Unicode) have been designed to represent a selected subset (5000-16,000) which requires two or more bytes to represent.",
+        "For computability with existing single-byte text, the most significant bit of the first byte is used to distinguish between multi-byte characters and single-byte characters.",
+        "For instance, Web browsers (e.g. Netscape) cannot interpret the annotations represented by their equivalent 2-byte characters.",
+        "Thus, Chinese string searching algorithms have to deal with a mixture of single and multi-byte characters.",
+        "This paper will focus in 2-byte characters because their internal codes are widely used.",
+        "Two modified versions of the KMP algorithms are presented: the classical one and the finite-automaton implemenation.",
+        "Finally, we discuss the practical situations in Chinese string searching."
+      ]
+    },
+    {
+      "heading": "2. The Problem",
+      "text": [
+        "Directly using existing fast string searching algorithms (Knuth et al.,1977; Boyer and Moore,1977) for on-line Chinese text can lead to errors in identification as in using the find option of Netscape in Chinese window.",
+        "For example, the pattern string, P=\"\" (i.e. AA,AA in hexidecimal) can successfully match with the second and third bytes of the text string, T---ral3 (i.e. A4,AA,AA,43 in hexidecimal) which is incorrect.",
+        "The error occurs where the second byte of the character in 7' is interpreted as the first-byte of the pattern character.",
+        "Thus, it is necessary to decode the input data as characters.",
+        "Two well-known string searching algorithms were discovered by Knuth, Morris and Pratt (1977) (KMP), and Boyer and Moore (1977) (BM).",
+        "The KMP algorithm has better worst-case time complexity where as the BM algorithm has better average-case time complexity.",
+        "Recently, there has been some interest in improving (Hume arid Sunday, 1991; Croehemore et al., 1994) the time complexity or proving a smaller bound (Cole, 1994) of the time-complexity of the BM algorithm, as well as in the efficient construction (Baeza-Yates et al., 1994) of the BM algorithm.",
+        "These algorithms derived from BM assumes that knowing the positional index, i, of the text string, 7, can access and interpret the data, T[il, as a character.",
+        "However, with a text string of single and multi-byte characters, i can point to the first-byte or the second-byte of a 2-byte character which the computer cannot determine in the middle of the text string.",
+        "It has to scan left or right until a one-byte character, the beginning of the text string or the end of the text string is encountered.",
+        "For example, the BM algorithm moves to position i = 4 (= i) for matching in Table 1.",
+        "At this position, T[4] (= A4) does not match with P[4].",
+        "Since the computer cannot determine whether T[4] is the first or second byte of the 2-byte character, it cannot use the delta tables to determine the next matching states.",
+        "Even worst, for some internal code (e.g. Big-5), it is not possible to directly convert the byte sequence into the corresponding character sequence in the backward direction.",
+        "Thus, as a first step, we focus on modifying the KMP for Chinese string searching.",
+        "'fable I: Matching between the text string, To1clallr_y3 , and the pattern string, P=<oo>.",
+        "Here, 711 and PG' shows the hexidecimal value of each byte in T and P."
+      ]
+    },
+    {
+      "heading": "3. Knuth-Morris-Pratt Algorithm.",
+      "text": []
+    },
+    {
+      "heading": "3.1 Searching",
+      "text": [
+        "Figure 1 is the listing of the modified version of KMP algorithm (Knuth et al., 1977) for searching Chinese string.",
+        "Here, i is the positional index of the text string but the position is specified in terms of bytes.",
+        "By comparison, j is the positional index of the pattern string, P, and the position is in terms of characters.",
+        "Characters in P are stored in two arrays P111 and P211.",
+        "Here, P111 stores the first-byte and P211 stores the second byte of two-byte characters in P. If there are single-byte characters in P, they are stored in PI 111 and the data in corresponding positions of P2[] are undefined.",
+        "Here, we assumed that a NULL character is patched at those positions.",
+        "For example, if P-----<af<ciai>, then the values in P1 fl and P211 are shown in Table 2.",
+        "whether the current input is a single or 2-byte character, by testing whether the converted integer value of T[i] is positive or negative.",
+        "If the converted value is negative, then Tirg is the first-byte of a 2-byte character.",
+        "Here, and TI are the length of the text string, 7', in terms of characters and bytes, respectively.",
+        "The program in Figure 1 determines (in line 6) whether the current input character is a single or two-byte character.",
+        "If it is a single-byte character, the standard KMP algorithm operates for that single-byte character, TN, in line 7 to 10.",
+        "Otherwise, i is pointing at a two-byte character.",
+        "This implies that: (a) matching 2-byte characters is carried out where the data in Tfi+ 11 is the second byte of the character (line 11); and (b) I is incremented by 2 instead of 1, because it is counting in terms of bytes (line 12).",
+        "Since j is counting in terms of characters, the increment of j One 15) is one whether the characters in P are single or two bytes.",
+        "When the pattern string is found in T, the position of the first matched character in T is returned.",
+        "Since the position is in terms of bytes, it is the last matched position, i, minus the length of P in terms of bytes (i.e.",
+        "a conceptual array which c in hold both single and 2-byte characters.",
+        "This array is implemented as two arrays: P1111 and P2[] which stores the first and second byte of the 2-byte characters, respectively.",
+        "The function, fo, maps two byte characters into single-byte characters, simplifying the generation of values in the array, next\"], and the failure links in flil."
+      ]
+    },
+    {
+      "heading": "3.2 Generating nextII",
+      "text": [
+        "The array, next[], contains the failure link values which can be generated by existing algorithms (Standish, 1980) for single-byte characters.",
+        "The basic idea is to map the 2-byte characters ill I to single-byte characters and then use existing algorithms.",
+        "The mapping is implemented as an array, f11.",
+        "Each character in P is scanned from left-ro-right.",
+        "Whenever an unseen character is found, it is assigned a character value that is the negative of the amount of different 2-byte characters seen so far.",
+        "For example, the third unseen 2-byte character is mapped to a one-byte character, the value of which is (char) -3.",
+        "The mapping scheme is practical.",
+        "First, the number of different characters that can be represened with a negative value is 127 and usually IPI < 128 characters.",
+        "Second, the time-complexity of mapping, 0(IPI I), can be done in linear time with respect to IPI and in constant time with respect to irk This is important because it is added to the total time-complexity of searching.",
+        "To achieve 0(IIP P, the function, found, uses an array, fil, of size IEI (where E is the alphabet) to store the equivalent single-byte characters.",
+        "A perfect hash function (section 4), hO, converts the 2 byte characters into an index of fa After searching, it is necessary to clear if/ This can be done in 0(I PI) by assigning NULL characters to the locations in fl1 corresponding to 2-byte characters in P. 4.",
+        "Finite automaton implementation.",
+        "Since 'MI is large, reducing its multiplicative factor in the time complexity would be attractive.",
+        "In Knuth et al., (1977), this was done using a finite automaton which searches in 0(I 71 P instead of 0(211TI).",
+        "Standish (1980) provided an accessible algorithm to build the automaton, M. First, failure link values are computed (similar to computing values in next[]) as in Algorithm 7.4 (Standish, 1980) and then the state transitions are added as in Algorithm 7.5 (Standish 1980).",
+        "A direct approach is to compute the conceptual automaton, Mc, which regards the 2-byte characters as",
+        "one-byte arid then convert the automaton for multi-byte processing.",
+        "Since the space-time complexity in constructing the automaton depends on the size of the alphabet (i.e. 0(E1 x Qe) where Qc is the set of states of Me) which is large, this approach is not attractive.",
+        "For instance, if IQcJ = 10 and 12.:1 10,000, then about 100,000 units of storage (integers) are needed!",
+        "Further processing is needed to convert the automaton for 2 byte processing!"
+      ]
+    },
+    {
+      "heading": "4.1 Automaton Implementation.",
+      "text": [
+        "Another approach uses the different characters in P as the reduced alphabet, Er, which is much smaller than 1E1.",
+        "We use a mapping function as discussed in section 3.2 to build a mapping of 2-byte characters to one-byte.",
+        "These one-byte characters and the standard one-byte characters (e.g. ASCII) form Er.",
+        "The NULL character, X, represents all the characters in E but not in Er - (X) ( = E * (Er - (X))').",
+        "Given that the multi-byte string, P, is transformed into a single-byte string, P', existing algorithms can be used to construct the automaton.",
+        "For each pattern string, P, string searching will execute the following steps:",
+        "(a) convert 2-byte characters to one-byte in P to form PI (i.e. form Er) using mapping as in section 3.2; (b) compute the failure link values of P' using Algorithm 7.4 in (Standish, 1980); (c) compute the success transitions and store them in 60 as in (Standish, 1980); (d) compute the failure transitions using the failure link values using Algorithm 7.5 in (Standish, 1980) and store the transitions in 60; (e) use the automaton, M, with state transition function 60, to search for 1\" in 7'; (1) output the matched position, if any; (g) clear that mapping function that forms Er using P."
+      ]
+    },
+    {
+      "heading": "4.2 Constructing the automaton.",
+      "text": [
+        "For step (c) and (d), the operation of Algorithm 7,5 was illustrated with an example of a binary alphabet in (Standish, 1980).",
+        "Here, we illustrate the use of a larger alphabet, Er, and X e Er.",
+        "Suppose the pattern string, 1', is as shown in Table 2 which also contains the corresponding P' and failure link values, fl[].",
+        "The success transitions are added to 80 as 6G-1, P7114 j (e.g. 6(0,-(:)<-- 1 and 6(1,a)-- 2).",
+        "The failure transitions are computed from 0 to 1/1 becauselIN < j.",
+        "For state 0, 6(0, a)-- 0 if a P1[1] and a c Er (i.e. 6(0,a) < 0, 6(0, 1))< 0, 6(0,>)< 0, 6(0, X) 0 but 8(0, a) < 1).",
+        "For other states, 60,c0<--- 8(fl[j], a) if a P'[j] and a E Er (e.g. 6(1,a)<-- 807[4 a) =6(0, a) 0 and 6(1,1< 6(11[1],<),-6(0,<)/).",
+        "Effectively, the states in 8(1181,.)",
+        "are copied across to the corresponding entries in 6(j,.)",
+        "except for the successful transition from j.",
+        "Figure 2 illustrates how a-ralV of entries in 8(j18],.)",
+        "arc copied across to compute O(j,.).",
+        "bAKey: 000000copy state transitions from one location to the other",
+        "2) is used to determine which of the previous row of the state transition table, 60, is used thr updating the values of the current row in 60.",
+        "The underlined entries arc the success transistions.",
+        "Figure 3 shows the program that computes the state transitions using the failure links.",
+        "The program computes for state 0, the last states and the other states separately.",
+        "The last state is distinguished because it has no success transitions where as the other has one for each state.",
+        "The program for generating failure links is not given because:",
+        "(1) it is similar to computing next[]; (2) a version is available (Algorithm 7.4 in Standish,",
+        "links are known.",
+        "Note that the algorithm assumed that Er EluY2 where El and E2 arc the one-byte (e.g. ASCII) character alphabet and the transformed i-byte character alphabet representing the different two-byte characters in P, respectively.",
+        "Futhermore, since 1E21 < 128 and E2 c A multiplicative factor of the space-time complexity can he reduced if mapping is also carried out for single-byte as well as 2-byte characters in P. The correctness of the above program can be shown by mapping all the characters not in Er to E because they have idenitical state transition values (i.e. dividing the alphabet into equivalent classes of identical transition values)."
+      ]
+    },
+    {
+      "heading": "4.3 Searching.",
+      "text": [
+        "Searching is implemented as state transitions of M (Figure 4).",
+        "Initially, the state of the automaton, M, is set to 0.",
+        "The next state is determined by the current character read from the text string, T, at position i and the current state.",
+        "If the current state is equal to IP% then P is in Tat position i - I IPA1."
+      ]
+    },
+    {
+      "heading": "5. Practical considerations.",
+      "text": [
+        "The KMP algorithm (Knuth et al., 1977) was considered to perform better when the pattern string has recurrence patterns.",
+        "Otherwise, it is about the same as the brute-force implementation with quadratic time-complexity.",
+        "For Chinese string searching, it is not uncommon to search for reduplicating words (e.g. 13..s13 and 60/461/46) (Chen et al., 1992) which has recurrence patterns.",
+        "Such repetition to form words is used in making emphasis as well as an essential part of yes-no questions.",
+        "Otherwise, recurrence patterns in P occur only incidentally (e.g. naajuard'ACY4C1 translated as the Department of Chinese, Chinese University of Hong Kong).",
+        "Apart from recurrence, if there are a lot of backing up operations, the KMP algorithm would perform better than the brute-force implementation.",
+        "Such cases occur where a proper prefix of the pattern string has high occurrence frequency in the text string (e.g. function words).",
+        "In Chinese string searching, this will happen for technical terms that have a high frequency prefix constituent.",
+        "For instance, Chinese law articles have many terms beginning with the word On'e (i.e. China).",
+        "A search through the Chinese law text for P----00'al will require many backing up (or committing a false start) in the brute-force implementation when words or phrases like ari'dak13, otre\"ang, naViDAv and ncrpepak are encountered.",
+        "Sometimes, patterns which are words can match with text where the matched string of the text is not functioning as a word.",
+        "For example, D.j.'",
+        "(which means conference) can be regarded as a word but in the phrase, 2^9/.11f}n@Ti .saaAla:, the first character (underlined) of the matched string (in italics) is part of a name and the second character (in italics) function as a verb.",
+        "Thus, Chinese text is often pre-segmented and string searching has to patch delimiters to the beginning and end of the pattern, P. However, the searching accuracy depends on the segmentation algorithm which is usually implemented as a dictionary lookup procedure.",
+        "If a dictionary has poor coverage, the text tends to be over-segmented (Luk, 1994) and the recall performance of searching will drop drastically.",
+        "Such cases occur if a general dictionary is used in segmenting technical articles (e.g. in law, medicine, computing, etc)."
+      ]
+    },
+    {
+      "heading": "REFERENCES",
+      "text": []
+    }
+  ]
+}

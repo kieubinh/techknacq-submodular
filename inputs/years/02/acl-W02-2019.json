@@ -1,0 +1,116 @@
+{
+  "info": {
+    "authors": [
+      "Robert Malouf"
+    ],
+    "book": "Conference on Computational Natural Language Learning CoNLL",
+    "id": "acl-W02-2019",
+    "title": "Markov Models for Language-Independent Named Entity Recognition",
+    "url": "https://aclweb.org/anthology/W02-2019",
+    "year": 2002
+  },
+  "references": [
+    "acl-J88-1003",
+    "acl-J96-1002",
+    "acl-W02-2018"
+  ],
+  "sections": [
+    {
+      "text": [
+        "In the first model (baseline), the tag probabilities depend only on the current word: This report describes the application of Markov models to the problem of language-independent named entity recognition for the CoNLL-2002 shared task (Tjong Kim Sang, 2002).",
+        "We approach the problem of identifying named entities as a kind of probabilistic tagging: given a sequence of words w1 ... wn, we want to find the corresponding sequence of tags t1... tn, drawn from a vocabulary of possible tags T, which satisfies:",
+        "The possible tags are B-PER and I-PER, which mark the beginning and continuation of personal names; BORG and I-ORG, which mark names of organizations; BLOC and I-LOC, which mark names of locations; B-MISC and I-MISC, which mark miscellaneous names; and 0, which marks non-name tokens.",
+        "We will assume that a sequence of tags can be modeled by Markov process, and that the probability of assigning a tag to a word depends only on a fixed context window (say, the previous word and tag).",
+        "Thus, the sequence probability in (1) can be restated as the product of tag probabilities:",
+        "For each of the models described in the next section, the model parameters were estimated based on the provided training data, with no preprocessing or filtering.",
+        "Then, the most likely tag sequence (based on the model) is selected for each sentence in the test data, and the results are evaluated using the conlleval script.",
+        "The effect of this is that each word in the test data will be assigned the tag which occurred most frequently with that word in the training data.",
+        "The next model considered (H M M) is a simple Hidden Markov Model (DeRose, 1988; Charniak, 1993), in which the tag probabilities depend on the current word and the previous tag.",
+        "Suppose we assume that the word/tag probabilities and the tag sequence probabilities are independent, or:",
+        "Since the probability of the word sequence P(w1... wn) is the same for all candidate tag sequences, the optimal sequence of tags satisfies:",
+        "The probabilities P(wilti) and P(tilti-1) can easily be estimated from training data.",
+        "Using (3) to calculate the probability of a candidate tag sequence, the optimal sequence of tags can be found efficiently using dynamic programming (Viterbi, 1967).",
+        "While this kind of HMM is simple and easy to construct and apply, it has its limitations.",
+        "For one, (3) depends on the independence assumption in (2).",
+        "In the next model (ME), we avoid this by using a conditional maximum entropy model to estimate tag probabilities.",
+        "Maximum entropy models (Jaynes, 1957; Berger et al., 1996; Della Pietra et al., 1997) are a class of exponential models which require no unwarranted independence assumptions and have proven to be very successful in general for integrating information from disparate and possibly overlapping sources.",
+        "In this model, the optimal tag sequence satisfies:",
+        "The indicator functions fj ‘fire’ for particular combinations of contexts and tags.",
+        "For instance, one such function might indicate the occurrence of the word Javier with the tag B-PER: _ 1 if wi = Javier & ti = B-PER f(ti-1'wi'ti) 0 otherwise and another might indicate the tag sequence 0 B-PER: _ 1 if ti_1 = 0 & ti = B-PER f(ti-1iwi'ti) 0 otherwise Each indicator fj function also has an associated weight λ j, which is chosen so that the probabilities (4) minimize the relative entropy between the empirical distribution P˜ (derived from the training data) and the model probabilities P, or, equivalently, which maximize the likelihood of the training data.",
+        "Unlike the parameters of an HMM, there is no closed form expression for estimating the parameters of a maximum entropy model from the training data.",
+        "So, we proceed iteratively, gradually refining the parameter estimates until the desired level of precision is reached.",
+        "For these experiments, the parameters were fit to the training data using a limited memory variable metric algorithm (Malouf, in press).",
+        "The basic structure of the model is very similar to that of Borthwick (1999).",
+        "However, in the models described here, no feature selection is performed.",
+        "Also note that this formulation of maximum entropy Markov models differs slightly from that of McCal-lum et al.",
+        "(2000).",
+        "Here we use a single maximum entropy model, while McCallum, et al.",
+        "use a separate model for each source state.",
+        "Using separate models increases the sparseness of the training data and, at least for this task, slightly reduces the accuracy of the final tagger.",
+        "Using indicator functions of the type in (5) and (6), the model encodes exactly the same information as the HMM in (3), but with much weaker independence assumptions.",
+        "This means we can add information to the model from partially redundant and overlapping sources.",
+        "The model M E+ adds two additional types of information that were used by Borthwick (1999).",
+        "It includes capitalization features, which indicate whether the current word is capitalized, all upper case, all lower case, mixed case, or non-alphanumeric, and whether or not the word is the first word in the sentence.",
+        "And it also adds additional context sensitivity, so that the tag probabilities depend on the previous word, as well as the previous tag and the current word.",
+        "The next model, M E+m, adds one additional feature to M E+ that takes advantage of the structure of the training and test data.",
+        "Often in newspaper articles, the first reference to an individual is by full name and title, while later references use only the person’s surname.",
+        "While an unfamiliar full name can often be identified as a name by the surrounding context, the surname appearing alone is more difficult to catch.",
+        "For example, one article begins: El presidente electo de la Repblica Do-minicana, Hiplito Meja, del Partido Revolucionario Dominicano (PRD) socialdemcrata, manifest que mantendr su apoyo a los XIV Juegos Panamericanos del 2003 en Santo Domingo.",
+        "Meja, quien gan los comicios pres-idenciales en las votaciones del pasado 16 de mayo, asegur que nil ni su partido cambiarn la posicin asumida ante el pueblo dominicano de respaldar la organizacin de los Juegos.",
+        "In the first sentence, the phrase Hiplito Meja can likely be identified as a personal name even if the surname is an unknown word, since the phrase consists of two capitalized words (the first a common first name) set off by commas.",
+        "In the second sentence, however, Meja is much more difficult to identify as a name: a sentence-initial capitalized unknown word is most likely to be tagged as 0.",
+        "To allow the use in the first sentence to provide information about the second, M E+m uses a feature which is true just in case the current word occurred as part of a personal name previously in the text being tagged.",
+        "With this feature, the model can take advantage of easy instances of names to help with more difficult instances later in the text.",
+        "All of the models described to this point are completely language independent and use no information not contained in the training data.",
+        "The final model, ME+mf, includes one additional feature which indicates whether or not the current word appears in a list of 13,821 first names collected from a number of multilingual sources on the Internet.",
+        "While the names are drawn from a wide range of languages and cultures, the emphasis is on European names, and in particular English and Spanish."
+      ]
+    },
+    {
+      "heading": "3 Results",
+      "text": [
+        "Each of the models described in the previous section were trained using esp.",
+        "train and evaluated on asp .",
+        "t est a.",
+        "The results are summarized in Table 1.",
+        "As would be expected, H M M performs substantially better than baseline for every category but locations, though earlier cross-validation experiments suggest that this exception is an accident of the particular split between training and test data.",
+        "Perhaps more surprisingly, M E outperforms H M M by an even wider margin.",
+        "In these two models, the tag probabilities are conditioned on exactly the same properties of the contexts.",
+        "The only difference between the models is that the probabilities in ME are estimated in a way which avoids the independence assumption in (2).",
+        "The poor performance of H M M suggests that this assumption is highly problematic.",
+        "Adding additional features, in M E+ and M E+m, offer further gains over the base model.",
+        "However, the addition of a database of first names, in M E+mf, only slightly improves the performance on personal names and actually reduces the overall performance.",
+        "This is likely due to the fact that the list of names contains many words which can also be used as locations and organizations.",
+        "Perhaps the use of additional databases of geographic and non-personal names would help counteract this effect.",
+        "For the final results, the model which preformed the best on the evaluation data, M E+m, was trained on esp.",
+        "train and evaluated with esp.",
+        "testa and esp.testb, and trained on ned.",
+        "train and evaluated with ned.testa and ned.testb.",
+        "Before training, the part of speech tags were removed from",
+        "ned.",
+        "train, to allow a more direct cross-language comparison of the performance of M E+m.",
+        "The results of the final evaluation are given in Table 2.",
+        "The performance of the model is roughly the same for both test samples of each language, though the performance differs somewhat between the two languages.",
+        "In particular, the performance on MISC entities is quite a bit better for Dutch than it is for Spanish, and the performance on PER entities is quite a bit better for Spanish than it is for Dutch.",
+        "These differences are somewhat surprising, as nothing in the model is language specific.",
+        "Perhaps the discrepancy (especially for the MISC class) reflects differences in the way the training data was annotated; MISC is a highly heterogenous class, and the criteria for distinguishing between MISC and 0 entities is sometimes unclear."
+      ]
+    },
+    {
+      "heading": "4 Conclusion",
+      "text": [
+        "The models described here are very simple and efficient, depend on no preprocessing or (with the exception of M E+mf) external databases, and yet provide a dramatic improvement over a baseline model.",
+        "However, the performance is still quite a bit lower than results for industrial-strength language-specific named entity recognition systems.",
+        "There are a number of small improvements which could be made to these models, such as feature selection (to reduce overtraining) and the use of whole sentence sequence models, as in Lafferty et al.",
+        "(2001) (to avoid the ‘label-bias problem’).",
+        "These refinements can be expected to offer a modest boost to the performance of the best model."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "The research of Dr. Malouf has been made possible by a fellowship of the Royal Netherlands Academy of Arts and Sciences and by the NWO PIONIER project Algorithms for Linguistic Processing."
+      ]
+    }
+  ]
+}

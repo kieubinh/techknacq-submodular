@@ -1,0 +1,312 @@
+{
+  "info": {
+    "authors": [
+      "Michael John Collins"
+    ],
+    "book": "Conference on Empirical Methods in Natural Language Processing",
+    "id": "acl-W02-1001",
+    "title": "Discriminative Training Methods for Hidden Markov Models: Theory and Experiments With Perceptron Algorithms",
+    "url": "https://aclweb.org/anthology/W02-1001",
+    "year": 2002
+  },
+  "references": [
+    "acl-J93-2004",
+    "acl-J95-4004",
+    "acl-P02-1034",
+    "acl-P02-1062",
+    "acl-W95-0107",
+    "acl-W96-0213"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We describe new algorithms for training tagging models, as an alternative to maximum-entropy models or conditional random fields (CRFs).",
+        "The algorithms rely on Viterbi decoding of training examples, combined with simple additive updates.",
+        "We describe theory justifying the algorithms through a modification of the proof of convergence of the perceptron algorithm for classification problems.",
+        "We give experimental results on part-of-speech tagging and base noun phrase chunking, in both cases showing improvements over results for a maximum-entropy tagger."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Maximum-entropy (ME) models are justifiably a very popular choice for tagging problems in Natural Language Processing: for example see (Ratnaparkhi 96) for their use on part-of-speech tagging, and (McCallum et al.",
+        "2000) for their use on a FAQ segmentation task.",
+        "ME models have the advantage of being quite flexible in the features that can be incorporated in the model.",
+        "However, recent theoretical and experimental results in (Lafferty et al.",
+        "2001) have highlighted problems with the parameter estimation method for ME models.",
+        "In response to these problems, they describe alternative parameter estimation methods based on Conditional Markov Random Fields (CRFs).",
+        "(Lafferty et al.",
+        "2001) give experimental results suggesting that CRFs can perform significantly better than ME models.",
+        "In this paper we describe parameter estimation algorithms which are natural alternatives to CRFs.",
+        "The algorithms are based on the percep-tron algorithm (Rosenblatt 58), and the voted or averaged versions of the perceptron described in (Freund & Schapire 99).",
+        "These algorithms have been shown by (Freund & Schapire 99) to be competitive with modern learning algorithms such as support vector machines; however, they have previously been applied mainly to classification tasks, and it is not entirely clear how the algorithms can be carried across to NLP tasks such as tagging or parsing.",
+        "This paper describes variants of the perceptron algorithm for tagging problems.",
+        "The algorithms rely on Viterbi decoding of training examples, combined with simple additive updates.",
+        "We describe theory justifying the algorithm through a modification of the proof of convergence of the perceptron algorithm for classification problems.",
+        "We give experimental results on part-of-speech tagging and base noun phrase chunking, in both cases showing improvements over results for a maximum-entropy tagger (a 11.9% relative reduction in error for POS tagging, a 5.1% relative reduction in error for NP chunking).",
+        "Although we concentrate on tagging problems in this paper, the theoretical framework and algorithm described in section 3 of this paper should be applicable to a wide variety of models where Viterbi-style algorithms can be used for decoding: examples are Probabilistic Context-Free Grammars, or ME models for parsing.",
+        "See (Collins and Duffy 2001; Collins and Duffy 2002; Collins 2002) for other applications of the voted perceptron to NLP problems.l"
+      ]
+    },
+    {
+      "heading": "2 Parameter Estimation",
+      "text": []
+    },
+    {
+      "heading": "2.1 HMM Taggers",
+      "text": [
+        "In this section, as a motivating example, we describe a special case of the algorithm in this paper: the algorithm applied to a trigram tagger.",
+        "In a trigram HMM tagger, each trigram 'The theorems in section 3, and the proofs in section 5, apply directly to the work in these other papers.",
+        "of tags and each tag/word pair have associated parameters.",
+        "We write the parameter associated with a trigram (x, y, z) as ax,y,z, and the parameter associated with a tag/word pair (t, w) as at,w.",
+        "A common approach is to take the parameters to be estimates of conditional probabilities: ax,y,z = log P(z I x, y), at,w = log P(w I t).",
+        "For convenience we will use w[l:n] as shorthand for a sequence of words [wl, w2 ... IV,], and t[l:n] as shorthand for a taq sequence [t I, t2 ... tn].",
+        "In a trigram tagger the score for a tagged sequence t[l:n] paired with a word sequence w[l:n] is ui 1 atz-2,ti-1>ti + ui 1 atz>wi When the parameters are conditional probabilities as above this \"score\" is an estimate of the log of the joint probability P(w]l:n] � t[l:n]) • The Viterbi algorithm can be used to find the highest scoring tagged sequence under this score.",
+        "As an alternative to maximum-likelihood parameter estimates, this paper will propose the following estimation algorithm.",
+        "Say the training set consists of n tagged sentences, the i'th sentence being of length n2.",
+        "We will write these examples as (w[l:nz], t[l:nz]) for i = I ... n. Then the training algorithm is as follows:",
+        "• Choose a parameter T defining the number of iterations over the training set.3 • Initially set all parameters ax,y,z and to be zero.",
+        "• For t = I ... T, i = I ... n: Use the Viterbi algorithm to find the best tagged sequence for sentence w[l:nz] under the current parameter settings: we call this tagged sequence z[l:nz].",
+        "For every tag trigram (x, y, z) seen cl times in",
+        "As an example, say the i'th tagged sentence (w[l:nz], t[l:nz]) in training data is",
+        "Then the parameter update will add I to the parameters aD,N,v, aN,v,D, av,D,N, av,saw and subtract I from the parameters aD,N,N, aN,N,D, aN,D,N, aN,saw • Intuitively this has the effect of increasing the parameter values for features which were \"missing\" from the proposed sequence z]l:nz], and downweighting parameter values for \"incorrect\" features in the sequence z]l:nz].",
+        "Note that if z[l:nz] = t[l:nz] i.e., the proposed tag sequence is correct no changes are made to the parameter values."
+      ]
+    },
+    {
+      "heading": "2.2 Local and Global Feature Vectors",
+      "text": [
+        "We now describe how to generalize the algorithm to more general representations of tagged sequences.",
+        "In this section we describe the feature-vector representations which are commonly used in maximum-entropy models for tagging, and which are also used in this paper.",
+        "In maximum-entropy taggers (Ratnaparkhi 96; McCallum et al.",
+        "2000), the tagging problem is decomposed into sequence of decisions in tagging the problem in left-to-right fashion.",
+        "At each point there is a \"history\" - the context in which a tagging decision is made - and the task is to predict the tag given the history.",
+        "Formally, a history is a 4-tuple (t_1i t_2, w]l:n], i) where t_1i t_2 are the previous two tags, w[l:n] is an array specifying the n words in the input sentence, and i is the index of the word being tagged.",
+        "We use H to denote the set of all possible histories.",
+        "Maximum-entropy models represent the tagging task through a feature-vector representation of history-tag pairs.",
+        "A feature vector representation 0: 'H x T -� Rd is a function 0 that maps a history-tag pair to a d-dimensional feature vector.",
+        "Each component 0s (h, t) for s = I ... d could be an arbitrary function of (h, t).",
+        "It is common (e.g., see (Ratnaparkhi 96)) for each feature 0s to be an indicator function.",
+        "For example, one such feature might be",
+        "Similar features might be defined for every word/tag pair seen in training data.",
+        "Another at,w feature type might track trigrams of tags, for example Tool (h, t) = 1 if (t_2i t_1, t) = (D, N, T� and 0 otherwise.",
+        "Similar features would be defined for all trigrams of tags seen in training.",
+        "A real advantage of these models comes from the freedom in defining these features: for example, (Ratnaparkhi 96; McCallum et al.",
+        "2000) both describe feature sets which would be difficult to incorporate in a generative model.",
+        "In addition to feature vector representations of history/tag pairs, we will find it convenient to define feature vectors of (w[l:n],t[t:n]) pairs where w[t:n] is a sequence of n words, and t[t:n] is an entire tag sequence.",
+        "We use -J� to denote a function from (w[t:n], t[t:n]) pairs to d-dimensional feature vectors.",
+        "We will often refer to -J� as a \"global\" representation, in contrast to 0 as a \"local\" representation.",
+        "The particular global representations considered in this paper are simple functions of local representations:",
+        "where hi = (4_1, ti_2, w[t:n], i).",
+        "Each global feature '4�S(w[t:n],t[t:n]) is simply the value for the local representation 0s summed over all history/tag pairs in (w[l:n], t[l:n]).",
+        "If the local features are indicator functions, then the global features will typically be \"counts\".",
+        "For example, with 01000 defined as above, -4�1000(w[t:n]�t[t:n]) is the number of times the is seen tagged as DT in the pair of sequences (w[t:n],t[t:n])."
+      ]
+    },
+    {
+      "heading": "2.3 Maximum-Entropy Taggers",
+      "text": [
+        "In maximum-entropy taggers the feature vectors 0 together with a parameter vector a E Rd are used to define a conditional probability distribution over tags given a history as",
+        "where Z(h, a) = EIET CE, a,08(h'l) The log of this probability has the form log p(t I h, a) = Ed=t asos(h t) – probability for a (w[t:n],t[t:n]) pair will be d",
+        "where hi = (4_1, t2_2, w[t:n], i).",
+        "Given parameter values a, and an input sentence w[t:n], the highest probability tagged sequence under the formula in Eq.",
+        "2 can be found efficiently using the Viterbi algorithm.",
+        "The parameter vector a is estimated from a training set of sentence/tagged-sequence pairs.",
+        "Maximum-likelihood parameter values can be estimated using Generalized Iterative Scaling (Ratnaparkhi 96), or gradient descent methods.",
+        "In some cases it may be preferable to apply a bayesian approach which includes a prior over parameter values.",
+        "2.4 A New Estimation Method We now describe an alternative method for estimating parameters of the model.",
+        "Given a sequence of words w[t:n] and a sequence of part of speech tags, t[t:n], we will take the \"score\" of a tagged sequence to be",
+        "where hi is again (4_1, ti_2, w[t:n], i).",
+        "Note that this is almost identical to Eq.",
+        "2, but without the local normalization terms log Z(hi, a).",
+        "Under this method for assigning scores to tagged sequences, the highest scoring sequence of tags for an input sentence can be found using the Viterbi algorithm.",
+        "(We can use an almost identical decoding algorithm to that for maximum-entropy taggers, the difference being that local normalization terms do not need to be calculated.)",
+        "We then propose the training algorithm in figure 1.",
+        "The algorithm takes T passes over the training sample.",
+        "All parameters are initially set to be zero.",
+        "Each sentence in turn is decoded using the current parameter settings.",
+        "If the highest scoring sequence under the current model is not correct, the parameters as are updated in a simple additive fashion.",
+        "Note that if the local features 0s are indicator functions, then the global features -]�s will be counts.",
+        "In this case the update will add cs – ds to each parameter as, where cs is the number of times the s'th feature occurred in the correct tag sequence, and ds is the number of times log Z(h, a), and hence the log Inputs: A training set of tagged sentences, (w[i nz], t[i ,,]) for i = 1 ... n. A parameter T specifying number of iterations over the training set.",
+        "A \"local representation\" 0 which is a function that maps history/tag pairs to d-dimensional feature vectors.",
+        "The global representation (1, is defined through 0 as in Eq.",
+        "1.",
+        "Initialization: Set parameter vector a = 0.",
+        "Algorithm: For t=1 ... T,i=1 ... n • Use the Viterbi algorithm to find the output of the model on the i'th training sentence with the current parameter settings, i.e., z[i:nz] = arg maxu[1:ni] ETn i Ysas(Ds(w[l:nip u[l:nzl) where Tni is the set of all tag sequences of length nz.",
+        "• If z[I:nz] :A t i:nz] then update the parameters",
+        "it occurs in highest scoring sequence under the current model.",
+        "For example, if the features 0s are indicator functions tracking all trigrams and word/tag pairs, then the training algorithm is identical to that given in section 2.1."
+      ]
+    },
+    {
+      "heading": "2.5 Averaging Parameters",
+      "text": [
+        "There is a simple refinement to the algorithm in figure 1, called the \"averaged parameters\" method.",
+        "Define at,\" �to be the value for the s'th parameter after the i'th training example has been processed in pass t over the training data.",
+        "Then the \"averaged parameters\" are defined as",
+        "It is simple to modify the algorithm to store this additional set of parameters.",
+        "Experiments in section 4 show that the averaged parameters perform significantly better than the final parameters as'n.",
+        "The theory in the next section gives justification for the averaging method."
+      ]
+    },
+    {
+      "heading": "3 Theory Justifying the Algorithm",
+      "text": [
+        "In this section we give a general algorithm for problems such as tagging and parsing, and give theorems justifying the algorithm.",
+        "We also show how the tagging algorithm in figure 1 is a special case of this algorithm.",
+        "Convergence theorems for the perceptron applied to classification problems appear in (Freund & Schapire 99) – the results in this section, and the proofs in section 5, show how the classification results can be",
+        "carried over to problems such as tagging.",
+        "The task is to learn a mapping from inputs x E X to outputs y E Y.",
+        "For example, X might be a set of sentences, with Y being a set of possible tag sequences.",
+        "We assume:",
+        "• Training examples (x2, yi) for i = 1 ... n. • A function GEN which enumerates a set of candidates GEN(x) for an input x.",
+        "• A representation -1� mapping each (x, y) E X x y to a feature vector -1�(x, y) E Rd.",
+        "• A parameter vector a E 1[8d.",
+        "The components GEN, -1� and a define a mapping from an input x to an output F(x) through",
+        "where -]�(x, y) • a is the inner product Es a,4%(x, y).",
+        "The learning task is to set the parameter values a using the training examples as evidence.",
+        "The tagging problem in section 2 can be mapped to this setting as follows:",
+        "• The training examples are sentence/taggedsequence pairs: xi = w[l.nz] and yi = t[i.nz] for i=I ... n. • Given a set of possible tags T, we define GEN(w[l:nl) = Tn, i.e., the function GEN maps an input sentence w[l:n] to the set of all tag sequences of length n. • The representation -1� (x, y) 'D lw[l:n] � t[l:n]) is defined through local",
+        "feature vectors 0(h, t) where (h, t) is a history/tag pair.",
+        "(See Eq.",
+        "1.)",
+        "Figure 2 shows an algorithm for setting the weights a.",
+        "It can be verified that the training algorithm for taggers in figure 1 is a special case of this algorithm, if we define (x2, yi), GEN and -J� as just described.",
+        "We will now give a first theorem regarding the convergence of this algorithm.",
+        "This theorem therefore also describes conditions under which the algorithm in figure 1 converges.",
+        "First, we need the following definition: Definition 1 Let GEN(xi) = GEN(xi) – {yi}.",
+        "In other words GEN(xi) is the set of incorrect candidates for an example xi.",
+        "We will say that a training sequence (xi, yi) for i = 1 ... n is separable with margin b > 0 if there exists some vector U with IJUJI = 1 such that",
+        "We can then state the following theorem (see section 5 for a proof):",
+        "This theorem implies that if there is a parameter vector U which makes zero errors on the training set, then after a finite number of iterations the training algorithm will have converged to parameter values with zero training error.",
+        "A crucial point is that the number of mistakes is independent of the number of candidates for each example (i.e. the size of GEN(xi) for each i), depending only on the separation of the training data, where separation is defined above.",
+        "This is important because in many NLP problems GEN(x) can be exponential in the size of the inputs.",
+        "All of the convergence and generalization results in this paper depend on notions of separability rather than the size of GEN. Two questions come to mind.",
+        "First, are there guarantees for the algorithm if the training data is not separable?",
+        "Second, performance on a training sample is all very well, but what does this guarantee about how well the algorithm generalizes to newly drawn test examples?",
+        "(Freund & Schapire 99) discuss how the theory can be extended to deal with both of these questions.",
+        "The next sections describe how these results can be applied to the algorithms in this paper.",
+        "3.1 Theory for inseparable data In this section we give bounds which apply when the data is not separable.",
+        "First, we need the following definition:",
+        "The value DU ,6 is a measure of how close U is to separating the training data with margin b.",
+        "DU ,6 is 0 if the vector U separates the data with at least margin b.",
+        "If U separates almost all of the examples with margin b, but a few examples are incorrectly tagged or have margin less than b, then DU ,6 will take a relatively small value.",
+        "The following theorem then applies (see section 5 for a proof): Theorem 2 For any training sequence (xi, yi), for the first pass over the training set of the perception algorithm in figure 2, Number of mistakes < min – u,a where R is a constant such that di, dz E GEN(xi) I I (D (xi, yi) – (D (xi, z) < R, and the minis taken over b > 0, Hull =I.",
+        "This theorem implies that if the training data is \"close\" to being separable with margin b – i.e., there exists some U such that DU ,6 is relatively small – then the algorithm will again make a small number of mistakes.",
+        "Thus theorem 2 shows that the perceptron algorithm can be robust to some training data examples being difficult or impossible to tag correctly."
+      ]
+    },
+    {
+      "heading": "3.2 Generalization results",
+      "text": [
+        "Theorems 1 and 2 give results bounding the number of errors on training samples, but the question we are really interested in concerns guarantees of how well the method generalizes to new test examples.",
+        "Fortunately, there are several theoretical results suggesting that if the perceptron algorithm makes a relatively small number of mistakes on a training sample then it is likely to generalize well to new examples.",
+        "This section describes some of these results, which originally appeared in (Freund & Schapire 99), and are derived directly from results in (Helm-bold and Warmuth 95).",
+        "First we define a modification of the perceptron algorithm, the voted perceptron.",
+        "We can consider the first pass of the perceptron algorithm to build a sequence of parameter settings al,' for i = 1 ... n. For a given test example x, each of these will define an output vi = arg maxzEGEN(x) a1'' • -1�(x, z).",
+        "The voted perceptron takes the most frequently occurring output in the set {vl ... vn}.",
+        "Thus the voted perceptron is a method where each of the parameter settings al,' for i = 1 ... n get a single vote for the output, and the majority wins.",
+        "The averaged algorithm in section 2.5 can be considered to be an approximation of the voted method, with the advantage that a single decoding with the averaged parameters can be performed, rather than n decodings with each of the n parameter settings.",
+        "In analyzing the voted perceptron the one assumption we will make is that there is some unknown distribution P(x, y) over the set X x Y, and that both training and test examples are drawn independently, identically distributed (i.i.d.)",
+        "from this distribution.",
+        "Corollary 1 of (Freund & Schapire 99) then states: Theorem 3 (Freund 6 Schapire 99) Assume all examples are generated i.i.d.",
+        "at random.",
+        "Let ((x1, y1)) ... (xn, yn)) be a sequence of training examples and let (xn+1, yn+1) be a test example.",
+        "Then the probability (over the choice of all n + 1 examples) that the voted-perceptron algorithm does not predict y,+1 on input xn+1 is at most",
+        "where En+1 [] is an expected value taken over n + 1 examples, R and Du,a are as defined above, and the minis taken over b > 0, Hull = I."
+      ]
+    },
+    {
+      "heading": "4 Experiments",
+      "text": []
+    },
+    {
+      "heading": "4.1 Data Sets",
+      "text": [
+        "We ran experiments on two data sets: part-of-speech tagging on the Penn Wall Street Journal treebank (Marcus et al.",
+        "93), and base noun-phrase recognition on the data sets originally introduced by (Ramshaw and Marcus 95).",
+        "In each case we had a training, development and test set.",
+        "For part-of-speech tagging the training set was sections 0-18 of the treebank, the development set was sections 19-21 and the final test set was sections 22-24.",
+        "In NP chunking the training set",
+        "was taken from section 15-18, the development set was section 21, and the test set was section 20.",
+        "For POS tagging we report the percentage of correct tags on a test set.",
+        "For chunking we report F-measure in recovering bracketings corresponding to base NP chunks."
+      ]
+    },
+    {
+      "heading": "4.2 Features",
+      "text": [
+        "For POS tagging we used identical features to those of (Ratnaparkhi 96), the only difference being that we did not make the rare word distinction in table 1 of (Ratnaparkhi 96) (i.e., spelling features were included for all words in training data, and the word itself was used as a feature regardless of whether the word was rare).",
+        "The feature set takes into account the previous tag and previous pairs of tags in the history, as well as the word being tagged, spelling features of the words being tagged, and various features of the words surrounding the word being tagged.",
+        "In the chunking experiments the input \"sentences\" included words as well as parts-of-speech for those words from the tagger in (Brill 95).",
+        "Table 3 shows the features used in the experiments.",
+        "The chunking problem is represented as a three-tag task, where the tags are B, I, 0 for words beginning a chunk, continuing a chunk, and being outside a chunk respectively.",
+        "All chunks begin with a B symbol, regardless of whether the previous word is tagged 0 or I."
+      ]
+    },
+    {
+      "heading": "4.3 Results",
+      "text": [
+        "We applied both maximum-entropy models and the perceptron algorithm to the two tagging problems.",
+        "We tested several variants for each algorithm on the development set, to gain some understanding of how the algorithms' performance varied with various parameter settings, and to allow optimization of free parameters so that the comparison on the final test set is a fair one.",
+        "For both methods, we tried the algorithms with feature count cut-offs set at 0 and 5 (i.e., we ran experiments with all features in training data included, or with all features occurring 5 times or more included – (Ratnaparkhi 96) uses a count cut-off of 5).",
+        "In the perceptron algorithm, the number of iterations T over the training set was varied, and the method was tested with both averaged and unaveraged parameter vectors (i.e., with as �'' and ys ,n �as defined in section 2.5, for a variety of values for T).",
+        "In the maximum entropy model the number of iterations of training using Generalized Iterative Scaling was varied.",
+        "Figure 4 shows results on development data on the two tasks.",
+        "The trends are fairly clear: averaging improves results significantly for the perceptron method, as does including all features rather than imposing a count cut-off of 5.",
+        "In contrast, the ME models' performance suffers when all features are included.",
+        "The best perceptron configuration gives improvements over the maximum-entropy models in both cases: an improvement in F-measure from 92.65% to 93.53% in chunking, and a reduction from 3.28% to 2.93% error rate in POS tagging.",
+        "In looking at the results for different numbers of iterations on development data we found that averaging not only improves the best result, but also gives much greater stability of the tagger (the non-averaged variant has much greater variance in its scores).",
+        "As a final test, the perceptron and ME taggers were applied to the test sets, with the optimal parameter settings on development data.",
+        "On POS tagging the perceptron algorithm gave 2.89% error compared to 3.28% error for the maximum-entropy model (a 11.9% relative reduction in error).",
+        "In NP chunking the perceptron algorithm achieves an F-measure of 93.63%, in contrast to an F-measure of 93.29% for the ME model (a 5.1% relative reduction in error).",
+        "5 Proofs of the Theorems This section gives proofs of theorems 1 and 2.",
+        "The proofs are adapted from proofs for the classification case in (Freund & Schapire 99).",
+        "Proof of Theorem 1: Let ak be the weights before the Vth mistake is made.",
+        "It follows that al = 0.",
+        "Suppose the Vth mistake is made at the i'th example.",
+        "Take z to the output proposed at this example, z = argmaxyEGEN(xi) '4� (Xi �Y) a .",
+        "It follows from the algorithm updates that ak+1 = a + -4�(xi, yi) – -4�(xi, z).",
+        "We take inner products of both sides with the vector U:",
+        "where the inequality follows because of the property of U assumed in Eq.",
+        "3.",
+        "Because a1 = 0, and therefore U • a1 = 0, it follows by induction on k that for all k, U • ak+1 > fib.",
+        "Because U • ak+1 < IIUII Iak+1II, it follows that",
+        "We also derive an upper bound for I Iak+1112: Ilak+1112 = IICkll2+II,D(xi,Yi) – D(xi,z)112 +2ak • (,D (X,, yi) – D(xi, z)) < IIak112+R2 where the inequality follows because (xi, yi) – (xi, z) I I2 < RZ by assumption, and a, 0�(xi, yi) – -Io(xi, z)) < 0 because z is the highest scoring candidate for xi under the parameters a .",
+        "It follows by induction that 11 &k+1112 < kR2.",
+        "Combining the bounds 1&k+111 > kb and II&k+1112 < kR2 gives the result for all k that k262 < IIak+1112 < kR2 ==> k < R 216 ■ Proof of Theorem 2: We transform the representation -]�(x, y) E Rd to a new representation -Io(x, y) E Rd+n as follows.",
+        "For i = 1 ... d define -J�z (x, y) _ -J�z (x, y) .",
+        "For j = 1 ... n define 'Dd+j(x, y) = 0 if (x, y) _ (xj, yj), 0 otherwise, where 0 is a parameter which is greater than 0.",
+        "Similar, say we are given a U b pair and corresponding values for ci as deAned above.",
+        "We define a modified parameter vector U E Rd+n with Ui = UZ for i = 1 ... d and Ud+j = ci/A for 1,= 1 ... n. Under these definitions it can be verified that di,dz E GEN(xi), U • (D(xi, yi) – U.",
+        "(D(xi, z) > 6 di, dz E GEN(xi), I I (D (X,, yi) – (D (X,, z) Il 2 < R2 + oz z = I�U1 12 + Ei ez/Oz = 1 +DU�Æ/Oz"
+      ]
+    },
+    {
+      "heading": "It can be seen that the vector U/U separates",
+      "text": [
+        "the data with margin b/ 0 + DU b/O2.",
+        "By theorem 1, this means that the first pass of the Perceptron algorithm with representation makes z at most kn ,,,x(A) _ T2 (RZ + A2) (I + D Æ) mistakes.",
+        "But the first pass of the original algorithm with representation -1� is identical to the first pass of the algorithm with representation -]�, because the parameter weights for the additional features '$d+j for j = 1 ... n each affect a single example of training data, and do not affect the classification of test data examples.",
+        "Thus the original perceptron algorithm also makes at most kmax (0) mistakes on its first pass over the training data.",
+        "Finally, we can minimize kmax (0) with respect to 0, giving 0 = VRDU b, and kmax(VRDU,․) _ (R2 +D2 ,6)162, implying the bound in the theorem.",
+        "■"
+      ]
+    },
+    {
+      "heading": "6 Conclusions",
+      "text": [
+        "We have described new algorithms for tagging, whose performance guarantees depend on a notion of \"separability\" of training data examples.",
+        "The generic algorithm in figure 2, and the theorems describing its convergence properties, could be applied to several other models in the NLP literature.",
+        "For example, a weighted context-free grammar can also be conceptualized as a way of defining GEN, -1� and a, so the weights for generative models such as PCFGs could be trained using this method."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "Thanks to Nigel Duffy, Rob Schapire and Yoram Singer for many useful discussions regarding the algorithms in this paper, and to Fernando Pereira for pointers to the NP chunking data set, and for suggestions regarding the features used in the experiments."
+      ]
+    }
+  ]
+}

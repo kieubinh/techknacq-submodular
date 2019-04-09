@@ -1,0 +1,201 @@
+{
+  "info": {
+    "authors": [
+      "Pablo Duboue"
+    ],
+    "book": "ENLG",
+    "id": "acl-W13-2123",
+    "title": "On the Feasibility of Automatically Describing n-dimensional Objects",
+    "url": "https://aclweb.org/anthology/W13-2123",
+    "year": 2013
+  },
+  "references": [
+    "acl-A97-1041",
+    "acl-P10-1157",
+    "acl-P11-2115",
+    "acl-W00-0306",
+    "acl-W00-0726",
+    "acl-W08-1119",
+    "acl-W09-0613",
+    "acl-W13-2129"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper introduces the problem of generating descriptions of n-dimensional spatial data by decomposing it via model-based clustering.",
+        "I apply the approach to the error function of supervised classification algorithms, a practical problem that uses Natural Language Generation for understanding the behaviour of a trained classifier.",
+        "I demonstrate my system on a dataset taken from CoNLL shared tasks."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "My focus is the generation of textual descriptions for n-dimensional data.",
+        "At this early stage in this research, I introduce the problem, describe a potential application and source of interesting n-dimensional objects and show preliminary work on a traditional NLG system built on off-the-shelf text planning and surface realization technology plus a customized sentence planner.",
+        "This work was inspired by a talk by Kathleen McCoy in which she described a system that produces Natural Language explanations of magazine infographics for the blind by combining Computer Vision techniques with NLG (Carberry et al., 2013).",
+        "She mentioned an anecdote in which she asked a blind user of the system what would the user would want added to the text description and the user replied ?I don't know, I have never seen an infographic.?",
+        "I found the comment very inspiring and it led to the realization that n-dimensional objects (for n > 3) were also something which we, as humans, have never seen before and which we will profit from having a computer system to describe to us.",
+        "A type of n-dimensional objects that are of particular practical interest are the error function for a machine learning algorithm for particular training data.",
+        "That is the case because, for NLP practitioners using supervised classification, the task of debugging and improving their classifiers at times involves repeated steps of training with different parameters.",
+        "Usually, at each stage the trained model is kept as an opaque construct of which only aggregate statistics (precision, recall, etc) are investigated.",
+        "My technology improves this scenario by generating Natural Language descriptions for the error function of trained machine learning models.",
+        "My system, Thoughtland,1 (Fig.",
+        "1) is a pipeline with four stages, accessed through a Web-based interface (Duboue, 2013), further discussed in the next section.",
+        "This early prototype is already able to tackle descriptions of existing, non-trivial data.",
+        "These results are very encouraging and the problem merits attention from other NLG researchers.",
+        "To further broad interest in this problem, I am distributing my prototype under a Free Software license,2 which should encourage extensions and classroom use.",
+        "I have already found the current descriptions useful for telling apart the output of two different algorithms when run on the same data.",
+        "I will now describe the algorithm and then dive into the NLG details.",
+        "I conclude with related and future work discussions."
+      ]
+    },
+    {
+      "heading": "2 Algorithm",
+      "text": [
+        "Thoughtland's architecture is shown in Fig. 1.",
+        "While the first stage lies clearly outside the interest of NLG practitioners, the next two stages (Clustering and Analysis) are related to the message generation aspect of content planning (Reiter and Dale, 2000),3 as they seek to transform the data into units that can be communicated verbally (the last stage is the more traditional NLG system itself)."
+      ]
+    },
+    {
+      "heading": "2.1 Cross-Validation",
+      "text": [
+        "The error function is computed as the error for each point in the input data.",
+        "For a numeric target class, that would mean that for every training",
+        ", where the error is computed using f trained on the folds that do not contain (~x, y).4 This stage produces a cloud of points in n-dimensions, for n = F + 1, where F is the number of features in the training data (the extra dimension is the error value)."
+      ]
+    },
+    {
+      "heading": "2.2 Clustering",
+      "text": [
+        "The cloud of error points obtained in the previous step is then clustered using a mixture of Dirich-let models (McCullagh and Yang, 2008) as implemented by Apache Mahout (Owen et al., 2011).5 I choose this clustering approach because each of the obtained clusters has a geometrical representation in the form of n-balls, which are n-dimensional spheres.",
+        "These representations are important later on for the natural language generation approach.",
+        "Some input features present a natural geometric groupings which will interfere with a clustering set to elucidate the error function.",
+        "To make the error coordinate the most prominent coordinate for clustering, I rescale the error coordinate using the radius of an n-ball that encompasses all the input features."
+      ]
+    },
+    {
+      "heading": "2.3 Analysis",
+      "text": [
+        "In Fig. 1, the Analysis Stage involves determining the overall size, density, distances to the other n-balls and extension in each dimension for each n-ball.",
+        "These numbers are put into perspective with respect to the n-ball encompassing the whole cloud of points.",
+        "The distance between two n-balls, for example, is said to be big if in any dimension",
+        "it is above half the radius of the large n-ball in that particular dimension.",
+        "Each n-ball is also compared to each other in terms of distance.",
+        "I have so far determined these thresholds by working on the mileage data discussed elsewhere (Duboue, 2013).",
+        "Objective-function optimization-based techniques (discussed in the next section) might prove useful here.",
+        "This stage is at its infancy, in future work I want to analyze the pairs of n-balls in terms of rotations as they are particularly important to determine how many dimensions are actually being used by the sets of n-balls."
+      ]
+    },
+    {
+      "heading": "3 Natural Language Generation",
+      "text": [
+        "As I go exploring the different aspects of the problem, I opt for a very traditional generation system and architecture.",
+        "Approaches based on learning (Mairesse et al., 2010; Varges and Mellish, 2010; Oh and Rudnicky, 2000) are not particularly easy to apply to this problem as I am producing a text for which there are no available examples.",
+        "I do hope to explore objective-function optimization-based techniques such as Lemon (2011) or Dethlefs and Cuaya?huitl (2011) in the near future.",
+        "The NLG system is thus implemented on top of McKeown's (1985) Document Structuring Schemata (using the recent implementation OpenSchema6) and SimpleNLG (Gatt and Reiter, 2009).",
+        "I use two schemata, in one the n-balls are presented in order while in the other the attributes are presented in order.",
+        "One of the schemata I am using is shown in Fig. 2.",
+        "Document structuring schemata are transition networks of rhetorical predicates that can contain free and bound variables, with restrictions on each variable.",
+        "The system presents the user the shorter description.",
+        "Either strategy should emphasize similarities, simplifying aggregation (Reape and Mellish, 1999).",
+        "I employ some basic aggregation rules, that",
+        "is, for each aggregation segment I assemble all n-balls with the same property together to make complex sentences.",
+        "That works well for size and density.",
+        "To verbalize distances, I group the different pairs by distance value and then look for cliques using the Bron-Kerbosch clique-finding algorithm (Bron and Kerbosch, 1973), as implemented in JGraphT.7 I also determine the most common distance and verbalize it as a defeasible rule (Knott et al., 1997), which significantly shortens the text.",
+        "This pipeline presents a non-trivial NLG application that is easy to improve upon and can be used directly in a classroom setting."
+      ]
+    },
+    {
+      "heading": "3.1 Case Study",
+      "text": [
+        "I will now illustrate Thoughtland by virtue of an example with training data from the CoNLL Shared Task for the year 2000 (Sang and Buch-holz, 2000).",
+        "The task involved splitting a sentence into syntactically related segments of words:",
+        "I transformed the data into a classification problem based on the current and previous POS, rendering it a two dimensional problem.",
+        "The provided data consists of 259,104 training instances.",
+        "Over this data Na?",
+        "?ve Bayes produces an accuracy of 88.9% and C4.5, 89.8%.",
+        "These numbers are very close, but do the two algorithms produce similar error function?",
+        "Looking at Thoughtland's descriptions (Fig.",
+        "3) we can see that is not the case.",
+        "In later runs I add the current and previous words, to make for a three and fourth dimensional problem.",
+        "These are extra dimensions with a nominal class with 20,000 distinct values (one for each word).",
+        "Interestingly, when the classifiers become good enough, there is no discriminating information left to verbalize.",
+        "A similar situation happens when the classifiers have poor accuracy.",
+        "Thoughtland.",
+        "This schema produces descriptions focusing on the similar attributes of each of the n-balls.",
+        "I include one of the predicates for reference."
+      ]
+    },
+    {
+      "heading": "4 Related Work",
+      "text": [
+        "The problem of describing n-dimensional objects is a fascinating topic which Thoughtland just starts to address.",
+        "It follows naturally the long term interest in NLG for describing 3D scenes (Blocher et al., 1992), spatial/GIS data (De Carolis and Lisi, 2002) or just numerical data (Reiter et al., 2008).",
+        "In the more general topic of explaining machine learning decisions, ExOpaque (Guo and Selman, 2007) takes a trained system and uses it to produce training data for an Inductive Logic Programming (Muggleton and Raedt., 1994) system, presenting the resulting Horn-clauses directly to the user.",
+        "Focusing on explaining the impact of specific attributes in the prediction outcome of a particular instance, Robnik-Sikonja and Kononenko (2008) analyze changes to the classification outcome under different input variations, weighted by their priors, an idea explored early on in agent-based systems (Johnson, 1994).",
+        "In general, systems based on Bayesian networks seem to have a stronger probabilistic framework that facilitates explanations (Lacave and Diez, 2000).",
+        "By far, most of the attention in understanding the error function for machine learning algorithms has come from the graphical visualization commu",
+        "There are five components and three dimensions.",
+        "Component One is big and components Two, Three and Four are small.",
+        "Component Four is dense and components Two and Three are very dense.",
+        "Components Three and Five are at a good distance from each other.",
+        "The rest are all far from each other.",
+        "There are six components and three dimensions.",
+        "Component One is big, components Two, Three and Four are small and component Five is giant.",
+        "Component Five is sparse and components Two, Three and Four are very dense.",
+        "Components One and Two are at a good distance from each other.",
+        "The rest are all far from each other."
+      ]
+    },
+    {
+      "heading": "FOUR DIMENSIONS",
+      "text": [
+        "Accuracy 90.4% Accuracy 91.4% There are six components and four dimensions.",
+        "Components One, Two and Three are big and components Four and Five are small.",
+        "Component Three is dense, component One is sparse and components Four and Five are very dense.",
+        "Components Two and Three are at a good distance from each other.",
+        "The rest are all far from each other.",
+        "There are six components and four dimensions.",
+        "Components One, Two and Three are big and components Four and Five are small.",
+        "Component One is dense, component Three is sparse and components Four and Five are very dense.",
+        "Components Three and Four are at a good distance from each other.",
+        "Components Six and Four are also at a good distance from each other.",
+        "The rest are all far from each other."
+      ]
+    },
+    {
+      "heading": "FIVE DIMENSIONS",
+      "text": [
+        "nities.",
+        "However, as stated by Janert (2010):8 As soon as we are dealing with more than two variables simultaneously, things become much more complicated ?",
+        "in particular, graphical methods quickly become impractical.",
+        "The focus is then in dimensionality reduction9 and projection (Kaski and Peltonen, 2011), usually as part of an integrated development environment (Kapoor et al., 2012; Patel et al., 2010).",
+        "The usual discussion regarding the complementary role of text and graphics, as studied for a long time in NLG (McKeown et al., 1997), applies also here: there are things like generalizations and exceptions that are easier to express in text.",
+        "We look forward for NLG-based approaches to be included in future versions of ML IDEs such as Gestalt.",
+        "Finally, Thoughtland uses the error function for an ML algorithm as applied to training data.",
+        "A similarly worded term which should not be confused is error surface (Reed and Marks, 1999),10 which refers to the space of possible ML models.",
+        "Error surfaces are particularly important for training algorithms that explore the said surface, for example by gradient descent."
+      ]
+    },
+    {
+      "heading": "5 Final Remarks",
+      "text": [
+        "I have presented Thoughtland, a working prototype addressing the problem of describing clouds of points in n-dimensional space.",
+        "In this paper I have identified the problem and shown it to be approachable with a solution based on model-based clustering.",
+        "For future work, I want to enrich the analysis with positional information: I want to find planes on which a majority of the n-balls lie so as to describe their location relative to them.",
+        "I am also considering hierarchical decomposition in up to five to seven n-balls (to make it cognitively acceptable (Miller, 1956)) as it will translate well to textual descriptions.",
+        "My preliminary experiments suggest there is value in generating comparisons for two error functions.",
+        "I can therefore employ the existing body of work in NLG for generating comparisons (Milosavljevic, 1999).",
+        "While the pilot might speak of the feasibility of the task, Thoughtland still needs to be evaluated.",
+        "For this, I want to start with simple cases such as overfitting or feature leaks and see if the descriptions help humans detect such cases faster."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "The author would like to thank Annie Ying, Or Biran, Samira Ebrahimi Kahou and David Racca."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "info": {
+    "authors": [
+      "Young-Suk Lee",
+      "Kishore Papineni",
+      "Salim Roukos",
+      "Ossama Emam",
+      "Hany Hassan"
+    ],
+    "book": "Annual Meeting of the Association for Computational Linguistics",
+    "id": "acl-P03-1051",
+    "title": "Language Model Based Arabic Word Segmentation",
+    "url": "https://aclweb.org/anthology/P03-1051",
+    "year": 2003
+  },
+  "references": [
+    "acl-C96-1017",
+    "acl-H01-1035",
+    "acl-J01-2001",
+    "acl-J93-2003",
+    "acl-N01-1024",
+    "acl-P00-1027",
+    "acl-P96-1019",
+    "acl-W02-0506"
+  ],
+  "sections": [
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Morphologically rich languages like Arabic present significant challenges to many natural language processing applications because a word often conveys complex meanings decomposable into several morphemes (i.e. prefix, stem, suffix).",
+        "By segmenting words into morphemes, we can improve the performance of natural language systems including machine translation (Brown et al.",
+        "1993) and information retrieval (Franz, M. and McCarley, S. 2002).",
+        "In this paper, we present a general word segmentation algorithm for handling inflectional morphology capable of segmenting a word into a prefix*-stem-suffix* sequence, using a small manually segmented corpus and a table of prefixes/suffixes of the language.",
+        "We do not address Arabic infix morphology where many stems correspond to the same root with various infix variations; we treat all the stems of a common root as separate atomic units.",
+        "The use of a stem as a morpheme (unit of meaning) is better suited than the use of a root for the applications we are considering in information retrieval and machine translation (e.g. different stems of the same root translate into different English words.)",
+        "Examples of Arabic words and their segmentation into prefix*-stem-sufix* are given in Table 1, where '#' indicates a morpheme being a prefix, and '+' a suffix.1 As"
+      ]
+    },
+    {
+      "heading": "Abstract",
+      "text": [
+        "We approximate Arabic’s rich morphology by a model that a word consists of a sequence of morphemes in the pattern prefix*-stem-suffix* (* denotes zero or more occurrences of a morpheme).",
+        "Our method is seeded by a small manually segmented Arabic corpus and uses it to bootstrap an unsupervised algorithm to build the Arabic word segmenter from a large unsegmented Arabic corpus.",
+        "The algorithm uses a trigram language model to determine the most probable morpheme sequence for a given input.",
+        "The language model is initially estimated from a small manually segmented corpus of about 110,000 words.",
+        "To improve the segmentation accuracy, we use an unsupervised algorithm for automatically acquiring new stems from a 155 million word unsegmented corpus, and re-estimate the model parameters with the expanded vocabulary and training corpus.",
+        "The resulting Arabic word segmentation system achieves around 97% exact match accuracy on a test corpus containing 28,449 word tokens.",
+        "We believe this is a state-of-the-art performance and the algorithm can be used for many highly inflected languages provided that one can create a small manually segmented corpus of the language of interest.",
+        "shown in Table 1, a word may include multiple prefixes, as in L ► (l: for, Al: the), or multiple suffixes, as in 4_5 (t: feminine singular, h: his).",
+        "A word may also consist only of a stem, as in ,11 (AlY, to/towards).",
+        "The algorithm implementation involves (i) language model training on a morpheme-segmented corpus, (ii) segmentation of input text into a sequence of morphemes using the language model parameters, and (iii) unsupervised acquisition of new stems from a large unsegmented corpus.",
+        "The only linguistic resources required include a small manually segmented corpus ranging from 20,000 words to 100,000 words, a table of prefixes and suffixes of the language and a large unsegmented corpus.",
+        "In Section 2, we discuss related work.",
+        "In Section 3, we describe the segmentation algorithm.",
+        "In Section 4, we discuss the unsupervised algorithm for new stem acquisition.",
+        "In Section 5, we present experimental results.",
+        "In Section 6, we summarize the paper."
+      ]
+    },
+    {
+      "heading": "2 Related Work",
+      "text": [
+        "Our work adopts major components of the algorithm from (Luo & Roukos 1996): language model (LM) parameter estimation from a segmented corpus and input segmentation on the basis of LM probabilities.",
+        "However, our work diverges from their work in two crucial respects: (i) new technique of computing all possible segmentations of a word into prefix*-stem-sufix* for decoding, and (ii) unsupervised algorithm for new stem acquisition based on a stem candidate's similarity to stems occurring in the training corpus.",
+        "(Darwish 2002) presents a supervised technique which identifies the root of an Arabic word by stripping away the prefix and the suffix of the word on the basis of manually acquired dictionary of word-root pairs and the likelihood that a prefix and a suffix would occur with the template from which the root is derived.",
+        "He reports 92.7% segmentation marking a prefix with '#\" and a suffix with '+' will be adopted throughout the paper.",
+        "accuracy on a 9,606 word evaluation corpus.",
+        "His technique presupposes at most one prefix and one suffix per stem regardless of the actual number and meanings of prefixes/suffixes associated with the stem.",
+        "(Beesley 1996) presents a finite-state morphological analyzer for Arabic, which displays the root, pattern, and prefixes/suffixes.",
+        "The analyses are based on manually acquired lexicons and rules.",
+        "Although his analyzer is comprehensive in the types of knowledge it presents, it has been criticized for their extensive development time and lack of robustness, cf. (Darwish 2002).",
+        "(Yarowsky and Wicentowsky 2000) presents a minimally supervised morphological analysis with a performance of over 99.2% accuracy for the 3,888 past-tense test cases in English.",
+        "The core algorithm lies in the estimation of a probabilistic alignment between inflected forms and root forms.",
+        "The probability estimation is based on the lemma alignment by frequency ratio similarity among different inflectional forms derived from the same lemma, given a table of inflectional parts-of-speech, a list of the canonical suffixes for each part of speech, and a list of the candidate noun, verb and adjective roots of the language.",
+        "Their algorithm does not handle multiple affixes per word.",
+        "(Goldsmith 2000) presents an unsupervised technique based on the expectation-maximization algorithm and minimum description length to segment exactly one suffix per word, resulting in an F-score of 81.8 for suffix identification in English according to (Schone and Jurafsky 2001).",
+        "(Schone and Jurafsky 2001) proposes an unsupervised algorithm capable of automatically inducing the morphology of inflectional languages using only text corpora.",
+        "Their algorithm combines cues from orthography, semantics, and contextual information to induce morphological relationships in German, Dutch, and English, among others.",
+        "They report F-scores between 85 and 93 for suffix analyses and between 78 and 85 for circumfix analyses in these languages.",
+        "Although their algorithm captures prefix-suffix combinations or circumfixes, it does not handle the multiple affixes per word we observe in Arabic."
+      ]
+    },
+    {
+      "heading": "3 Morpheme Segmentation",
+      "text": []
+    },
+    {
+      "heading": "3.1 Trigram Language Model",
+      "text": [
+        "Given an Arabic sentence, we use a trigram language model on morphemes to segment it into a sequence of morphemes {m1, m2, ...,mn}.",
+        "The input to the morpheme segmenter is a sequence of Arabic tokens – we use a tokenizer that looks only at white space and other punctuation, e.g. quotation marks, parentheses, period, comma, etc.",
+        "A sample of a manually segmented corpus is given below2.",
+        "Here multiple occurrences of prefixes and suffixes per word are marked with an underline.",
+        "w# kAn AyrfAyn Al*y Hl fy Al# mrkz Al# Awl fy jA}z +p Al# nmsA Al# EAm Al# mADy Ely syAr +p fyrAry $Er b# AlAm fy bTn +h ADTr +t +h Aly Al# AnsHAb mn Al#",
+        "Many instances of prefixes and suffixes in Arabic are meaning bearing and correspond to a word in English such as pronouns and prepositions.",
+        "Therefore, we choose a segmentation into multiple prefixes and suffixes.",
+        "Segmentation into one prefix and one suffix per word, cf. (Darwish 2002), is not very useful for applications like statistical machine translation, (Brown et al.",
+        "1993), for which an accurate word-to-word alignment between the source and the target languages is critical for high quality translations.",
+        "The trigram language model probabilities of morpheme sequences, p(mi|mi-1, mi-2), are estimated from the morpheme-segmented corpus.",
+        "At token boundaries, the morphemes from previous tokens constitute the histories of the current morpheme in the trigram language model.",
+        "The trigram model is smoothed using deleted interpolation with the bigram and unigram models, (Jelinek 1997), as in (1):",
+        "A small morpheme-segmented corpus results in a relatively high out of vocabulary rate for the stems.",
+        "We describe below an unsupervised acquisition of new stems from a large unsegmented Arabic corpus.",
+        "However, we first describe the segmentation algorithm."
+      ]
+    },
+    {
+      "heading": "3.2 Decoder for Morpheme Segmentation",
+      "text": [
+        "We take the unit of decoding to be a sentence that has been tokenized using white space and punctuation.",
+        "The task of a decoder is to find the morpheme sequence which maximizes the trigram probability of the input sentence, as in (2): (2) SEGMENTATIONbest = Argmax IIi=1, N p(mi |mi-1mi-2), N = number of morphemes in the input.",
+        "Search algorithm for (2) is informally described for each word token as follows: Step 1: Compute all possible segmentations of the token (to be elaborated in 3.2.1).",
+        "Step 2: Compute the trigram language model score of each segmentation.",
+        "For some segmentations of a token, the stem may be an out of vocabulary item.",
+        "In that case, we use an “UNKNOWN” class in the trigram language model with the model probability given by",
+        "UNK_Fraction is 1e-9 determined on empirical grounds.",
+        "This allows us to segment new words with a high accuracy even with a relatively high number of unknown stems in the language model vocabulary, cf. experimental results in Tables 5 & 6.",
+        "Step 3: Keep the top N highest scored segmentations."
+      ]
+    },
+    {
+      "heading": "3.2.1 Possible Segmentations of a Word",
+      "text": [
+        "Possible segmentations of a word token are restricted to those derivable from a table of prefixes and suffixes of the language for decoder speed-up and improved accuracy.",
+        "Table 2 shows examples of atomic (e.g. J►, ,11I) and multicomponent (e.g. JL+9, L,01) prefixes and suffixes, along with their component morphemes in native Arabic.3",
+        "Each token is assumed to have the structure prefix*-stem-suffix*, and is compared against the prefix/suffix table for segmentation.",
+        "Given a word token, (i) identify all of the matching prefixes and suffixes from the table, (ii) further segment each matching prefix/suffix at each character position, and (iii) enumerate all prefix*-stem-suffix* sequences derivable from (i) and (ii).",
+        "Table 3 shows all of its possible segmentations of the token ﺎهر ﺮ آا و (wAkrrhA; 'and I repeat it'),4 where ∅ indicates the null prefix/suffix and the Seg Score is the language model probabilities of each segmentation S 1 ... S 12.",
+        "For this token, there are two matching prefixes # و (w#) and # او (wA#) from the prefix table, and two matching suffixes ا + (+A) and ﺎه + (+hA) from the suffix table.",
+        "S1, S2, & S3 are the segmentations given the null prefix ∅ and suffixes ∅, +A, +hA.",
+        "S4, S5, & S6 are the segmentations given the prefix w# and suffixes ∅, +A, +hA.",
+        "S7, S8, & S9 are the segmentations given the prefix wA# and suffixes ∅, +A, +hA.",
+        "S 10, S 11, & S 12 are the segmentations given the prefix sequence w# A# derived from the prefix wA# and suffixes ∅, +A, +hA.",
+        "As illustrated by S 12, derivation of sub-segmentations of the matching prefixes/suffixes enables the system to identify possible segmentations which would have been missed otherwise.",
+        "In this case, segmentation including the derived prefix sequence",
+        "be the correct one."
+      ]
+    },
+    {
+      "heading": "3.2.2. Prefix-Suffix Filter",
+      "text": [
+        "While the number of possible segmentations is maximized by sub-segmenting matching",
+        "prefixes and suffixes, some of illegitimate sub-segmentations are filtered out on the basis of the knowledge specific to the manually segmented corpus.",
+        "For instance, sub-segmentation of the suffix hA into +h +A is ruled out because there is no suffix sequence +h +A in the training corpus.",
+        "Likewise, sub-segmentation of the prefix Al into A# l# is filtered out.",
+        "Filtering out improbable prefix/suffix sequences improves the segmentation accuracy, as shown in Table 5."
+      ]
+    },
+    {
+      "heading": "4 Unsupervised Acquisition of New Stems",
+      "text": [
+        "Once the seed segmenter is developed on the basis of a manually segmented corpus, the performance may be improved by iteratively expanding the stem vocabulary and retraining the language model on a large automatically segmented Arabic corpus.",
+        "Given a small manually segmented corpus and a large unsegmented corpus, segmenter development proceeds as follows.",
+        "Initialization: Develop the seed segmenter Segmenter0 trained on the manually segmented corpus Corpus0, using the language model vocabulary, Vocab0, acquired from Corpus0.",
+        "Iteration: For i = 1 to N, N = the number of partitions of the unsegmented corpus i.",
+        "Use Segmenteri-1 to segment Corpusi.",
+        "ii.",
+        "Acquire new stems from the newly segmented Corpusi.",
+        "Add the new stems to Vocabi-1, creating an expanded vocabulary Vocabi.",
+        "iii.",
+        "Develop Segmenteri trained on Corpus0 through Corpusi with Vocabi.",
+        "Optimal Performance Identification: Identify the Corpusi and Vocabi, which result in the best performance, i.e. system training with Corpusi+1 and Vocabi+1 does not improve the performance any more.",
+        "Unsupervised acquisition of new stems from an automatically segmented new corpus is a three-step process: (i) select new stem candidates on the basis of a frequency threshold, (ii) filter out new stem candidates containing a sub-string with a high likelihood of being a prefix, suffix, or prefix-suffix.",
+        "The likelihood of a sub-string being a prefix, suffix, and prefix-suffix of a token is computed as in (5) to (7), (iii) further filter out new stem candidates on the basis of contextual information, as in (8).",
+        "(5) P score = number of tokens with prefix P/ number of tokens starting with sub-string P (6) Sscore = number of tokens with suffix S/ number of tokens ending with sub-string S (7) PSscore = number of tokens with prefix P and suffix S / number of tokens starting with sub-string P and ending with sub-string S",
+        "Stem candidates containing a sub-string with a high prefix, suffix, or prefix-suffix likelihood are filtered out.",
+        "Example sub-strings with the prefix, suffix, prefix-suffix likelihood 0.85 or higher in a 110K word manually segmented corpus are given in Table 4.",
+        "If a token starts with the sub-string (sn), and end with It-(hA), the sub-string's likelihood of being the prefix-suffix of the token is 1.",
+        "If a token starts with the sub-string JU (ll), the sub-string's likelihood of being the prefix of the token is 0.945, etc.",
+        "(8) Contextual Filter: (i) Filter out stems co-occurring with prefixes/suffixes not present in the training corpus.",
+        "(ii) Filter out stems whose prefix/suffix distributions are highly disproportionate to those seen in the training corpus.",
+        "According to (8), if a stem is followed by a potential suffix +m, not present in the training corpus, then it is filtered out as an illegitimate stem.",
+        "In addition, if a stem is preceded by a prefix and/or followed by a suffix with a significantly higher proportion than that observed in the training corpus, it is filtered out.",
+        "For instance, the probability for the suffix +A to follow a stem is less than 50% in the training corpus regardless of the stem properties, and therefore, if a candidate stem is followed by +A with the probability of over 70%, e.g. mAnyl +A, then it is filtered out as an illegitimate stem."
+      ]
+    },
+    {
+      "heading": "5 Performance Evaluations",
+      "text": [
+        "We present experimental results illustrating the impact of three factors on segmentation error rate: (i) the base algorithm, i.e. language model training and decoding, (ii) language model vocabulary and training corpus size, and (iii) manually segmented training corpus size.",
+        "Segmentation error rate is defined in (9).",
+        "(9) (number of incorrectly segmented tokens/ total number of tokens) x 100",
+        "Evaluations have been performed on a development test corpus containing 28,449 word tokens.",
+        "The test set is extracted from 20001115_AFP_ARB.0060.xml.txt through 20001115_AFP_ARB.0236.xml.txt of the LDC Arabic Treebank: Part 1 v 2.0 Corpus.",
+        "Impact of the core algorithm and the unsupervised stem acquisition has been measured on segmenters developed from 4 different sizes of manually segmented seed corpora: 1 0K, 20K, 40K, and 1 1 0K words.",
+        "The experimental results are shown in Table 5.",
+        "The baseline performances are obtained by assigning each token the most frequently occurring segmentation in the manually segmented training corpus.",
+        "The column headed by '3-gram LM' indicates the impact of the segmenter using only trigram language model probabilities for decoding.",
+        "Regardless of the manually segmented training corpus size, use of trigram language model probabilities reduces the word error rate of the corresponding baseline by approximately 50%.",
+        "The column headed by '3-gram LM + PS Filter' indicates the impact of the core algorithm plus Prefix-Suffix Filter discussed in Section 3.2.2.",
+        "Prefix-Suffix Filter reduces the word error rate ranging from 7.4% for the smallest (10K word) manually segmented corpus to 21.8% for the largest (110K word) manually segmented corpus - around 1% absolute reduction for all segmenters.",
+        "The column headed by '3-gram LM + PS Filter + New Stems' shows the impact of unsupervised stem acquisition from a 155 million word Arabic corpus.",
+        "Word error rate reduction due to the unsupervised stem acquisition is 38% for the segmenter developed from the 10K word manually segmented corpus and 32% for the segmenter developed from 110K word manually segmented corpus.",
+        "Language model vocabulary size (LM VOC Size) and the unknown stem ratio (OOV ratio) of various segmenters is given in Table 6.",
+        "For unsupervised stem acquisition, we have set the frequency threshold at 10 for every 10-15 million word corpus, i.e. any new morphemes occurring more than 10 times in a 10-15 million word corpus are considered to be new stem candidates.",
+        "Prefix, suffix, prefix-suffix likelihood score to further filter out illegitimate stem candidates was set at 0.5 for the segmenters developed from 10K, 20K, and 40K manually segmented corpora, whereas it was set at 0.85 for the segmenters developed from a 110K manually segmented corpus.",
+        "Both the frequency threshold and the optimal prefix, suffix, prefix-suffix likelihood scores were determined on empirical grounds.",
+        "Contextual Filter stated in (8) has been applied only to the segmenter developed from 110K manually segmented training corpus.5 Comparison of Tables 5 and 6 indicates a high correlation between the segmentation error rate and the unknown stem ratio.",
+        "Table 7 gives the error analyses of four segmenters according to three factors: (i) errors due to unknown stems, (ii) errors involving مﻮﻴѧﻟا (Alywm), and (iii) errors due to other factors.",
+        "Interestingly, the segmenter developed from a 110K manually segmented corpus has the lowest percentage of “unknown stem” errors at 39.6% indicating that our unsupervised acquisition of new stems is working well, as well as suggesting to use a larger unsegmented corpus for unsupervised stem acquisition.",
+        "مﻮﻴѧﻟا (Alywm) should be segmented differently depending on its part-of-speech to capture the semantic ambiguities.",
+        "If it is an adverb or a proper noun, it is segmented as مﻮﻴѧﻟا 'today/Al-Youm', whereas if it is a noun, it is segmented as مﻮѧ ﻳ # لا 'the day.' Proper segmentation of مﻮﻴѧﻟا primarily requires its part-of-speech information, and cannot be easily handled by morpheme trigram models alone.",
+        "Other errors include over-segmentation of foreign words such as ﻦѧﻴѧﺗﻮѧ ﺑ (bwtyn) as ب# ﻦѧﻴѧﺗو and ﺮѧﺘѧﻴѧﻟ (lytr) 'litre' as ﺮѧﺗ # ي #ل .",
+        "These errors are attributed to the segmentation ambiguities of these tokens: ﻦѧﻴѧﺗﻮѧ ﺑ is ambiguous between 'ﻦѧﻴѧﺗﻮѧ ﺑ (Putin)' and 'ب# ﻦѧﻴѧﺗو (by aorta)'.",
+        "ﺮѧﺘѧﻴѧﻟ is ambiguous between 'ﺮѧﺘѧﻴѧ ﻟ (litre)' and 'ﺮѧﺗ # ي #ل (for him to harm)'.",
+        "These errors may also be corrected by incorporating part-of-speech information for disambiguation.",
+        "To address the segmentation ambiguity problem, as illustrated by ' ﻦѧﻴѧﺗﻮѧ ﺑ (Putin)' vs. ' ﻦѧﻴѧﺗو #ب (by aorta)', we have developed a joint model for segmentation and part-of-speech tagging for which the best segmentation of an input sentence is obtained according to the formula (10), where ti is the part-of-speech of morpheme mi, and N is the number of morphemes in the input sentence.",
+        "By using the joint model, the segmentation word error rate of the best performing segmenter has been reduced by about 10%",
+        "from 2.9% (cf. the last column of Table 5) to 2.6%."
+      ]
+    },
+    {
+      "heading": "5 Summary and Future Work",
+      "text": [
+        "We have presented a robust word segmentation algorithm which segments a word into a prefix*-stem-suffix* sequence, along with experimental results.",
+        "Our Arabic word segmentation system implementing the algorithm achieves around 97% segmentation accuracy on a development test corpus containing 28,449 word tokens.",
+        "Since the algorithm can identify any number of prefixes and suffixes of a given token, it is generally applicable to various language families including agglutinative languages (Korean, Turkish, Finnish), highly inflected languages (Russian, Czech) as well as semitic languages (Arabic, Hebrew).",
+        "Our future work includes (i) application of the current technique to other highly inflected languages, (ii) application of the unsupervised stem acquisition technique on about 1 billion word unsegmented Arabic corpus, and (iii) adoption of a novel morphological analysis technique to handle irregular morphology, as realized in Arabic broken plurals بﺎѧﺘѧآ (ktAb) 'book' vs. ﺐѧﺘѧآ (ktb) 'books'."
+      ]
+    },
+    {
+      "heading": "Acknowledgment",
+      "text": [
+        "This work was partially supported by the Defense Advanced Research Projects Agency and monitored by SPAWAR under contract No.",
+        "N66001-99-2-8916.",
+        "The views and findings contained in this material are those of the authors and do not necessarily reflect the position of policy of the Government and no official endorsement should be inferred.",
+        "We would like to thank Martin Franz for discussions on language model building, and his help with the use of Via Voice language model toolkit."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "info": {
+    "authors": [
+      "Beata Kouchnir"
+    ],
+    "book": "Conference on Computational Natural Language Learning CoNLL",
+    "id": "acl-W04-2418",
+    "title": "A Memory-Based Approach for Semantic Role Labeling",
+    "url": "https://aclweb.org/anthology/W04-2418",
+    "year": 2004
+  },
+  "references": [
+    "acl-W01-0724",
+    "acl-W03-0427",
+    "acl-W04-2412"
+  ],
+  "sections": [
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "This paper presents a system for Semantic Role Labeling (SRL) for the CoNLL 2004 shared task (Carreras and M`arquez, 2004).",
+        "The task is divided into two sub-tasks, recognition and labeling.",
+        "These are performed independently with different feature representations.",
+        "Both modules are based on the principle of memory-based learning.",
+        "For the first module, we use the IOB2 format to determine whether a chunk belongs to an argument or not.",
+        "Furthermore, we test two different strategies for extracting arguments from the classifier output.",
+        "The second module labels the extracted arguments with one of the 30 semantic roles."
+      ]
+    },
+    {
+      "heading": "2 Memory-Based Learning",
+      "text": [
+        "The concept of Memory-Based Learning (MBL) (Lin and Vitter, 1994) is to classify unseen (test) instances based on their similarity to known (training) instances.",
+        "In practice, this is done by storing all training in memory without abstraction and computing the similarity between new and old examples based on a distance metric.",
+        "New instances are then assigned the most frequent class within a set of k most similar examples (k-nearest neighbors).",
+        "Memory-based learning algorithms have proven to be effective for several NLP tasks, including named entity recognition (Hendrickx and van den Bosch, 2003), clause identification (Tjong Kim Sang, 2001) and most relevantly, grammatical relation finding (Buchholz, 2002).",
+        "As testing all possible distance metrics in combination with different values for k is not feasible, we have limited the experiment to the Overlap and Modified Value Difference (MVDM) metrics.",
+        "The values for k tested each metric were 1, 3, 5, 7, and 9.",
+        "Even values were omitted in order to avoid ties.",
+        "The Overlap metric computes the distance between two instances by adding up the differences between the features.",
+        "For symbolic features, each mismatch has a value of 1.",
+        "MVDM, however, allows different degrees of similarity by examining co-occurrence of feature values with target classes.",
+        "While this concept seems more suitable for the underlying task, it is only reliable when used with large amounts of data.",
+        "For a more detailed description of the distance metrics, see (Daelemans et al., 2003).",
+        "TiMBLI (Daelemans et al., 2003), the MBL implementation used in this experiment, is freely available from the ILK research group at Tilburg University."
+      ]
+    },
+    {
+      "heading": "3 The Recognition Module",
+      "text": [
+        "This module identifies the arguments of a proposition, without assigning a label.",
+        "For this task we use the IOB2 format, where B marks an element at the beginning of an argument, I an element inside an argument and O an element that does not belong to an argument.",
+        "As all argument boundaries, except for those within the target verb chunks, coincide with base chunk boundaries, the data is processed by words only within the target verb chunk, and by chunks otherwise.",
+        "The recognition module uses the following features:",
+        "• Head word and POS of the focus element, where the head of a multi-word chunk is its last words.",
+        "• Chunk type: one of the 12 chunks types, without the B or I prefix.",
+        "• Clause information: whether the element is at the beginning, at the end or inside a clause.",
+        "• Directionality: whether the focus element comes before the target verb, after the target verb, or coincides with the target verb.",
+        "• Distance: numerical distance (1 .. n) between the focus element and the target verb.",
+        "• Adjacency: whether the focus element is adjacent to the verb chunk or not, or it is within the verb chunk.",
+        "• The target verb and voice: the voice is passive if the target verb is a past participle preceded by a form of to be, and active otherwise.",
+        "• Context: in addition, the features head word, part of speech, chunk type and adjacency of the three chunks each to the left and right of the focus chunk are used as context information.",
+        "Testing each feature separately showed the directionality and adjacency features to be most useful.",
+        "Omitting one feature at a time showed to decrease performance for every omitted feature.",
+        "Therefore, all of the above features were used in the final system.",
+        "The best TiMBL parameter setting for this task was determined to be the Modified Value Difference metric paired with a set of seven nearest neighbors.",
+        "As we anticipated, the nature of the task requires a more subtle differentiation than the Overlap metric can provide.",
+        "Furthermore, the size of the training set is apparently sufficient to take full advantage of MVDM.",
+        "The results for both metrics and all values of k are summarized in Table 1.",
+        "It is interesting to observe the effect of the k value for each class.",
+        "Although the results for the I and O-classes decrease after k=7, those for the B-class do not.",
+        "However, since the overall results are best for k=7, this values was chosen for the final system.",
+        "For all metric/k combination, the results for the I class are much lower than for the other two.",
+        "The most common error is the assignment of the O class to I-elements, or vice versa.",
+        "This performance distribution implies that while the beginning of most arguments is recognized correctly, their span is not, which results in many ”broken-up” arguments.",
+        "To filter out the actual arguments, we try a strict and a lenient approach.",
+        "For the latter, any sequence of elements that is not labeled as O is considered an argument (i.e. also those not starting with a B-element).",
+        "Although this approach slightly reduces the number of missed arguments, it also vastly overgenerates, which ultimately decreases performance.",
+        "The former approach recognizes as arguments only those sequences beginning with a B-element.",
+        "Since B is the class most reliably predicted by the classifier, this approach yields better overall performance."
+      ]
+    },
+    {
+      "heading": "4 The Labeling Module",
+      "text": [
+        "This module assigns one of the 30 semantic role labels to the arguments extracted by the recognition module.",
+        "Here, we used only ten features, of which four are ”recycled” from the previous module:",
+        "• Word, POS and chunk sequence: the head words of all the chunks in the argument, their respective parts of speech and chunk types.",
+        "As TiMBL only allows feature vectors of a fixed length, each of the sequences represents one value.",
+        "• Clause information: as an element sequences can be a whole clause we added this value to the beginning, end and inside values described in Section 3.",
+        "• Length: the length in chunks of the argument.",
+        "• Directionality and adjacency: same as in Section 3.",
+        "• The target verb and voice: same as in Section 3.",
+        "• Prop Bank roleset of the target verb: as an analysis of the training data showed that about 86% of the verbs were used in their first sense, and many times, the rolesets for the first two senses are identical, we only considered the roleset of first sense.",
+        "Just as for the recognition module, the directionality and adjacency features had the highest information gain.",
+        "The POS sequence and length features showed no effect, and their omission even slightly improved performance.",
+        "Therefore, the final system uses only eight features.",
+        "To test the performance of this module independently from the first, it was evaluated on the gold-standard arguments (i.e. recognition score of 100).",
+        "While MVDM once again outperforms the Overlap metric, the optimal value for k in this setting is one.",
+        "The former supports the assumption that for feature values such as words, or word sequences, some values are more similar than others.",
+        "The latter suggest that the size of the nearest neighbor set (1 vs. 7) should be somewhat proportional to the length of the feature vector (8 vs. 45).",
+        "are fairly easy to predict.",
+        "However, it must be noted that given the correct span, the complex (and most frequently occurring) arguments A0 and A1 can be also predicted with very high accuracy.",
+        "On the down side, the accuracy for most adjuncts is rather low, even though their surface patterns are thought to be somewhat restricted (e.g. AM-LOC, AM-TMP, AM-MNR, AM-EXT)."
+      ]
+    },
+    {
+      "heading": "5 Evaluation",
+      "text": [
+        "Tables 3 and 4 show the final results for the development and test set, respectively.",
+        "Although each module performs fairly well separately, their combined results are suboptimal.",
+        "This is probably due to the fact that the labeling module is trained with gold standard arguments, and is not able to deal with noise induced by the recognition module.",
+        "The argument type whose results suffer the most is A1, because it usually spans over several chunks, and is difficult to retrieve correctly by the recognition module.",
+        "Improvements to the system could be made on the syn",
+        "tactic, lexical, as well as semantic levels.",
+        "Firstly, it is crucial to improve the performance of the recognition module on I-elements.",
+        "This could either be done by using a head-lexicalized parser, or, on a lower level, by a preprocessing module that resolves prepositional phrase attachment.",
+        "Performance for adjuncts such as AM-LOC or AM-TMP could be improved, by using gazetteers of trigger words (e.g. Tuesday) or morphemes (e.g. -day).",
+        "Furthermore, one could use a semantic database such as WordNet to cluster words.",
+        "Last but not least, more advantage could be taken from the information in Prop Bank, so different representations of the rolesets should be explored."
+      ]
+    }
+  ]
+}

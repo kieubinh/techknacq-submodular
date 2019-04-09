@@ -1,0 +1,239 @@
+{
+  "info": {
+    "authors": [
+      "Micha Elsner",
+      "Eugene Charniak"
+    ],
+    "book": "Proceedings of the 49th Annual Meeting of the Association for Computational Linguistics: Human Language Technologies",
+    "id": "acl-P11-2022",
+    "title": "Extending the Entity Grid with Entity-Specific Features",
+    "url": "https://aclweb.org/anthology/P11-2022",
+    "year": 2011
+  },
+  "references": [],
+  "sections": [
+    {
+      "text": [
+        "Micha Eisner Eugene Charniak",
+        "We extend the popular entity grid representation for local coherence modeling.",
+        "The grid abstracts away information about the entities it models; we add discourse prominence, named entity type and coreference features to distinguish between important and unimportant entities.",
+        "We improve the best result for WSJ document discrimination by 6%."
+      ]
+    },
+    {
+      "heading": "1. Introduction",
+      "text": [
+        "A well-written document is coherent (Halliday and Hasan, 1976)- it structures information so that each new piece of information is interprétable given the preceding context.",
+        "Models that distinguish coherent from incoherent documents are widely used in generation, summarization and text evaluation.",
+        "Among the most popular models of coherence is the entity grid (Barzilay and Lapata, 2008), a statistical model based on Centering Theory (Grosz et al., 1995).",
+        "The grid models the way texts focus on important entities, assigning them repeatedly to prominent syntactic roles.",
+        "While the grid has been successful in a variety of applications, it is still a surprisingly unsophisticated model, and there have been few direct improvements to its simple feature set.",
+        "We present an extension to the entity grid which distinguishes between different types of entity, resulting in significant gains in performance.",
+        "At its core, the grid model works by predicting whether an entity will appear in the next sentence",
+        "'A public implementation is available via https:// bitbucket.org/melsner/browncoherence.",
+        "(and what syntactic role it will have) given its history of occurrences in the previous sentences.",
+        "For instance, it estimates the probability that \"Clinton\" will be the subject of sentence 2, given that it was the subject of sentence 1.",
+        "The standard grid model uses no information about the entity itself-the probability is the same whether the entity under discussion is \"Hillary Clinton\" or \"wheat\".",
+        "Plainly, this assumption is too strong.",
+        "Distinguishing important from unimportant entity types is important in coreference (Haghighi and Klein, 2010) and summarization (Nenkova et al., 2005); our model applies the same insight to the entity grid, by adding information from syntax, a named-entity tagger and statistics from an external coreference corpus."
+      ]
+    },
+    {
+      "heading": "2. Related work",
+      "text": [
+        "Since its initial appearance (Lapata and Barzilay, 2005; Barzilay and Lapata, 2005), the entity grid has been used to perform wide variety of tasks.",
+        "In addition to its first proposed application, sentence ordering for multidocument summarization, it has proven useful for story generation (Mclntyre and Lapata, 2010), readability prediction (Pitler et al., 2010; Barzilay and Lapata, 2008) and essay scoring (Burstein et al., 2010).",
+        "It also remains a critical component in state-of-the-art sentence ordering models (Soricut and Marcu, 2006; Eisner and Charniak, 2008), which typically combine it with other independently-trained models.",
+        "There have been few attempts to improve the entity grid directly by altering its feature representation.",
+        "Filippova and Strube (2007) incorporate semantic relatedness, but find no significant improve1 [Visual meteorological conditions]s prevailed for [the personal cross country flight for which [a VFR flight plan]o was filed] x •",
+        "Figure 1 : A short text (using NP-only mention detection), and its corresponding entity grid.",
+        "The numeric token \"1300\" is removed in preprocessing.",
+        "ment over the original model.",
+        "Cheung and Penn (2010) adapt the grid to German, where focused constituents are indicated by sentence position rather than syntactic role.",
+        "The best entity grid for English text, however, is still the original."
+      ]
+    },
+    {
+      "heading": "3. Entity grids",
+      "text": [
+        "The entity grid represents a document as a matrix (Figure 1 ) with a row for each sentence and a column for each entity.",
+        "The entry for (sentence i, entity j), which we write ry, represents the syntactic role that entity takes on in that sentence: subject (S), object (O), or some other role (X).",
+        "In addition, there is a special marker (-) for entities which do not appear at all in a given sentence.",
+        "To construct a grid, we must first decide which textual units are to be considered \"entities\", and how the different mentions of an entity are to be linked.",
+        "We follow the -coreference setting from Barzilay and Lapata (2005) and perform heuristic coreference resolution by linking mentions which share a head noun.",
+        "Although some versions of the grid use an automatic coreference resolver, this often fails to improve results; in Barzilay and Lapata (2005), coreference improves results in only one of their target domains, and actually hurts for readability prediction.",
+        "Their results, moreover, rely on running coreference on the document in its original order, in a summarization task, the correct order is not known, which will cause even more resolver errors.",
+        "To build a model based on the grid, we treat the columns (entities) as independent, and look at local transitions between sentences.",
+        "We model the transitions using the generative approach given in Lapata and Barzilay (2005), in which the model estimates the probability of an entity's role in the next sentence, ry, given its history in the previous two sentences, rj_ij,rj_2j.",
+        "It also uses a single entity-specific feature, salience, determined by counting the total number of times the entity is mentioned in the document.",
+        "We denote this feature vector F{ j.",
+        "For example, the vector for \"flight\" after the last sentence of the example would be F^jnght = {X,S,sal = 2).",
+        "Using two sentences of context and capping salience at 4, there are only 64 possible vectors, so we can learn an independent multinomial distribution for each F. However, the number of vectors grows exponentially as we add features."
+      ]
+    },
+    {
+      "heading": "4. Experimental design",
+      "text": [
+        "We test our model on two experimental tasks, both testing its ability to distinguish between correct and incorrect orderings for WSJ articles.",
+        "In document discrimination (Barzilay and Lapata, 2005), we compare a document to a random permutation of its sentences, scoring the system correct if it prefers the original ordering.",
+        "We also evaluate on the more difficult task of sentence insertion (Chen et al., 2007; Eisner and Charniak, 2008).",
+        "In this task, we remove each sentence from the article and test whether the model prefers to reinsert it at its original location.",
+        "We report the average proportion of correct insertions per document.",
+        "As in Eisner and Charniak (2008), we test on sections 14-24 of the Penn Treebank, for 1004 test documents.",
+        "We test significance using the Wilcoxon Sign-rank test, which detects significant differences in the medians of two distributions."
+      ]
+    },
+    {
+      "heading": "5. Mention detection",
+      "text": [
+        "Our main contribution is to extend the entity grid by adding a large number of entity-specific features.",
+        "Before doing so, however, we add non-head nouns to the grid.",
+        "Doing so gives our feature-based model",
+        "s",
+        "conditions",
+        "plan",
+        "flight",
+        "laredo",
+        "1",
+        "S",
+        "O",
+        "X",
+        "-",
+        "2",
+        "-",
+        "-",
+        "S",
+        "X",
+        "Disc.",
+        "Acc Disc.",
+        "F Ins.",
+        "Table 1: Discrimination scores for entity grids with different mention detectors on WSJ development documents, t indicates performance on both tasks is significantly different from the previous row of the table with p=.05.",
+        "more information to work with, but is beneficial even to the standard entity grid.",
+        "We alter our mention detector to add all nouns in the document to the grid, even those which do not head NPs.",
+        "This enables the model to pick up premodifiers in phrases like \"a Bush spokesman\", which do not head NPs in the Penn Treebank.",
+        "Finding these is also necessary to maximize coreference recall (Eisner and Charniak, 2010).",
+        "We give nonhead mentions the role X.",
+        "The results of this change are shown in Table 1; discrimination performance increases about 4%, from 76% to 80%."
+      ]
+    },
+    {
+      "heading": "6. Entity-specific features",
+      "text": [
+        "As we mentioned earlier, the standard grid model does not distinguish between different types of entity.",
+        "Given the same history and salience, the same probabilities are assigned to occurrences of \"Hillary Clinton\", \"the airlines\", or \"May 25th\", even though we know a priori that a document is more likely to be about Hillary Clinton than it is to be about May 25th.",
+        "This problem is exacerbated by our same-head coreference heuristic, which sometimes creates spurious entities by lumping together mentions headed by nouns like \"miles\" or \"dollars\".",
+        "In this section, we add features that separate important entities from less important or spurious ones.",
+        "Proper Does the entity have a proper mention?",
+        "Named entity The majority OPENNLP Morton et al.",
+        "(2005) named entity label for the coreferential chain.",
+        "Modifiers The total number of modifiers in all mentions in the chain, bucketed by 5s.",
+        "Singular Does the entity have a singular mention?",
+        "News articles are likely to be about people and organizations, so we expect these named entity tags, and proper NPs in general, to be more important to the discourse.",
+        "Entities with many modifiers throughout the document are also likely to be important, since this implies that the writer wishes to point out more information about them.",
+        "Finally, singular nouns are less likely to be generic.",
+        "We also add some features to pick out entities that are likely to be spurious or unimportant.",
+        "These features depend on in-domain coreference data, but they do not require us to run a coreference resolver on the target document itself.",
+        "This avoids the problem that coreference resolvers do not work well for disordered or automatically produced text such as multidocument summary sentences, and also avoids the computational cost associated with coreference resolution.",
+        "Linkable Was the head word of the entity ever marked as coreferring in MUC6?",
+        "Unlinkable Did the head word of the entity occur 5 times in MUC6 and never corefer?",
+        "Has pronouns Were there 5 or more pronouns coreferent with the head word of the entity in the NANC corpus?",
+        "(Pronouns in NANC are automatically resolved using an unsupervised model (Charniak and Eisner, 2009).)",
+        "No pronouns Did the head word of the entity occur over 50 times in NANC, and have fewer than 5 coreferent pronouns?",
+        "To learn probabilities based on these features, we model the conditional probability p(rij\\F) using multilabel logistic regression.",
+        "Our model has a parameter for each combination of syntactic role r, entity-specific feature h and feature vector F: rxhxF.",
+        "This allows the old and new features to interact while keeping the parameter space tractable.",
+        "In Table 2, we examine the changes in our estimated probability in one particular context: an entity with salience 3 which appeared in a non-emphatic role in the previous sentence.",
+        "The standard entity grid estimates that such an entity will be the subject of the next sentence with a probability of about ...and NE type date",
+        "Table 2: Probability of an entity appearing as subject of the next sentence, given the history - X, salience 3, and various entity-specific features.",
+        ".04.",
+        "For most classes of entity, we can see that this is an overestimate; for an entity described by a common noun (such as \"the airline\"), the probability assigned by the extended grid model is .01.",
+        "If we suspect (based on MUC6 evidence) that the noun is not coreferent, the probability drops to .006 (\"an increase\")- if it is a date, it falls even further, to .001.",
+        "However, given that the entity refers to a person, and some of its mentions are modified, suggesting the article gives a title or description (\"Obama's Secretary of State, Hillary Clinton\"), the chance that it will be the subject of the next sentence more than triples."
+      ]
+    },
+    {
+      "heading": "7. Experiments",
+      "text": [
+        "Table 3 gives results for the extended grid model on the test set.",
+        "This model is significantly better than the standard grid on discrimination (84% versus 80%) and has a higher mean score on insertion (24% versus 21 %).",
+        "The best WSJ results in previous work are those of Eisner and Charniak (2008), who combine the entity grid with models based on pronoun coreference and discourse-new NP detection.",
+        "We report their scores in the table.",
+        "This comparison is unfair, however, because the improvements from adding non-head nouns improve our baseline grid sufficiently to equal their discrimination result.",
+        "State-of-the-art results on a different corpus and task were achieved by Sori-cut and Marcu (2006) using a log-linear mixture of an entity grid, IBM translation models, and a word-correspondence model based on Lapata (2003).",
+        "For insertion using the model on its own, the median changes less than the mean, and the change in median score is not significant.",
+        "However, using the combined model, the change is significant.",
+        "Table 3: Extended entity grid and combination model performance on 1004 WSJ test documents.",
+        "Combination models incorporate pronoun coreference, discourse-new NP detection, and IBM model 1.",
+        "+ indicates an extended model score better than its baseline counterpart at p=.05.",
+        "To perform a fair comparison of our extended grid with these model-combining approaches, we train our own combined model incorporating an entity grid, pronouns, discourse-newness and the IBM model.",
+        "We combine models using a log-linear mixture as in Soricut and Marcu (2006), training the weights to maximize discrimination accuracy.",
+        "The second section of Table 3 shows these model combination results.",
+        "Notably, our extended entity grid on its own is essentially just as good as the combined model, which represents our implementation of the previous state of the art.",
+        "When we incorporate it into a combination, the performance increase remains, and is significant for both tasks (disc.",
+        "86% versus 83%, ins.",
+        "27% versus 24%).",
+        "Though the improvement is not perfectly additive, a good deal of it is retained, demonstrating that our additions to the entity grid are mostly orthogonal to previously described models.",
+        "These results are the best reported for sentence ordering of English news articles."
+      ]
+    },
+    {
+      "heading": "8. Conclusion",
+      "text": [
+        "We improve a widely used model of local discourse coherence.",
+        "Our extensions to the feature set involve distinguishing simple properties of entities, such as their named entity type, which are also useful in coreference and summarization tasks.",
+        "Although our method uses coreference information, it does not require coreference resolution to be run on the target documents.",
+        "Given the popularity of entity grid models for practical applications, we hope our model's improvements will transfer to summarization, generation and readability prediction.",
+        "Context",
+        "P(nextrole is subj)",
+        "Disc.",
+        "Acc",
+        "Disc.",
+        "F",
+        "Ins.",
+        "Standard egrid",
+        ".045",
+        "Random",
+        "50.00",
+        "50.00",
+        "12.6",
+        "Head coref in MUC6",
+        ".013",
+        "Elsner+Charniak",
+        "79.6",
+        "81.0",
+        "23.0",
+        "...and proper noun",
+        ".025",
+        "Grid",
+        "79.5",
+        "80.9",
+        "21.4",
+        "...and NE type person",
+        ".037",
+        "Extended Grid",
+        "84.0+",
+        "84.5",
+        "24.2",
+        "...and 5 modifiers overall",
+        ".133",
+        "Grid+combo",
+        "82.6",
+        "84.0",
+        "24.3",
+        "Never coref in MUC6",
+        ".006",
+        "ExtEGrid+combo",
+        "86.0+",
+        "86.5",
+        "26.7+"
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "We are most grateful to Regina Barzilay, Mark Johnson and three anonymous reviewers.",
+        "This work was funded by a Google Fellowship for Natural Language Processing."
+      ]
+    }
+  ]
+}

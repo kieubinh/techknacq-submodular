@@ -1,0 +1,306 @@
+{
+  "info": {
+    "authors": [
+      "German Rigau",
+      "Jordi Atserias",
+      "Eneko Agirre"
+    ],
+    "book": "Annual Meeting of the Association for Computational Linguistics",
+    "id": "acl-P97-1007",
+    "title": "Combining Unsupervised Lexical Knowledge Methods for Word Sense Disambiguation",
+    "url": "https://aclweb.org/anthology/P97-1007",
+    "year": 1997
+  },
+  "references": [
+    "acl-A92-1044",
+    "acl-C90-2008",
+    "acl-C92-2070",
+    "acl-C94-1042",
+    "acl-C96-1005",
+    "acl-H91-1077",
+    "acl-H92-1046",
+    "acl-H94-1046",
+    "acl-J90-1003",
+    "acl-J92-1001",
+    "acl-P81-1030",
+    "acl-P94-1013",
+    "acl-P95-1026",
+    "acl-W95-0105"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper presents a method to combine a set of unsupervised algorithms that can accurately disambiguate word senses in a large, completely untagged corpus.",
+        "Although most of the techniques for word sense resolution have been presented as stand-alone, it is our belief that full-fledged lexical ambiguity resolution should combine several information sources and techniques.",
+        "The set of techniques have been applied in a combined way to disambiguate the genus terms of two machine-readable dictionaries (MRD), enabling us to construct complete taxonomies for Spanish and French.",
+        "Tested accuracy is above 80% overall and 95% for two-way ambiguous genus terms, showing that taxonomy building is not limited to structured dictionaries such as LDOCE."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "While in English the \"lexical bottleneck\" problem (Briscoe, 1991) seems to be softened (e.g. WordNet (Miller, 1990), Alvey Lexicon (Grover et al., 1993), COMLEX (Grishman et al., 1994), etc.)",
+        "there are no available wide range lexicons for natural language processing (NLP) for other languages.",
+        "Manual construction of lexicons is the most reliable technique for obtaining structured lexicons but is costly and highly time-consuming.",
+        "This is the reason for many researchers having focused on the massive acquisition of lexical knowledge and semantic information from preexisting structured lexical resources as automatically as possible.",
+        "As dictionaries are special texts whose subject matter is a language (or a pair of languages in the case of bilingual dictionaries) they provide a wide range of information about words by giving definitions of senses of words, and, doing that, supplying knowledge not just about language, but about the world itself.",
+        "One of the most important relation to be extracted from machine-readable dictionaries (MRD) is the hyponym/hypernym relation among dictionary senses (e.g. (Amsler, 1981), (Vossen and Serail, 1990) ) not only because of its own importance as the backbone of taxonomies, but also because this relation acts as the support of main inheritance mechanisms helping, thus, the acquisition of other relations and semantic features (Cohen and Loiselle, 1988), providing formal structure and avoiding redundancy in the lexicon (Briscoe et al., 1990).",
+        "For instance, following the natural chain of dictionary senses described in the Diccionario General Ilustrado de la Lengua Espanola (DGILE, 1987) we can discover that a bonsai is a cultivated plant or bush.",
+        "bonsai_1_2 planta y arbusto asi cultivado.",
+        "(bonsai, plant and bush cultivated in that way) The hyponym/hypernym relation appears between the entry word (e.g. bonsai) and the genus term, or the core of the phrase (e.g. planta and arbusto).",
+        "Thus, usually a dictionary definition is written to employ a genus term combined with dif-ferentia which distinguishes the word being defined from other words with the same genus term'.",
+        "As lexical ambiguity pervades language in texts, the words used in dictionary are themselves lexically ambiguous.",
+        "Thus, when constructing complete disambiguated taxonomies, the correct dictionary sense of the genus term must be selected in each dictionary",
+        "definition, performing what is usually called Word Sense Disambiguation (WSD)2.",
+        "In the previous example planta has thirteen senses and arbusto only one.",
+        "Although a large set of dictionaries have been exploited as lexical resources, the most widely used monolingual MRD for NLP is LDOCE which was designed for learners of English.",
+        "It is clear that different dictionaries do not contain the same explicit information.",
+        "The information placed in LDOCE has allowed to extract other implicit information easily, e.g. taxonomies (Bruce et al., 1992).",
+        "Does it mean that only highly structured dictionaries like LDOCE are suitable to be exploited to provide lexical resources for NLP systems?",
+        "We explored this question probing two disparate dictionaries: Diccionario General Ilustrado de la Lengua Espanola (DGILE, 1987) for Spanish, and Le Plus Petit Larousse (LPPL, 1980) for French.",
+        "Both are substantially poorer in coded information than LDOCE (LDOCE, 1987)3.",
+        "These dictionaries are very different in number of headwords, polysemy degree, size and length of definitions (c.f.",
+        "table 1).",
+        "While DGILE is a good example of a large sized dictionary, LPPL shows to what extent the smallest dictionary is useful.",
+        "Even if most of the techniques for WSD are presented as stand-alone, it is our belief, following the ideas of (McRoy, 1992), that full-fledged lexical ambiguity resolution should combine several information sources and techniques.",
+        "This work does not address all the heuristics cited in her paper, but profits from techniques that were at hand, without any claim of them being complete.",
+        "In fact we use unsupervised techniques, i.e. those that do not require hand-coding of any kind, that draw knowledge from a variety of sources – the source dictionaries, bilingual dictionaries and WordNet – in diverse ways.",
+        "This paper tries to proof that using an appropriate method to combine those heuristics we can disambiguate the genus terms with reasonable precision, and thus construct complete taxonomies from any conventional dictionary in any language.",
+        "This paper is organized as follows.",
+        "After this short introduction, section 2 shows the methods we have applied.",
+        "Section 3 describes the test sets and shows the results.",
+        "Section 4 explains the construction of the lexical knowledge resources used.",
+        "Section 5 discusses previous work, and finally, section 6 faces some conclusions and comments on future work."
+      ]
+    },
+    {
+      "heading": "2 Heuristics for Genus Sense Disambiguation",
+      "text": [
+        "As the methods described in this paper have been developed for being applied in a combined way, each one must be seen as a container of some part of the knowledge (or heuristic) needed to disambiguate the correct hypernym sense.",
+        "Not all the heuristics are suitable to be applied to all definitions.",
+        "For combining the heuristics, each heuristic assigns each candidate hypernym sense a normalized weight, i.e. a real number ranging from 0 to 1 (after a scaling process, where maximum score is assigned 1, c.f.",
+        "section 2.9).",
+        "The heuristics applied range from the simplest (e.g. heuristic 1, 2, 3 and 4) to the most informed ones (e.g. heuristics 5, 6, 7 and 8), and use information present in the entries under study (e.g. heuristics 1, 2, 3 and 4) or extracted from the whole dictionary as a unique lexical knowledge resource (e.g. heuristics 5 and 6) or combining lexical knowledge from several heterogeneous lexical resources (e.g. heuristic 7 and 8)."
+      ]
+    },
+    {
+      "heading": "2.1 Heuristic 1: Monosemous Genus Term",
+      "text": [
+        "This heuristic is applied when the genus term is monosemous.",
+        "As there is only one hypernym sense candidate, the hyponym sense is attached to it.",
+        "Only 12% of noun dictionary senses have monosenious genus terms in DGILE, whereas the smaller LPPL reaches 40%."
+      ]
+    },
+    {
+      "heading": "2.2 Heuristic 2: Entry Sense Ordering",
+      "text": [
+        "This heuristic assumes that senses are ordered in an entry by frequency of usage.",
+        "That is, the most used and important senses are placed in the entry before less frequent or less important ones.",
+        "This heuristic provides the maximum score to the first sense of the hypernym candidates and decreasing scores to the others."
+      ]
+    },
+    {
+      "heading": "2.3 Heuristic 3: Explicit Semantic Domain",
+      "text": [
+        "This heuristic assigns the maximum score to the hypernym sense which has the same semantic domain tag as the hyponym.",
+        "This heuristic is of limited application: LPPL lacks semantic tags, and less than 10% of the definitions in DGILE are marked with one of the 96 different semantic domain tags (e.g. med.",
+        "for medicine, or der.",
+        "for law, etc.",
+        ")."
+      ]
+    },
+    {
+      "heading": "2.4 Heuristic 4: Word Matching",
+      "text": [
+        "This heuristic trusts that related concepts will be expressed using the same content words.",
+        "Given two definitions – that of the hyponym and that of one candidate hypernym – this heuristic computes the total amount of content words shared (including headwords).",
+        "Due to the morphological productivity of Spanish and French, we have considered different variants of this heuristic.",
+        "For LPPL the match among lemmas proved most useful, while DGILE yielded better results when matching the first four characters of words."
+      ]
+    },
+    {
+      "heading": "2.5 Heuristic 5: Simple Cooccurrence",
+      "text": [
+        "This heuristic uses cooccurrence data collected from the whole dictionary (see section 4.1 for more details).",
+        "Thus, given a hyponym definition (0) and a set of candidate hypernym definitions, this method selects the candidate hypernym definition (E) which returns the maximum score given by formula (1):",
+        "The cooccurrence weight (cw) between two words can be given by Cooccurrence Frequency, Mutual Information (Church and Hanks, 1990) or Association Ratio (Resnik, 1992).",
+        "We tested them using different context window sizes.",
+        "Best results were obtained in both dictionaries using the Association Ratio.",
+        "In DGILE window size 7 proved the most suitable, whereas in LPPL whole definitions were used."
+      ]
+    },
+    {
+      "heading": "2.6 Heuristic 6: Cooccurrence Vectors",
+      "text": [
+        "This heuristic is based on the method presented in (Wilks et al., 1993) which also uses cooccurrence data collected from the whole dictionary (c.f.",
+        "section 4.1).",
+        "Given a hyponym definition (0) and a set of candidate hypernym definitions, this method selects the candidate hypernym (E) which returns the maximum score following formula (2):",
+        "The similarity (sim) between two definitions can be measured by the dot product, the cosine function or the Euclidean distance between two vectors (Vu and VE) which represent the contexts of the words presented in the respective definitions following formula (3):",
+        "The vector for a definition (VDef ) is computed adding the cooccurrence information vectors of the words in the definition (civ(wi)).",
+        "The cooccurrence information vector for a word is collected from the whole dictionary using Cooccurrence Frequency, Mutual Information or Association Ratio.",
+        "The best combination for each dictionary vary: whereas the dot product, Association Ratio, and window size 7 proved best for DGILE, the cosine, Mutual Information and whole definitions were preferred for LPPL."
+      ]
+    },
+    {
+      "heading": "2.7 Heuristic 7: Semantic Vectors",
+      "text": [
+        "Because both LPPL and DGILE are poorly semantically coded we decided to enrich the dictionary assigning automatically a semantic tag to each dictionary sense (see section 4.2 for more details).",
+        "Instead of assigning only one tag we can attach to each dictionary sense a vector with weights for each of the 25 semantic tags we considered (which correspond to the 25 lexicographer files of WordNet (Miller, 1990)).",
+        "In this case, given an hyponym (0) and a set of possible hypernyms we select the candidate hypernym (E) which yields maximum similarity among semantic vectors:",
+        "where sim can be the dot product, cosine or Euclidean Distance, as before.",
+        "Each dictionary sense has been semantically tagged with a vector of semantic weights following formula (5).",
+        "The salient word vector (swv) for a word contains a saliency weight (Yarowsky, 1992) for each of the 2:5 semantic tags of WordNet.",
+        "Again, the best method differs from one dictionary to the other: each one prefers the method used in the previous section."
+      ]
+    },
+    {
+      "heading": "2.8 Heuristic 8: Conceptual Distance",
+      "text": [
+        "Conceptual distance provides a basis for determining closeness in meaning among words, taking as reference a structured hierarchical net.",
+        "Conceptual distance between two concepts is essentially the length",
+        "of the shortest path that connects the concepts in the hierarchy.",
+        "In order to apply conceptual distance, WordNet was chosen as the hierarchical knowledge base, and bilingual dictionaries were used to link Spanish and French words to the English concepts.",
+        "Given a hyponym definition (0) and a set of candidate hypernym definitions, this heuristic chooses the hypernym definition (E) which is closest according to the following formula:",
+        "That is, Conceptual Distance is measured between the headword of the hyponym definition and the genus of the candidate hypernym definitions using formula (7), c.f.",
+        "(Agirre et al., 1994).",
+        "To compute the distance between any two words (wi ,w2), all the corresponding concepts in WordNet (c1„ c23) are searched via a bilingual dictionary, and the minimum of the summatory for each concept in the path between each possible combination of cl, and c23 is returned, as shown below:",
+        "Formulas (6) and (7) proved the most suitable of several other possibilities for this task, including those which included full definitions in (6) or those using other Conceptual Distance formulas, c.f.",
+        "(Agirre and Rigau, 1996)."
+      ]
+    },
+    {
+      "heading": "2.9 Combining the heuristics: Summing",
+      "text": [
+        "As outlined in the beginning of this section, the way to combine all the heuristics in one single decision is simple.",
+        "The weights each heuristic assigns to the rivaling senses of one genus are normalized to the interval between 1 (best weight) and 0.",
+        "Formula (8) shows the normalized value a given heuristic will give to sense E of the genus, according to the weight assigned to the heuristic to sense E and the maximum weight of all the sense of the genus E."
+      ]
+    },
+    {
+      "heading": "3 Evaluation",
+      "text": []
+    },
+    {
+      "heading": "3.1 Test Set",
+      "text": [
+        "In order to test the performance of each heuristic and their combination, we selected two test sets at random (one per dictionary): 391 noun senses for DGILE and 115 noun senses for LPPL, which give confidence rates of 95% and 91% respectively.",
+        "From these samples, we retained only those for which the automatic selection process selected the correct genus (more than 97% in both dictionaries).",
+        "Both test sets were disambiguated by hand.",
+        "Where necessary multiple correct senses were allowed in both dictionaries.",
+        "Table 2 shows the data for the test sets."
+      ]
+    },
+    {
+      "heading": "3.2 Results",
+      "text": [
+        "Table 3 summarizes the results for polysemous genus.",
+        "In general, the results obtained for each heuristic seem to be poor, but always over the random choice baseline (also shown in tables 3 and 4).",
+        "The best heuristics according to the recall in both dictionaries is the sense ordering heuristic (2).",
+        "For the rest, the difference in size of the dictionaries could explain the reason why cooccurrence-based heuristics (5 and 6) are the best for DGILE, and the worst for LPPL.",
+        "Semantic distance gives the best precision for LPPL, but chooses an average of 1.25 senses for each genus.",
+        "With the combination of the heuristics (Sum) we obtained an improvement over sense ordering (heuristic 2) of 9% (from 70% to 79%) in DGILE, and of 7% (from 66% to 73%) in LPPL, maintaining in both cases a coverage of 100%.",
+        "Including monosemous genus in the results (c.f.",
+        "table 4), the sum is able to correctly disambiguate 83% of the genus in DGILE (8% improvement over sense ordering) and 82% of the genus in LPPL (4% improvement).",
+        "Note that we are adding the results of eight different heuristics with eight different performances, improving the individual performance of each one.",
+        "In order to test the contribution of each heuristic to the total knowledge, we tested the sum of all the heuristics, eliminating one of them in turn.",
+        "The results are provided in table 5.",
+        "(Gale et al., 1993) estimate that any sense-identification system that does not give the correct sense of polysemous words more than 75% of the time would not be worth serious consideration.",
+        "As table 5 shows this is not the case in our system.",
+        "For instance, in DGILE heuristic 8 has the worst performance (see table 4, precision 57%), but it has the second larger contribution (see table 5, precision decreases from 83% to 77%).",
+        "That is, even those heuristics with poor performance can contribute with knowledge that other heuristics do not provide."
+      ]
+    },
+    {
+      "heading": "3.3 Evaluation",
+      "text": [
+        "The difference in performance between the two dictionaries show that quality and size of resources is a key issue.",
+        "Apparently the task of disambiguating LPPL seems easier: less polysemy, more monosemous genus and high precision of the sense ordering heuristic.",
+        "However, the heuristics that depend only on the size of the data (5, 6) perform poorly on LPPL, while they are powerful methods for DGILE.",
+        "The results show that the combination of heuristics is useful, even if the performance of some of the heuristics is low.",
+        "The combination performs better than isolated heuristics, and allows to disambiguate all the genus of the test set with a success rate of 83% in DGILE and 82% in LPPL.",
+        "All the heuristics except heuristic 3 can readily be applied to any other dictionary.",
+        "Minimal parameter adjustment (window size, cooccurrence weigth formula and vector similarity function) should be done to fit the characteristics of the dictionary, but according to our results it does not alter significantly the results after combining the heuristics."
+      ]
+    },
+    {
+      "heading": "4 Derived Lexical Knowledge Resources",
+      "text": []
+    },
+    {
+      "heading": "4.1 Cooccurrence Data",
+      "text": [
+        "Following (Wilks et al., 1993) two words cooccur if they appear in the same definition (word order in definitions are not taken into account).",
+        "For instance, for DGILE, a lexicon of 300,062 cooccurrence pairs among 40,193 word forms was derived (stop words were not taken into account).",
+        "Table 6 shows the first eleven words out of the 360 which cooccur with vino (wine) ordered by Association Ratio.",
+        "From left to right, Association Ratio and number of occurrences.",
+        "The lexicon (or machine-tractable dictionary,"
+      ]
+    },
+    {
+      "heading": "4.2 Multilingual Data",
+      "text": [
+        "Heuristics 7 and 8 need external knowledge, not present in the dictionaries themselves.",
+        "This knowledge is composed of semantic field tags and hierarchical structures, and both were extracted from WordNet.",
+        "In order to do this, the gap between our working languages and English was filled with two bilingual dictionaries.",
+        "For this purpose, we derived a list of links for each word in Spanish and French as follows.",
+        "Firstly, each Spanish or French word was looked up in the bilingual dictionary, and its English translation was found.",
+        "For each translation WordNet yielded its senses, in the form of WordNet concepts (synsets).",
+        "The pair made of the original word and each of the concepts linked to it, was included in a file, thus producing a MTD with links between Spanish or French words and WordNet concepts.",
+        "Obviously some of this links are not correct, as the translation in the bilingual dictionary may not necessarily be understood in its senses (as listed in WordNet).",
+        "The heuristics using these MTDs are aware of this.",
+        "For instance when accessing the semantic fields for yin (French) we get a unique translation, wine, which has two senses in WordNet: <wine , vino> as a beverage, and <wine , wine-coloured> as a kind of color.",
+        "In this example two links would be produced (yin, <wine , vino>) and (yin, <wine , wine-coloured>) .",
+        "This link allows us to get two possible semantic fields for yin (noun .",
+        "ood, file 13, and noun.",
+        "attribute, file 7) and the whole structure of the hierarchy in WordNet for each of the concepts."
+      ]
+    },
+    {
+      "heading": "5 Comparison with Previous Work",
+      "text": [
+        "Several approaches have been proposed for attaching the correct sense (from a set of prescribed ones) of a word in context.",
+        "Some of them have been fully tested in real size texts (e.g. statistical methods (Yarowsky, 1992), (Yarowsky, 1994), (Miller and Teibel, 1991), knowledge based methods (Sussna, 1993), (Agirre and Rigau, 1996), or mixed methods (Richardson et al., 1994), (Resnik, 1995)).",
+        "The performance of WSD is reaching a high stance, although usually only small sets of words with clear sense distinctions are selected for disambiguation (e.g. (Yarowsky, 1995) reports a success rate of 96% disambiguating twelve words with two clear sense distinctions each one).",
+        "This paper has presented a general technique for WSD which is a combination of statistical and knowledge based methods, and which has been applied to disambiguate all the genus terms in two dictionaries.",
+        "Although this latter task could be seen easier than general WSD4, genus are usually frequent and general words with high ambiguity5.",
+        "While the average of senses per noun in DGILE is 1.8 the average of senses per noun genus is 2.75 (1.30 and 2.29 respectively for LPPL).",
+        "Furthermore, it is not possible to apply the powerful \"one sense per discourse\" property (Yarowsky, 1995) because there is no discourse in dictionaries.",
+        "WSD is a very difficult task even for humans6, but semiautomatic techniques to disambiguate genus have been broadly used (Amsler, 1981) (Vossen and Serail, 1990) (Ageno et al., 1992) (Artola, 1993) and some attempts to do automatic genus disambiguation have been performed using the semantic codes of the dictionary (Bruce et al., 1992) or using cooccurrence data extracted from the dictionary itself (Wilks et al., 1993).",
+        "Selecting the correct sense for LDOCE genus terms, (Bruce et al., 1992)) report a success rate of 80% (90% after hand coding of ten genus).",
+        "This impressive rate is achieved using the intrinsic char-41n contrast to other sense distinctions Dictionary word senses frequently differ in subtle distinctions (only some of which have to do with meaning (Gale et al., 1993)) producing a large set of closely related dictionary senses (Jacobs, 1991).",
+        "5However, in dictionary definitions the headword and the genus term have to be the same part of speech.",
+        "6(Wilks et al., 1993) disambiguating 197 occurrences of the word bank in LDOCE say \"was not an easy task, as some of the usages of bank did not seem to fit any of the definitions very well\".",
+        "Also (Miller et al., 1994) tagging semantically SemCor by hand, measure an error rate around 10% for polysemous words.",
+        "acteristics of LDOCE.",
+        "Furthermore, using only the implicit information contained into the dictionary definitions of LDOCE (Cowie et al., 1992) report a success rate of 47% at a sense level.",
+        "(Wilks et al., 1993) reports a success rate of 45% disambiguating the word bank (thirteen senses LDOCE) using a technique similar to heuristic 6.",
+        "In our case, combining informed heuristics and without explicit semantic tags, the success rates are 83% and 82% overall, and 95% and 75% for two-way ambiguous genus (DGILE and LPPL data, respectively).",
+        "Moreover, 93% and 92% of times the real solution is between the first and second proposed solution."
+      ]
+    },
+    {
+      "heading": "6 Conclusion and Future Work",
+      "text": [
+        "The results show that computer aided construction of taxonomies using lexical resources is not limited to highly-structured dictionaries as LDOCE, but has been succesfully achieved with two very different dictionaries.",
+        "All the heuristics used are unsupervised, in the sense that they do not need hand-codding of any kind, and the proposed method can be adapted to any dictionary with minimal parameter setting.",
+        "Nevertheless, quality and size of the lexical knowledge resources are important.",
+        "As the results for LPPL show, small dictionaries with short definitions can not profit from raw corpus techniques (heuristics 5, 6), and consequently the improvement of precision over the random baseline or first-sense heuristic is lower than in DGILE.",
+        "We have also shown that such a simple technique as just summing is a useful way to combine knowledge from several unsupervised WSD methods, allowing to raise the performance of each one in isolation (coverage and/or precision).",
+        "Furthermore, even those heuristics with apparently poor results provide knowledge to the final result not provided by the rest of heuristics.",
+        "Thus, adding new heuristics with different methodologies and different knowledge (e.g. from corpora) as they become available will certainly improve the results.",
+        "Needless to say, several improvements can be done both in individual heuristic and also in the method to combine them.",
+        "For instance, the cooccurrence heuristics have been applied quite indiscriminately, even in low frequency conditions.",
+        "Significance tests or association coefficients could be used in order to discard low confidence decisions.",
+        "Also, instead of just summing, more clever combinations can be tried, such as training classifiers which use the heuristics as predictor variables.",
+        "Although we used these techniques for genus disambiguation we expect similar results (or even better taken the \"one sense per discourse\" property and lexical knowledge acquired from corpora) for the WSD problem."
+      ]
+    },
+    {
+      "heading": "7 Acknowledgments",
+      "text": [
+        "This work would not be possible without the collaboration of our colleagues, specially Jose Mari Arriola, Xabier Artola, Arantza Diaz de Ilarraza, Kepa Sarasola and Aitor Soroa in the Basque Country and Horacio Rodriguez in Catalonia."
+      ]
+    }
+  ]
+}

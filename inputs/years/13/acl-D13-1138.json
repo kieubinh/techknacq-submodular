@@ -1,0 +1,207 @@
+{
+  "info": {
+    "authors": [
+      "Joern Wuebker",
+      "Stephan Peitz",
+      "Felix Rietig",
+      "Hermann Ney"
+    ],
+    "book": "EMNLP",
+    "id": "acl-D13-1138",
+    "title": "Improving Statistical Machine Translation with Word Class Models",
+    "url": "https://aclweb.org/anthology/D13-1138",
+    "year": 2013
+  },
+  "references": [
+    "acl-D07-1091",
+    "acl-D08-1089",
+    "acl-E99-1010",
+    "acl-J03-1002",
+    "acl-J04-4002",
+    "acl-N03-1017",
+    "acl-N13-1003",
+    "acl-P02-1040",
+    "acl-P03-1021",
+    "acl-W04-3250",
+    "acl-W10-1738",
+    "acl-W12-3125"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Automatically clustering words from a monolingual or bilingual training corpus into classes is a widely used technique in statistical natural language processing.",
+        "We present a very simple and easy to implement method for using these word classes to improve translation quality.",
+        "It can be applied across different machine translation paradigms and with arbitrary types of models.",
+        "We show its efficacy on a small German?English and a larger French?German translation task with both standard phrase-based and hierarchical phrase-based translation systems for a common set of models.",
+        "Our results show that with word class models, the baseline can be improved by up to 1.4% BLEU and 1.0% TER on the French?German task and 0.3% BLEU and 1.1% TER on the German?English task."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Data sparsity is one of the major problems for statistical learning methods in natural language processing (NLP) today.",
+        "Even with the huge training data sets available in some tasks, for many phenomena that need to be modeled only few training instances can be observed.",
+        "This is partly due to the large vocabularies of natural languages.",
+        "One possiblity to reduce the sparsity for model estimation is to reduce the vocabulary size.",
+        "By clustering the vocabulary into a fixed number of word classes, it is possible to train models that are less prone to sparsity issues.",
+        "This work investigates the performance of standard models used in statistical machine translation when they are trained on automatically learned word classes rather than the actual word identities.",
+        "In the popular tooklit GIZA++ (Och and Ney, 2003), word classes are an essential ingredient to model alignment probabilities with the HMM or IBM translation models.",
+        "It contains the mkcls tool (Och, 1999), which can automatically cluster the vocabulary into classes.",
+        "Using this tool, we propose to re-parameterize the standard models used in statistical machine translation (SMT), which are usually conditioned on word identities rather than word classes.",
+        "The idea is that this should lead to a smoother distribution, which is more reliable due to less sparsity.",
+        "Here, we focus on the phrase-based and lexical channel models in both directions, simple count models identifying frequency thresholds, lexicalized reordering models and an n-gram language model.",
+        "Although our results show that it is not a good idea to replace the original models, we argue that adding them to the log-linear feature combination can improve translation quality.",
+        "They can easily be computed for different translation paradigms and arbitrary models.",
+        "Training and decoding is possible without or with only little change to the code base.",
+        "Our experiments are conducted on a medium-sized French?German task and a small German?English task and with both phrase-based and hierarchical phrase-based translation decoders.",
+        "By using word class models, we can improve our respective baselines by 1.4% BLEU and 1.0% TER on the French?German task and 0.3% BLEU and 1.1% TER on the German?English task.",
+        "Training an additional language model for trans",
+        "lation based on word classes has been proposed in (Wuebker et al., 2012; Mediani et al., 2012; Koehn and Hoang, 2007).",
+        "In addition to the reduced sparsity, an advantage of the smaller vocabulary is that longer n-gram context can be modeled efficiently.",
+        "Mathematically, our idea is equivalent to a special case of the Factored Translation Models proposed by Koehn and Hoang (2007).",
+        "We will go into more detail in Section 4.",
+        "Also related to our work, Cherry (2013) proposes to parameterize a hierarchical reordering model with sparse features that are conditioned on word classes trained with mkcls.",
+        "However, the features are trained with MIRA rather than estimated by relative frequencies."
+      ]
+    },
+    {
+      "heading": "2 Word Class Models",
+      "text": []
+    },
+    {
+      "heading": "2.1 Standard Models",
+      "text": [
+        "The translation model of most phrase-based and hierarchical phrase-based SMT systems is parameter-ized by two phrasal and two lexical channel models (Koehn et al., 2003) which are estimated as relative frequencies.",
+        "Their counts are extracted heuristically from a word aligned bilingual training corpus.",
+        "In addition to the four channel models, our baseline contains binary count features that fire, if the extraction count of the corresponding phrase pair is greater or equal to a given threshold ?",
+        ".",
+        "We use the thresholds ?",
+        "= {2, 3, 4}.",
+        "Our phrase-based baseline contains the hierarchical reordering model (HRM) described by Galley and Manning (2008).",
+        "Similar to (Cherry et al., 2012), we apply it in both translation directions with separate scaling factors for the three orientation classes, leading to a total of six feature weights.",
+        "An n-gram language model (LM) is another important feature of our translation systems.",
+        "The baselines apply 4-gram LMs trained by the SRILM toolkit (Stolcke, 2002) with interpolated modified Kneser-Ney smoothing (Chen and Goodman, 1998).",
+        "The smaller vocabulary size allows us to efficiently model larger context, so in addition to the 4-gram LM, we also train a 7-gram LM based on word classes.",
+        "In contrast to an LM of the same size trained on word identities, the increase in computational resources needed for translation is negligible for the 7-gram word class LM (wcLM)."
+      ]
+    },
+    {
+      "heading": "2.2 Training",
+      "text": [
+        "By replacing the words on both source and target side of the training data with their respective word classes and keeping the word alignment unchanged, all of the above models can easily be trained conditioned on word classes by using the same training procedure as usual.",
+        "We end up with two separate model files, usually in the form of large tables, one with word identities and one with classes.",
+        "Next, we sort both tables by their word classes.",
+        "By walking through both sorted tables simultaneously, we can then efficiently augment the standard model file with an additonal feature (or additional features) based on word classes.",
+        "The word class LM is directly passed on to the decoder."
+      ]
+    },
+    {
+      "heading": "2.3 Decoding",
+      "text": [
+        "The decoder searches for the best translation given a set of models hm(eI1, s",
+        "hidden alignment or derivation.",
+        "All the above mentioned models can easily be integrated into this framework as additional features hm.",
+        "The feature weights ?m are tuned with minimum error rate training (MERT) (Och, 2003)."
+      ]
+    },
+    {
+      "heading": "3 Experiments",
+      "text": []
+    },
+    {
+      "heading": "3.1 Data",
+      "text": [
+        "Our experiments are performed on a French?German task.",
+        "In addition to some project-internal data, we train the system on the data provided for the WMT 2012 shared task1.",
+        "Both the dev and the test set are composed of a mixture of broadcast news and broadcast conversations crawled from the web and have two references.",
+        "Table 1 shows the data statistics.",
+        "To confirm our results we also run experiments on the German?English task of the IWSLT 2012 evaluation campaign2."
+      ]
+    },
+    {
+      "heading": "3.2 Setup",
+      "text": [
+        "In the French?German task, our baseline is a standard phrase-based system augmented with the hierarchical reordering model (HRM) described in Section 2.1.",
+        "The language model is a 4-gram LM trained on all German monolingual sources provided for WMT 2012.",
+        "For the class-based models, we run mkcls on the source and target side of the bilingual training data to cluster the vocabulary into 100 classes each.",
+        "This clustering is used to train the models described above for word classes on the same training data as their counterparts based on word identity.",
+        "This also holds for the wcLM, which is a 4-gram LM trained on the same data as the baseline LM.",
+        "Further, the smaller vocabulary allows us to build an additional wcLM with a 7-gram context length.",
+        "On this task we also run additional experiments with 200 and 500 classes.",
+        "On the German?English task, we evaluate our method for both a standard phrase-based and the hierarchical phrase-based baseline.",
+        "Again, the phrase-based baseline contains the HRM model.",
+        "As bilingual training data we use the TED talks, which we cluster into 100 classes on both source and target side.",
+        "The 4-gram LM is trained on the TED, Eu-roparl and news-commentary corpora.",
+        "On this data set, we directly use a 7-gram wcLM.",
+        "In all setups, the feature weights are optimized with MERT.",
+        "Results are reported in BLEU (Pap-ineni et al., 2002) and TER (Snover et al., 2006), confidence level computation is based on (Koehn, 2004).",
+        "Our experiments are conducted with the open source toolkit Jane (Wuebker et al., 2012; Vilar et al., 2010).",
+        "task.",
+        "Results marked with ?",
+        "are statistically significant with 95% confidence, results marked with ?",
+        "with 90% confidence.",
+        "-X +wcX denote the systems, where the model X in the baseline is replaced by its word class counterpart.",
+        "The 7-gram word class LM is denoted as wcLM7.",
+        "wcModelsX denotes all word class models trained on X classes."
+      ]
+    },
+    {
+      "heading": "3.3 Results",
+      "text": [
+        "Results for the French?German task are given in Table 2.",
+        "In a first set of experiments we replaced one of the standard TM, LM and HRM models by the same model based on word classes.",
+        "Unsurprisingly, this degrades performance with different levels of severity.",
+        "The strongest degradation can be seen when replacing the TM, while replacing the HRM only leads to a small drop in performance.",
+        "However, when the word class models are added as additional features to the baseline, we observe improvements.",
+        "The wcTM yields 0.3% BLEU and 0.5% TER on test.",
+        "By adding the 4-gram wcLM, we get another 0.3% BLEU and the wcHRM shows further improvements of 0.5% BLEU and 0.2% TER.",
+        "Extending the context length of the wcLM to 7-grams gives an additional boost, reaching a total gain over the baseline of 1.4% BLEU and 1.0% TER.",
+        "Using 200 classes instead of 100 seems to perform slightly better on test, but with 500 classes, translation quality degrades again.",
+        "On the German?English task, the results shown in Table 3 are similar in TER, but less pronounced in BLEU.",
+        "Here we are able to improve over the phrase-based baseline by 0.3% BLEU and 1.1% TER",
+        "task.",
+        "Results marked with ?",
+        "are statistically significant with 95% confidence, results marked with ?",
+        "with 90% confidence.",
+        "by adding the wcTM, the 7-gram wcLM and the wcHRM.",
+        "With the hierarchical decoder we gain 0.3% BLEU and 0.8% TER by adding the wcTM and the 7-gram wcLM."
+      ]
+    },
+    {
+      "heading": "4 Equivalence to Factored Translation",
+      "text": [
+        "Koehn and Hoang (2007) propose to integrate different levels of annotation (e.g. morphologial analysis) as factors into the translation process.",
+        "Here, the surface form of the source word is analyzed to produce the factors, which are then translated and finally the surface form of the target word is generated from the target factors.",
+        "Although the translations of the factors operate on the same phrase segmentation, they are assumed to be independent.",
+        "In practice this is done by phrase expansion, which generates a joint phrase table as the cross product from the phrase tables of the individual factors.",
+        "In contrast, in this work each word is mapped to a single class, which means that when we have selected a translation option for the surface form, the target side on the word class level is predetermined.",
+        "Thus, no phrase expansion or generation steps are necessary to incorporate the word class information.",
+        "The phrase table can simply be extended with additional scores, keeping the set of phrases constant.",
+        "Although the implementation is simpler, our approach is mathematically equivalent to a special case of the factored translation framework, which is shown in Figure 1.",
+        "The generation step from target word e to its target class c(e) assigns all probability",
+        "mass to a single event: pgen(c(e)|e) = 1. mass to a single event:"
+      ]
+    },
+    {
+      "heading": "5 Conclusion",
+      "text": [
+        "We have presented a simple and very easy to implement method to make use of word clusters for improving machine translation quality.",
+        "It is applicable across different paradigms and for arbitrary types of models.",
+        "Depending on the model type, it requires little or no change to the training and decoding software.",
+        "We have shown the efficacy of this method on two translation tasks and with both the standard phrase-based and the hierarchical phrase-based translation paradigm.",
+        "It was applied to relative frequency translation probabilities, the n-gram language model and a hierarchical reordering model.",
+        "In our experiments, the baseline is improved by 1.4% BLEU and 1.0% TER on the French?German task and by 0.3% BLEU and 1.1% TER on the German?English task.",
+        "In future work we plan to apply our method to a wider range of languages.",
+        "Intuitively, it should be most effective for morphologically rich languages, which naturally have stronger sparsity problems."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work was partially realized as part of the Quaero Programme, funded by OSEO, French State agency for innovation.",
+        "The research leading to these results has also received funding from the European"
+      ]
+    }
+  ]
+}

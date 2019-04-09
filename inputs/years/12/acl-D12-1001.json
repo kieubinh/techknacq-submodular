@@ -1,0 +1,344 @@
+{
+  "info": {
+    "authors": [
+      "Greg Durrett",
+      "Adam Pauls",
+      "Dan Klein"
+    ],
+    "book": "EMNLP",
+    "id": "acl-D12-1001",
+    "title": "Syntactic Transfer Using a Bilingual Lexicon",
+    "url": "https://aclweb.org/anthology/D12-1001",
+    "year": 2012
+  },
+  "references": [
+    "acl-D07-1096",
+    "acl-D09-1086",
+    "acl-D10-1120",
+    "acl-D11-1005",
+    "acl-D11-1006",
+    "acl-J08-4003",
+    "acl-J93-2004",
+    "acl-N06-1014",
+    "acl-N09-1009",
+    "acl-N12-1052",
+    "acl-P04-1061",
+    "acl-P05-1012",
+    "acl-P06-1055",
+    "acl-P06-1111",
+    "acl-P08-1068",
+    "acl-P09-1042",
+    "acl-P10-1131",
+    "acl-P11-1061",
+    "acl-P11-1070",
+    "acl-P11-1156",
+    "acl-W06-2920"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We consider the problem of using a bilingual dictionary to transfer lexico-syntactic information from a resource-rich source language to a resource-poor target language.",
+        "In contrast to past work that used bitexts to transfer analyses of specific sentences at the token level, we instead use features to transfer the behavior of words at a type level.",
+        "In a discriminative dependency parsing framework, our approach produces gains across a range of target languages, using two different low-resource training methodologies (one weakly supervised and one indirectly supervised) and two different dictionary sources (one manually constructed and one automatically constructed)."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Building a high-performing parser for a language with no existing treebank is still an open problem.",
+        "Methods that use no supervision at all (Klein and Manning, 2004) or small amounts of manual supervision (Haghighi and Klein, 2006; Cohen and Smith, 2009; Naseem et al2010; Berg-Kirkpatrick and Klein, 2010) have been extensively studied, but still do not perform well enough to be deployed in practice.",
+        "Projection of dependency links across aligned bitexts (Hwa et al2005; Ganchev et al. 2009; Smith and Eisner, 2009) gives better performance, but crucially depends on the existence of large, in-domain bitexts.",
+        "A more generally applicable class of methods exploits the notion of universal part of speech tags (Petrov et al2011; Das and ... the senators demand strict new ethics rules ... DT NNS VBP JJ JJ NNS NNS Gewerkschaften verlangen Verzicht auf die Reform"
+      ]
+    },
+    {
+      "heading": "NN VVFIN NN APPR ART NN",
+      "text": [
+        "ing words that mean ?demand.?",
+        "The fact that the English demand takes nouns on its left and right indicates that the German verlangen should do the same, correctly suggesting attachments to Verzicht and Gewerkschaften.",
+        "Petrov, 2011) to train parsers that can run on any language with no adaptation (McDonald et al2011) or unsupervised adaptation (Cohen et al2011).",
+        "While these universal parsers currently constitute the highest-performing methods for languages without treebanks, they are inherently limited by operating at the coarse POS level, as lexical features are vital to supervised parsing models.",
+        "In this work, we consider augmenting delexical-ized parsers by transferring syntactic information through a bilingual lexicon at the word type level.",
+        "These parsers are delexicalized in the sense that, although they receive target language words as input, their feature sets do not include indicators on those words.",
+        "This setting is appropriate when there is too little target language data to learn lexical features directly.",
+        "Our main approach is to add features which are lexical in the sense that they compute a function of specific target language words, but are still un",
+        "lexical in the sense that all lexical knowledge comes from the bilingual lexicon and training data in the source language.",
+        "Consider the example English and German sentences shown in Figure 1, and suppose that we wish to parse the German side without access to a German treebank.",
+        "A delexicalized parser operating at the part of speech level does not have sufficient information to make the correct decision about, for example, the choice of subcategorization frame for the verb verlangen.",
+        "However, demand, a possible English translation of verlangen, takes a noun on its left and a noun on its right, an observation that in this case gives us the information we need.",
+        "We can fire features in our German parser on the attachments of Gewerkschaften and Verzicht to verlangen indicating that similar-looking attachments are attested in English for an English translation of verlangen.",
+        "This allows us to exploit fine-grained lexical cues to make German parsing decisions even when we have little or no supervised German data; moreover, this syntactic transfer is possible even in spite of the fact that demand and verlangen are not observed in parallel context.",
+        "Using type-level transfer through a dictionary in this way allows us to decouple the lexico-syntactic projection from the data conditions under which we are learning the parser.",
+        "After computing feature values using source language resources and a bilingual lexicon, our model can be trained very simply using any appropriate training method for a supervised parser.",
+        "Furthermore, because the transfer mechanism is just a set of features over word types, we are free to derive our bilingual lexicon either from bitext or from a manually-constructed dictionary, making our method strictly more general than those of McDonald et al2011) or Ta?ckstro?m et al2012), who rely centrally on bitext.",
+        "This flexibility is potentially useful for resource-poor languages, where a human-curated bilingual lexicon may be broader in coverage or more robust to noise than a small, domain-limited bitext.",
+        "Of course, it is an empirical question whether transferring type level information about word behavior is effective; we show that, indeed, this method compares favorably with other transfer mechanisms used in past work.",
+        "The actual syntactic information that we transfer consists of purely monolingual lexical attachment statistics computed on an annotated source language resource.1 While the idea of using large-scale summary statistics as parser features has been considered previously (Koo et al2008; Bansal and Klein, 2011; Zhou et al2011), doing so in a projection setting is novel and forces us to design features suitable for projection through a bilingual lexicon.",
+        "Our features must also be flexible enough to provide benefit even in the presence of cross-lingual syntactic differences and noise introduced by the bilingual dictionary.",
+        "Under two different training conditions and with two different varieties of bilingual lexicons, we show that our method of lexico-syntactic projection does indeed improve the performance of parsers that would otherwise be agnostic to lexical information.",
+        "In all settings, we see statistically significant gains for a range of languages, with our method providing up to 3% absolute improvement in unlabeled attachment score (UAS) and 11% relative error reduction."
+      ]
+    },
+    {
+      "heading": "2 Model",
+      "text": [
+        "The projected lexical features that we propose in this work are based on lexicalized versions of features found in MSTParser (McDonald et al2005), an edge-factored discriminative parser.",
+        "We take MSTParser to be our underlying parsing model and use it as a testbed on which to evaluate the effectiveness of our method for various data conditions.2 By instantiating the basic MSTParser features over coarse parts of speech, we construct a state-of-the-art delexicalized parser in the style of McDonald et al2011), where feature weights can be directly transferred from a source language or languages to a desired target language.",
+        "When we add projected lexical features on top of this baseline parser, we do so in a way that does not sacrifice this generality: while our new features take on values that are language-specific, they interact with the model at a language-independent level.",
+        "We therefore have the best of 1Throughout this work, we will use English as the source language, but it is possible to use any language for which the appropriate bilingual lexicons and treebanks exist.",
+        "One might expect to find the best performance from using a source language closely related to the target.",
+        "dency links that do not involve the words in the sentence.",
+        "PROJ features are real-valued analogues of DELEX features that do contain words.",
+        "We form a query from each stipulated set of characteristics, compute the values of these queries heuristically, and then fire a feature based on each query's signature.",
+        "Signatures indicate which attachment properties were considered, which part of the query was lexicalized (shown by brackets here), and the POS of the query word.",
+        "This procedure yields a small number of real-valued features that still capture rich lexico-syntactic information.",
+        "two worlds in that our features can be learned on any treebank or treebanks that are available to us, but still exploit highly specific lexical information to achieve performance gains over using coarse POS features alone."
+      ]
+    },
+    {
+      "heading": "2.1 DELEX Features",
+      "text": [
+        "Our DELEX feature set consists of all of the unlexi-calized features in MSTParser, only lightly modified to improve performance for our setting.",
+        "McDonald et al2005) present three basic types of such features, ATTACH, INBETWEEN, and SURROUNDING, which we apply at the coarse POS level.",
+        "The ATTACH features for a given dependency link consist of indicators of the tags of the head and modifier, separately as well as together.",
+        "The INBETWEEN and SURROUNDING features are indicators on the tags of the head and modifier in addition to each intervening tag in turn (INBETWEEN) or various combinations of tags adjacent to the head or modifier (SURROUNDING).3 MSTParser by default also includes a copy of each of these indicator features conjoined with the direction and distance of the attachment it denotes.",
+        "These extra features are important to getting 3As in Koo et al2008), our feature set contains more backed-off versions of the SURROUNDING features than are described in McDonald et al2005).",
+        "good performance out of the baseline model.",
+        "We slightly modify the conjunction scheme and expand it with additional backed-off conjunctions, since these changes lead to features that empirically transfer better than the MSTParser defaults.",
+        "Specifically, we use conjunctions with attachment direction (left or right), coarsened distance,4 and attachment direction and coarsened distance combined.",
+        "We emphasize again that these baseline features are entirely standard, and all the DELEX feature set does is recreate an MSTParser-based analogue of the direct transfer parser described by McDonald et al. (2011)."
+      ]
+    },
+    {
+      "heading": "2.2 PROJ Features",
+      "text": [
+        "We will now describe how to compute our projected lexical features, the PROJ feature set, which constitutes the main contribution of this work.",
+        "Recall that we wish our method to be as general as possible and work under many different training conditions; in particular, we wish to be able to train our model on only existing treebanks in other languages when no target language trees are available (discussed in Section 3.3), or on only a very small target language treebank (Section 3.4).",
+        "It would greatly increase the power of our model if we were able to include target-language-lexicalized versions of the ATTACH",
+        "features, but these are not learnable without a large target language treebank.",
+        "We instead must augment our baseline model with a relatively small number of features that are nonetheless rich enough to transfer the necessary lexical information.",
+        "Our overall approach is sketched in Figure 2, where we show the features that fire on two proposed edges in a German dependency parse.",
+        "Features on an edge in MSTParser incorporate a subset of observable properties about that edge's head, modifier, and context in the sentence.",
+        "For sets of properties that do not include a lexical item, such as VERB?NOUN, we fire an indicator feature from the DELEX feature set.",
+        "For those that do include a lexical item, such as verlangen?NOUN, we form a query, which resembles a lexicalized indicator feature.",
+        "Rather than firing the query as an indicator feature directly, which would result in a model parameter for each target word, we fire a broad feature called an signature whose value reflects the specifics of the query (computation of these values is discussed in Section 2.2.2).",
+        "For example, we abstract verlangen?NOUN to [VERB]?CHILD, with square brackets indicating the element that was lexicalized.",
+        "Section 2.2.1 discusses this coarsening in more detail.",
+        "The signatures are agnostic to individual words and even the language being parsed, so they can be learned on small amounts of data or data from other languages.",
+        "Our signatures allow us to instantiate features at different levels of granularity corresponding to the levels of granularity in the DELEX feature set.",
+        "When a small amount of target language data is present, the variety of signatures available to us means that we can learn language-specific transfer characteristics: for example, nouns tend to follow prepositions in both French and English, but the ordering of adjectives with respect to nouns is different.",
+        "We also have the capability to train on languages other than our target language, and while this is expected to be less effective, it can still teach us to exploit some syntactic properties, such as similar verb attachment configurations if we train on a group of SVO languages distinct from a target SVO language.",
+        "Therefore, our feature set manages to provide the training procedure with choices about how much syntactic information to transfer at the same time as it prevents overfitting and provides language independence.",
+        "A query is a subset of the following pieces of information about an edge: parent word, parent POS, child word, child POS, attachment direction, and binned attachment distance.",
+        "It must contain exactly one word.5 We experimented with properties from INBETWEEN and SURROUNDING features as well, but found that these only helped under some circumstances and could lead to overfitting.6 A signature contains the following three pieces of information:",
+        "1.",
+        "The non-empty subset of attachment properties included in the query 2.",
+        "Whether we have lexicalized on the parent or child of the attachment, indicated by brackets 3.",
+        "The part of speech of the included word",
+        "Because either the parent or child POS is included in the signature, there are three meaningful properties to potentially condition on, of which we must select a nonempty subset.",
+        "Some multiplication shows that we have 7?",
+        "2?",
+        "13 = 182 total PROJ features.",
+        "As an example, the queries",
+        "verlangen?",
+        "NOUN verlangen?",
+        "ADP sprechen?",
+        "NOUN all share the signature [VERB]?CHILD, but verlangen?",
+        "NOUN,RIGHT",
+        "have [VERB]?CHILD,DIR, [ADP]?CHILD, and PARENT?",
+        "[NOUN] as their signatures, respectively.",
+        "The level of granularity for signatures is a parameter that simply must be engineered.",
+        "We found some benefit in actually instantiating two signatures for every query, one as described above and one that 5Bilexical features are possible in our framework, but we do not use them here, so for clarity we assume that each query has one associated word.",
+        "6One hypothesis is that features looking at the sentence context are more highly specialized to a given language, since they examine the parent, the child, and one or more other parts of speech or words.",
+        "takes part in (parents and children) and record their properties.",
+        "We then compute relative frequency counts for each possible query type to get source language scores, which will later be projected through the dictionary to obtain target language feature values.",
+        "Only two query types are shown here, but values are computed for many others as well.",
+        "does not condition on the part of speech of the word in the signature.",
+        "One can also imagine using more refined signatures, but we found that this led to overfitting in the small training scenarios under consideration.",
+        "Each query is given a value according to a generative heuristic that involves the source training data and the probabilistic bilingual lexicon.7 For a particular signature, a query can be written as a tu-ple (x1, x2, .",
+        ".",
+        ".",
+        ", wt) where wt is the target language query word and the xi are the values of the included language-independent attachment properties.",
+        "The value this feature takes is given by a simple generative model: we imagine generating the attachment properties xi given wt by first generating a source 7Lexicons such as those produced by automatic aligners include probabilities natively, but obviously human-created lexicons do not.",
+        "For these dictionaries, we simply assume that each word translates with uniform probability into each of its possible translations.",
+        "Tweaking this method did not substantially change performance.",
+        "word ws from wt based on the bilingual lexicon, then jointly generating the xi conditioned on ws.",
+        "Treating the choice of source translation as a latent variable to be marginalized out, we have",
+        "The first term of the sum comes directly from our probabilistic lexicon, and the second we can estimate using the maximum likelihood estimator over our source language training data:",
+        "where c(?)",
+        "denotes the count of an event in the source language data.",
+        "The final feature value is actually the logarithm of this computed value, with a small constant added before the logarithm is taken to avoid zeroes."
+      ]
+    },
+    {
+      "heading": "3 Experiments",
+      "text": []
+    },
+    {
+      "heading": "3.1 Data Conditions",
+      "text": [
+        "Before we describe the details of our experiments, we sketch the data conditions under which we evaluate our method.",
+        "As described in Section 1, there is a continuum of lightly supervised parsing methods from those that make no assumptions (beyond what is directly encoded in the model), to those that use a small set of syntactic universals, to those that use treebanks from resource-rich languages, and finally to those that use both existing treebanks and bitexts.",
+        "Our focus is on parsing when one does not have access to a full-scale target language treebank, but one does have access to realistic auxiliary resources.",
+        "The first variable we consider is whether we have access to a small number of target language trees or only pre-existing treebanks in a number of other languages; while not our actual target language, these other treebanks can still serve as a kind of proxy for learning which features generally transfer useful information (McDonald et al2011).",
+        "We notate these conditions with the following shorthand: BANKS: Large treebanks in other target languages SEED: Small treebank in the right target language Previous work on essentially unsupervised methods has investigated using a small number of target language trees (Smith and Eisner, 2009), but the behavior of supervised models under these conditions has not been extensively studied.",
+        "We will see in Section 3.4 that with only 100 labeled trees, even our baseline model can achieve performance equal to or better than that of the model of McDonald et al.",
+        "(2011).",
+        "A single linguist could plausibly annotate such a number of trees in a short amount of time for a language of interest, so we believe that this is an important setting in which to show improvement, even for a method primarily intended to augment unsupervised parsing.",
+        "In addition, we consider two different sources for our bilingual lexicon: AUTOMATIC: Extracted from bitext MANUAL: Constructed from human annotations Both bitexts and human-curated bilingual dictionaries are more widely available than complete treebanks.",
+        "Bitexts can provide rich information about lexical correspondences in terms of how words are used in practice, but for resource-poor languages, parallel text may only be available in small quantities, or be domain-limited.",
+        "We show results of our method on bilingual dictionaries derived from both sources, in order to show that it is applicable under a variety of data conditions and can successfully take advantage of such resources as are available."
+      ]
+    },
+    {
+      "heading": "3.2 Datasets",
+      "text": [
+        "We evaluate our method on a range of languages taken from the CoNLL shared tasks on multilingual dependency parsing (Buchholz and Marsi, 2006; Nivre et al2007).",
+        "We make use of dependency treebanks for Danish, German, Greek, Spanish, Italian, Dutch, Portuguese, and Swedish, all from the 2006 shared task.",
+        "For our English resource, we use 500,000 English newswire sentences from English Gigaword version 3 (Graff et al2007), parsed with the Berkeley Parser (Petrov et al2006) and converted to a dependency treebank using the head rules of Collins (1999).8 Our English test set (used in Section 3.4) consists of the first 300 sentences of section 23 of the Penn treebank (Marcus et al1993), preprocessed in the same way.",
+        "Our model does not use gold fine-grained POS tags, but we do use coarse POS tags deterministically generated from the provided gold fine-grained tags in the style of Berg-Kirkpatrick and Klein (2010) using the mappings of Petrov et al.",
+        "(2011).9 Following McDonald et al2011), we strip punctuation from all treebanks for the results of Section 3.3.",
+        "All results are given in terms of unlabeled attachment score (UAS), ignoring punctuation even when it is present.",
+        "We use the Europarl parallel corpus (Koehn, 2005) as the bitext from which to extract the AUTOMATIC bilingual lexicons.",
+        "For each target language, we produce one-to-one alignments on the English-target bitext by running the Berkeley Aligner (Liang et al2006) with five iterations of IBM Model 1 and",
+        "catenation of non-target-language treebanks (the BANKS setting).",
+        "Values reported are UAS for sentences of all lengths in the standard CoNLL test sets, with punctuation removed from training and test sets.",
+        "Daggers indicate statistical significance computed using bootstrap resampling; a single dagger indicates p < 0.1 and a double dagger indicates p < 0.05.",
+        "We also include the baseline results of McDonald et al2011) and Ta?ckstro?m et al2012) and improvements from their best methods of using bitext and lexical information.",
+        "These results are not directly comparable to ours, as indicated by * and **.",
+        "However, we still see that the performance of our type-level transfer method approaches that of bitext-based methods, which require complex bilingual training for each new language.",
+        "five iterations of the HMM aligner with agreement training.",
+        "Our lexicon is then read off based on relative frequency counts of aligned instances of each word in the bitext.",
+        "We also use our method on bilingual dictionaries constructed in a more conventional way.",
+        "For this purpose, we scrape our MANUAL bilingual lexicons from English Wiktionary (Wikimedia Foundation, 2012).",
+        "We mine entries for English words that explicitly have foreign translations listed as well as words in each target language that have English definitions.",
+        "We discard all translation entries where the English side is longer than one word, except for constructions of the form ?to VERB?, where we manually remove the ?to?",
+        "and allow the word to be defined as the English infinitive.",
+        "Finally, because our method requires a dictionary with probability weights, we assume that each target language word translates with uniform probability into any of the candidates that we scrape."
+      ]
+    },
+    {
+      "heading": "3.3 BANKS",
+      "text": [
+        "We first evaluate our model under the BANKS data condition.",
+        "Following the procedure from McDonald et al2011), for each language, we train both our DELEX and DELEX+PROJ features on a concatenation of 2000 sentences from each other CoNLL training set, plus 2000 sentences from the Penn Treebank.",
+        "Again, despite the values of our PROJ queries being sensitive to which language we are currently parsing, the signatures are language independent, so discriminative training still makes sense over such a combined treebank.",
+        "Training our PROJ features on the non-English treebanks in this concatenation can be understood as trying to learn which lexico-syntactic properties transfer ?universally,?",
+        "or at least transfer broadly within the families of languages we are considering.",
+        "Table 1 shows the performance of the DELEX feature set and the DELEX+PROJ feature set using both AUTOMATIC and MANUAL bilingual lexicons.",
+        "Both methods provide positive gains across the board that are statistically significant in the vast majority of cases, though MANUAL is slightly less effective; we postpone until Section 4.1 the discussion of the shortcomings of the MANUAL lexicon.",
+        "We include for reference the baseline results of McDonald et al2011) and Ta?ckstro?m et al2012) (multi-direct transfer and no clusters) and the improvements from their best methods using lexical information (multi-projected transfer and cross-lingual clusters).",
+        "We emphasize that these results are not directly comparable to our own, as we have different training data (and even different training languages) and use a different underlying parsing model (MSTParser instead of a transition-based",
+        "small numbers of target language trees (the SEED setting).",
+        "Values reported are UAS for sentences of all lengths on our enlarged CoNLL test sets (see text); each value is based on 50 sampled training sets of the given size.",
+        "Daggers indicate statistical significance as described in the text.",
+        "Statistical significance is not reported for averages.",
+        "parser (Nivre, 2008)).",
+        "However, our baseline is competitive with theirs,10 demonstrating that we have constructed a state-of-the-art delexicalized parser.",
+        "Furthermore, our method appears to approach the performance of previous bitext-based methods, and because of its flexibility and the freedom from complex cross-lingual training for each new language, it can be applied in the MANUAL case as well, a capability which neither of the other methods has."
+      ]
+    },
+    {
+      "heading": "3.4 SEED",
+      "text": [
+        "We now turn our attention to the SEED scenario, where a small number of target language trees are available for each language we consider.",
+        "While it is imaginable to continue to exploit the other treebanks in the presence of target language trees, we found that training our DELEX features on the seed treebank alone gave higher performance than any 10The baseline of Ta?ckstro?m et al2012) is lower because it is trained only on English rather than on many languages.",
+        "attempt to also use the concatenation of treebanks from the previous section.",
+        "This is not too surprising because, with this number of sentences, there is already good monolingual coverage of coarse POS features, and attempting to train features on other languages can be expected to introduce noise into otherwise accurate monolingual feature weights.",
+        "We train our DELEX+PROJ model with both AUTOMATIC and MANUAL lexicons on target language training sets of size 100, 200, and 400, and give results for each language in Table 2.",
+        "The performance of parsers trained on small numbers of trees can be highly variable, so we create multiple treebanks of each size by repeatedly sampling from each language's train treebank, and report averaged results.",
+        "Furthermore, this evaluation is not on the standard CoNLL test sets, but is instead on those test sets with a few hundred unused training sentences added, the reason being that some of the CoNLL test sets are very small (fewer than 200 sentences) and appeared",
+        "to give highly variable results.",
+        "To compute statistical significance, we draw a large number of bootstrap samples for each training set used, then aggregate all of their sufficient statistics in order to compute the final p-value.",
+        "We see that our DELEX+PROJ method gives statistically significant gains at the 95% level over DELEX for nearly all language and training set size pairs, giving on average a 9% relative error reduction in the 400-tree case.",
+        "Because our features are relatively few in number and capture heuristic information, one question we might ask is how well they can perform in a non-projection context.",
+        "In the last line of the table, we report gains that are achieved when PROJ features computed from parsed Gigaword are used directly on English, with no intermediate dictionary.",
+        "These are not comparable to the other values in the table because we are using our projection strategy mono-lingually, which removes the barriers of imperfect lexical correspondence (from using the lexicon) and imperfect syntactic correspondence (from projecting).",
+        "As one might expect, the gains on English are far higher than the gains on other languages.",
+        "This indicates that performance is chiefly limited by the need to do cross-lingual feature adaptation, not inherently low feature capacity.",
+        "We delay further discussion to Section 4.2.",
+        "One surprising thing to note is that the gains given by our PROJ features are in some cases larger here than in the BANKS setting.",
+        "This result is slightly counterintuitive, as our baseline parsers are much better in this case and so we would expect diminished returns from our method.",
+        "We conclude that accurately learning which signatures transfer between languages is important, and it is easier to learn good feature weights when some target language data is available.",
+        "Further evidence supporting this hypothesis is the fact that the gains are larger and more significant on larger training set sizes."
+      ]
+    },
+    {
+      "heading": "4 Discussion",
+      "text": []
+    },
+    {
+      "heading": "4.1 AUTOMATIC versus MANUAL",
+      "text": [
+        "Overall, we see that gains from using our MANUAL lexicons are slightly lower than those from our AUTOMATIC lexicons.",
+        "One might expect higher performance because scraped bilingual lexicons are not prone to some of the same noise that exists in auto"
+      ]
+    },
+    {
+      "heading": "AUTOMATIC MANUAL",
+      "text": [
+        "sources of bilingual lexicons.",
+        "?Voc?",
+        "indicates vocabulary size and ?OCC?",
+        "indicates open-class coverage, the fraction of open-class tokens in the test treebanks with entries in our bilingual lexicon.",
+        "matic aligners, but this is empirically not the case.",
+        "Rather, as we see in Table 3, the low recall of our MANUAL lexicons on open-class words appears to be a possible culprit.",
+        "The coverage gap between these and the AUTOMATIC lexicons is partially due to the inconsistent structure of Wiktionary: inflected German and Greek words often do not have their own pages, so we miss even common morphological variants of verb forms in those languages.",
+        "The inflected forms that we do scrape are also mapped to the English base form rather than the corresponding inflected form in English, which introduces further noise.",
+        "Coverage is substantially higher if we translate using stems only, but this did not empirically lead to performance improvements, possibly due to conflating different parts of speech with the same base form.",
+        "One might hypothesize that our uniform weighting scheme in the MANUAL lexicon is another source of problems, and that bitext-derived weights are necessary to get high performance.",
+        "This is not the case here.",
+        "Truncating the AUTOMATIC dictionary to at most 20 translations per word and setting the weights uniformly causes a slight performance drop, but is still better than our MANUAL lexicon.",
+        "This further demonstrates that these problems are more a limitation of our dictionary than our method.",
+        "English Wiktionary is not designed to be a bilingual dictionary, and while it conveniently provided an easy way for us to produce lexicons for a wide array",
+        "Frauen wollen weiter f?r die Quote k?mpfen"
+      ]
+    },
+    {
+      "heading": "NN VMFIN ADV APPR ART NN VVINF",
+      "text": [
+        "Women want further for the quota fight Women want to continue to fight for the quota"
+      ]
+    },
+    {
+      "heading": "NNP VBP TO VB TO VB IN DT NN",
+      "text": [
+        "glish sentence with high levels of syntactic divergence.",
+        "The English verb want takes fundamentally different children than wollen does, so properties of the sort we present in Section 2.2 will not transfer effectively.",
+        "of languages, it is not the resource that one would choose if designing a parser for a specific target language.",
+        "Bitext is not necessary for our approach to work, and results on the AUTOMATIC lexicon suggest that our type-level transfer method can in fact do much better given a higher quality resource."
+      ]
+    },
+    {
+      "heading": "4.2 Limitations",
+      "text": [
+        "While our method does provide consistent gains across a range of languages, the injection of lexical information is clearly not sufficient to bridge the gap between unsupervised and supervised parsers.",
+        "We argued in Section 3.4 that the cross-lingual transfer step of our method imposes a fundamental limitation on how useful any such approach can be, which we now investigate further.",
+        "In particular, any syntactic divergence, especially inconsistent divergences like head switching, will limit the utility of transferred structure.",
+        "Consider the German example in Figure 4, with a parallel English sentence provided.",
+        "The English tree suggests that want should attach to an infinitival to, which has no correlate in German.",
+        "Even disregarding this, its grandchild is the verb continue, which is realized in the German sentence as the adverb weiter.",
+        "While it is still broadly true that want and wollen both have verbal elements located to their right, it is less clear how to design features that can still take advantage of this while working around the differences we have described.",
+        "Therefore, a gap between the performance of our features on English and the performance of our projected features, as is observed in Table 2, is to be expected in the absence of a more complete model of syntactic divergence."
+      ]
+    },
+    {
+      "heading": "5 Conclusion",
+      "text": [
+        "In this work, we showed that lexical attachment preferences can be projected to a target language at the type level using only a bilingual lexicon, improving over a delexicalized baseline parser.",
+        "This method is broadly applicable in the presence or absence of target language training trees and with bilingual lexicons derived from either manually-annotated resources or bitexts.",
+        "The greatest improvements arise when the bilingual lexicon has high coverage and a number of target language trees are available in order to learn exactly what lexico-syntactic properties transfer from the source language.",
+        "In addition, we showed that a well-tuned discriminative model with the correct features can achieve good performance even on very small training sets.",
+        "While unsupervised and existing projection methods do feature great versatility and may yet produce state-of-the-art parsers on resource-poor languages, spending time constructing small supervised resources appears to be the fastest method to achieve high performance in these settings."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work was partially supported by an NSF Graduate Research Fellowship to the first author, by a Google Fellowship to the second author, and by the NSF under grant 0643742.",
+        "Thanks to the anonymous reviewers for their insightful comments."
+      ]
+    }
+  ]
+}

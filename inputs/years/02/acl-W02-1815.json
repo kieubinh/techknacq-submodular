@@ -1,0 +1,259 @@
+{
+  "info": {
+    "authors": [
+      "Nianwen Xue",
+      "Susan P. Converse"
+    ],
+    "book": "SIGHAN Workshop on Chinese Language Processing",
+    "id": "acl-W02-1815",
+    "title": "Combining Classifiers for Chinese Word Segmentation",
+    "url": "https://aclweb.org/anthology/W02-1815",
+    "year": 2002
+  },
+  "references": [
+    "acl-C02-1145",
+    "acl-J00-3004",
+    "acl-W96-0213"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "In this paper we report results of a supervised machine-learning approach to Chinese word segmentation.",
+        "First, a maximum entropy tagger is trained on manually annotated data to automatically labels the characters with tags that indicate the position of character within a word.",
+        "An error-driven transformation-based tagger is then trained to clean up the tagging inconsistencies of the first tagger.",
+        "The tagged output is then converted into segmented text.",
+        "The preliminary results show that this approach is competitive compared with other supervised machine-learning segmenters reported in previous studies."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "It is generally agreed among researchers that word segmentation is a necessary first step in Chinese language processing.",
+        "Most of the previous work in this area views a good dictionary as the cornerstone of this task.",
+        "Several word segmentation algorithms have been developed using a dictionary as an essential tool.",
+        "Most notably, variants of the maximum matching algorithm have been applied to word segmentation with considerable success.",
+        "The results that have been reported are generally in the upper 90 percentile range.",
+        "However, the success of such algorithms is premised on a large, exhaustive dictionary.",
+        "The accuracy of word segmentation degrades sharply as new words appear.",
+        "Since Chinese word formation is a highly productive process, new words are bound to appear in substantial numbers in realistic scenarios (Wu and Jiang 1998, Xue 2001), and it is virtually impossible to list all the words in a dictionary.",
+        "In recent years, as annotated Chinese corpora have become available, various machine-learning approaches have been applied to Chinese word segmentation, with different levels of success.",
+        "Compared with dictionary-based approaches, machine-learning approaches have the advantage of not needing a dictionary and thus are more suitable for use on naturally occurring Chinese text.",
+        "In this paper we report results of a supervised machine-learning approach towards Chinese word segmentation that combines two fairly standard machine learning models.",
+        "We show that this approach is very promising compared with dictionary-based approaches as well as other machine-learning approaches that have been reported in the literature.",
+        "2 Combining Classifiers for Chinese word segmentation The two machine-learning models we use in this work are the maximum entropy model (Ratnaparkhi 1996) and the error-driven transformation-based learning model (Brill 1994).",
+        "We use the former as the main workhorse and the latter to correct some of the errors produced by the former."
+      ]
+    },
+    {
+      "heading": "2.1 Reformulating word segmentation as a tagging problem",
+      "text": [
+        "Before we apply the machine-learning algorithms we first convert the manually segmented words in the corpus into a tagged sequence of Chinese characters.",
+        "To do this, we tag each character with one of the four tags, LL, RR, MM and LR, depending on its position within a word.",
+        "It is tagged LL if it occurs on the left boundary of a word, and forms a word with the character(s) on its right.",
+        "It is tagged RR if it occurs on the right boundary of a word, and forms a word with the character(s) on its left.",
+        "It is tagged MM if it occurs in the middle of a word.",
+        "It is tagged LR if it forms a word by itself.",
+        "We call such tags position-of-character (POC) tags to differentiate them from the more familiar part-of-speech (POS) tags.",
+        "For example, the manually segmented string in (1)a will be tagged as shown in (1)b:",
+        "c. Shanghai plans to reach the goal of 5,000 dollars in per capita GDP by the end of the century.",
+        "Given a manually segmented corpus, a POC-tagged corpus can be derived trivially with perfect accuracy.",
+        "The reason that we use such POC-tagged sequences of characters instead of applying n-gram rules to a segmented corpus directly (Hockenmaier and Brew 1998, Xue 2001) is that they are much easier to manipulate in the training process.",
+        "Naturally, while some characters will have only one POC tag, most characters will receive multiple POC tags, in the same way that words can have multiple POS tags.",
+        "The example in (2) shows how all four of the POC tags can be assigned to the character r (‘produce’):",
+        "Also as in POS tags, the way the character is POC-tagged in naturally occurring text is affected by the context in which it occurs.",
+        "For example, if the preceding character is tagged a LR or RR, then the next character can only be tagged LL or LR.",
+        "How a character is tagged is also affected by the surrounding characters.",
+        "For example, ) (‘close’) should be tagged RR if the previous character is )T (‘open’) and neither of them forms a word with other characters, while it should be tagged LL if the next character is LN (‘heart’) and neither of them forms a word with other characters.",
+        "This state of affairs closely resembles the familiar POS tagging problem and lends itself naturally to a solution similar to that of POS tagging.",
+        "The task is one of ambiguity resolution in which the correct POC tag is determined among several possible POC tags in a specific context.",
+        "Our next step is to train a maximum entropy model on the perfectly POC-tagged data derived from a manually segmented corpus and use the model to automatically POC-tag unseen text."
+      ]
+    },
+    {
+      "heading": "2.2 The maximum entropy tagger",
+      "text": [
+        "The maximum entropy model used in POS-tagging is described in detail in Ratnaparkhi (1996) and the POC tagger here uses the same probability model.",
+        "The probability model is defined over H x T, where H is the set of possible contexts or \"histories\" and T is the set of possible tags.",
+        "The model's joint probability of a history h and a tag t is defined as",
+        "where 7c is a normalization constant, {,u, a1, ..., ak} are the model parameters and {f1, ..., fk} are known as features, where fj (h, t) C{0,1}.",
+        "Each feature fj has a corresponding parameter cj, which effectively serves as a \"weight\" of this feature.",
+        "In the training process, given a sequence n of characters {c1, ... ,cn} and their POC tags {t1, ... ,tn} as training data, the purpose is to determine the parameters {&, a1, ..., ak} that maximize the likelihood L of the training data using p:",
+        "The success of the model in tagging depends to a large extent on the selection of suitable features.",
+        "Given (h,t), a feature must encode information that helps to predict t. The features we used in this experiment are instantiations of the following feature templates:",
+        "(3) Feature templates used in this tagger: a.",
+        "The current character b.The previous (next) character and the current character c. The previous (next) two characters d. The tag of the previous character e. The tag of the character two before the current character f. Whether the current character is a punctuation mark g. Whether the current character is a numeral h. Whether the current character is a Latin letter",
+        "In general, given (h,t), these features are in the form of co-occurrence relations between t and some type of context.",
+        "For example, This feature will map to 1 and contribute towards p(hi,ti) if c(i-1) is tagged LL and ci is tagged RR.",
+        "The feature templates in (3) encode three types of contexts.",
+        "First, features based on the current and surrounding characters are extracted.",
+        "Given a character in a sentence, this model will look at the current character, the previous two and next two characters.",
+        "For example, if the current character is % (‘-ize’), it is very likely that it will occur as a suffix in a word, thus receiving the tag RR.",
+        "On the other hand, other characters might be equally likely to appear on the left, on the right or in the middle.",
+        "In those cases, where a character occurs within a word depends on its surrounding characters.",
+        "For example, if the current character is �2 (‘love’), it should perhaps be tagged LL if the next character is tP (‘protect’).",
+        "However, if the previous character is(‘warm’), then it should perhaps be tagged RR.",
+        "In the second type of context, features based on the previous tags are extracted.",
+        "Information like this is useful in predicting the POC tag for the current character just as the POS tags are useful in predicting the POS tag of the current word in a similar context.",
+        "For example, if the previous character is tagged LR or RR, this means that the current character must start a word, and should be tagged either LL or LR.",
+        "Finally, limited POS-tagging information can also be used to predict how the current character should be POC-tagged.",
+        "For example, a punctuation mark is generally treated as one segment in the CTB corpus.",
+        "Therefore, if a character is a punctuation mark, then it should be POC-tagged LR.",
+        "This also means that the previous character should close a word and the following character should start a word.",
+        "When the training is complete, the features and their corresponding parameters will be used to calculate the probability of the tag sequence of a sentence when the tagger tags unseen data.",
+        "Given a sequence of characters {c1,...,cn}, the tagger searches for the tag sequence {t1, ..., tn} with the highest conditional probability",
+        "in which the conditional probability for each POC tag t given its history h is calculated as"
+      ]
+    },
+    {
+      "heading": "2.3 The transformation-based tagger",
+      "text": [
+        "The error-driven transformation-based tagger we used in this paper is Brill's POS tagger (1994) with minimal modification.",
+        "The way this tagger is set up makes it easy for it to work in conjunction with other taggers.",
+        "When it is used for its original task of POS tagging, the model is trained in two phases.",
+        "In the first phase lexical information, such as the affixes of a word, is learned to predict POS tags.",
+        "The rules learned in this phase are then applied to the training corpus.",
+        "In the second phase, contextual information is learned to correct the wrong tags produced in the",
+        "first phase.",
+        "In the segmentation task, since we are dealing with single characters, by definition there is no lexical information as such.",
+        "Instead, the training data are first POC-tagged by the maximum entropy model and then used by the error-driven transformation-based model to learn the contextual rules.",
+        "The error-driven transformation-based model learns a ranked set of rules by comparing the perfectly POC-tagged corpus (the reference corpus) with the same corpus tagged by the maximum entropy model (the maxent-tagged corpus).",
+        "At each iteration, this model tries to find the rule that achieves the maximum gain if it is applied.",
+        "The rule with the maximum gain is the one that makes the maxent-tagged corpus most like the reference corpus.",
+        "The maximum gain is calculated with an evaluation function which quantifies the gain and takes the largest value.",
+        "The rules are instantiations of a set of predefined rule templates.",
+        "After the rule with the maximum gain is found, it is applied to the maxent-tagged corpus, which will better resemble the reference corpus as a result.",
+        "This process is repeated until the maximum gain drops below a predefined threshold, which indicates improvement achieved through further training will no longer be significant.",
+        "The training will then be terminated.",
+        "The rule templates are the same as those used in Brill (1994), except that these rule templates are now defined over characters rather than words.",
+        "(4) Rule templates used to learn contextual information: Change tag a to tag b when: a.",
+        "The preceding (following) character is tagged z. b.",
+        "The character two before (after) is tagged z. c. One of the two preceding (following) characters is tagged z. d. One of the three preceding (following) characters is tagged z.",
+        "e. The preceding character is tagged z and the following character is tagged w. f. The preceding (following) character is tagged z and the character two before (after) was tagged w. g. The preceding (following) character is c. h. The character two before (after) is c. i.",
+        "One of the two preceding (following) characters is c. j.",
+        "The current character is c and the preceding (following) character is x. k. The current character is c and the preceding (following) character is tagged z. where a, b, z and w are variables over the set of four tags (LL, RR, LR, MM) The ranked set of rules learned in this training process will be applied to the output of the maximum entropy tagger."
+      ]
+    },
+    {
+      "heading": "3 Experimental results",
+      "text": [
+        "We conducted three experiments.",
+        "In the first experiment, we used the maximum matching algorithm to establish a baseline, as comparing results across different data sources can be difficult.",
+        "This experiment is also designed to demonstrate that even with a relatively small number of new words in the testing data, the segmentation accuracy drops sharply.",
+        "In the second experiment, we applied the maximum entropy model to the problem of Chinese word segmentation.",
+        "The results will show that this approach alone outperforms the state-of-the-art results reported in previous work in supervised machine-learning approaches.",
+        "In the third experiment we combined the maximum entropy model with the error-driven transformation-based model.",
+        "We used the error-driven transformation-based model to learn a set of rules to correct the errors produced by the maximum entropy model.",
+        "The data we used are from the Penn Chinese Treebank (Xia et al.",
+        "2000, Xue et al.",
+        "2002) and they consist of Xinhua newswire articles.",
+        "We took 250,389 words (426,292 characters or hanzi) worth of manually segmented data and divided them into two chunks.",
+        "The first chunk has 237,791 words (404,680 Chinese characters) and is used as training data.",
+        "The second chunk has 12,598 words (21,612 characters) and is used as testing data.",
+        "These data are used in all three of our experiments."
+      ]
+    },
+    {
+      "heading": "3.1 Experiment One",
+      "text": [
+        "In this experiment, we conducted two sub-experiments.",
+        "In the first sub-experiment, we used a forward maximum matching algorithm to segment the testing data with a dictionary compiled from the training data.",
+        "There are 497 (or 3.95%) new words (words that are not found in the training data) in the testing data.",
+        "In the second sub-experiment, we used the same algorithm to segment the same testing data with a dictionary that was compiled from BOTH the training data and the testing data, so that there are no “new” words in the testing data."
+      ]
+    },
+    {
+      "heading": "3.2 Experiment Two",
+      "text": [
+        "In this experiment, a maximum entropy model was trained on a POC-tagged corpus derived from the training data described above.",
+        "In the testing phase, the sentences in the testing data were first split into sequences of characters and then tagged this maximum entropy tagger.",
+        "The tagged testing data are then converted back into word segments for evaluation.",
+        "Note that converting a POC-tagged corpus into a segmented corpus is not entirely straightforward when inconsistent tagging occurs.",
+        "For example it is possible that the tagger assigns a LL-LR sequence to two adjacent characters.",
+        "We made no effort to ensure the best possible conversion.",
+        "The character that is POC-tagged LL is invariably combined with the following character, no matter how it is tagged."
+      ]
+    },
+    {
+      "heading": "3.3 Experiment Three",
+      "text": [
+        "In this experiment, we used the maximum entropy model trained in experiment two to automatically tag the training data.",
+        "The training accuracy of the maximum entropy model is 97.54% in terms of the number of characters tagged correctly and there are 9940 incorrectly tagged characters, out of 404,680 characters in total.",
+        "We then used this output and the correctly tagged data derived from the manually segmented training data (as the reference corpus) to learn a set of transformation rules.",
+        "214 rules were learned in this phase.",
+        "These 214 rules were then used to correct the errors of the testing data that was first tagged by maximum entropy model in experiment two.",
+        "As a final step, the tagged and corrected testing data were converted into word segments.",
+        "Again, no effort was made to optimize the segmentation accuracy during the conversion."
+      ]
+    },
+    {
+      "heading": "3.4 Evaluation",
+      "text": [
+        "In evaluating our model, we calculated both the tagging accuracy and segmentation accuracy.",
+        "The calculation of the tagging accuracy is straightforward.",
+        "It is simply the total number of correctly POC-tagged characters divided by the total number of characters.",
+        "In evaluating segmentation accuracy, we used three measures: precision, recall and balanced F-score.",
+        "Precision (p) is defined as the number of correctly segmented words divided by the total number of words in the automatically segmented corpus.",
+        "Recall (r) is defined as the number of correctly segmented words divided by the total number of words in the gold standard, which is the manually annotated corpus.",
+        "F-score (f) is defined as follows: f = p× r× 2 (v) p+r The results of the three experiments are tabulated as follows:",
+        "4 = maximum entropy tagger combined with the transformation-based tagger"
+      ]
+    },
+    {
+      "heading": "4 Discussion",
+      "text": [
+        "The results from Experiment one show that the accuracy of the maximum matching algorithm degrades sharply when there are new words in the testing data, even when there is only a small proportion of them.",
+        "Assuming an ideal scenario where there are no new words in the testing data, the maximum matching algorithm achieves an F-score of 95.15%.",
+        "However, when there are new words (words not found in the training data), the accuracy drops to only 89.77% in F-score.",
+        "In contrast, the maximum entropy tagger achieves an accuracy of 94.89% measured by the balanced F-score even when there are new words in the testing data.",
+        "This result is only slightly lower than the 95.15% that the maximum matching algorithm achieved when there are no new words.",
+        "The transformation-based tagger improves the tagging accuracy by 0.12% from 95.95% to 96.07%.",
+        "The segmentation accuracy jumps to 95.17% (F-score) from 94.89%, an increase of 0.28%.",
+        "That fact that the improvement in segmentation accuracy is higher than the improvement in tagging accuracy shows that the transformation-based tagger is able to correct some of the inconsistent tagging errors produced by the maximum entropy tagger.",
+        "This is clearly demonstrated in the five highest-ranked transformation rules learned by this model:",
+        "(5) Top five transformation rules"
+      ]
+    },
+    {
+      "heading": "RR MM NEXTTAG RR LL LR NEXTTAG LL LL LR NEXTTAG LR MM RR NEXTBIGRAM LR LR RR LR PREVBIGRAM RR LR",
+      "text": [
+        "For example, the first rule says that if the next character is tagged RR, then change the current tag to MM from RR, since an RR RR sequence is inconsistent.",
+        "Incidentally, the combined segmentation accuracy is almost the same as that of the maximum matching method when there are no new words.",
+        "Evaluating this approach against previous results can be a tricky matter.",
+        "There are several reasons for this.",
+        "One is that the source of data can affect the segmentation accuracy.",
+        "Since the results of machine-learning approaches are heavily dependent on the type of training data, comparison of segmenters trained on different data is not exactly valid.",
+        "The second reason is that the amount of training data also affects the accuracy of segmenters.",
+        "Still some preliminary observations can be made in this regard.",
+        "Our accuracy is much higher that those reported in Hockenmaier and Brew (1998) and Xue (2001), who used error-driven transformation-based learning to learn a set of n-gram rules to do a series of merge and split operations on data from Xinhua news, the same data source as ours.",
+        "The results they reported are 87.9% (trained on 100,000 words) and 90.2% (trained on 80,000 words) respectively, measured by the balanced F-score.",
+        "Using a statistical model called prediction by partial matching (PPM), Teahan et al. (2000) reported a significantly better result.",
+        "The model was trained on a million words from Guo Jin's Mandarin Chinese PH corpus and tested on five 500-segment files.",
+        "The reported F-scores are in a range between 89.4% and 98.6%, averaging 94.4%.",
+        "Since the data are also from Xinhua newswire, some comparison can be made between our results and this model.",
+        "With less training data, our results are slightly higher (by 0.48%) when using just the maximum entropy model.",
+        "When this model is combined with the error-driven transformation-based learning model, our accuracy is higher by 0.77%.",
+        "Still, this comparison is just preliminary since different segmentation standards can also affect segmentation accuracy."
+      ]
+    },
+    {
+      "heading": "5 Conclusion",
+      "text": [
+        "The preliminary results show that our approach is more robust than the dictionary-based approaches.",
+        "They also show that the present approach outperforms other state-of-the-art machine-learning models.",
+        "We can also conclude that the maximum entropy model is a promising supervised machine learning alternative that can be effectively applied to Chinese word segmentation."
+      ]
+    },
+    {
+      "heading": "6 Acknowledgement",
+      "text": [
+        "This research was funded by DARPA N6600100-1-8915.",
+        "We gratefully acknowledge comments from two anonymous reviewers."
+      ]
+    },
+    {
+      "heading": "7 References",
+      "text": []
+    }
+  ]
+}

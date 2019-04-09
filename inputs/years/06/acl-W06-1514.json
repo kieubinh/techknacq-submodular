@@ -1,0 +1,194 @@
+{
+  "info": {
+    "authors": [
+      "Carlos Gómez-Rodríguez",
+      "Miguel A. Alonso",
+      "Manuel Vilares"
+    ],
+    "book": "International Workshop on Tree Adjoining Grammar and Related Formalisms",
+    "id": "acl-W06-1514",
+    "title": "Generating XTAG Parsers from Algebraic Specifications",
+    "url": "https://aclweb.org/anthology/W06-1514",
+    "year": 2006
+  },
+  "references": [
+    "acl-E99-1020",
+    "acl-J99-3002",
+    "acl-P85-1011",
+    "acl-P89-1018"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "In this paper, a generic system that generates parsers from parsing schemata is applied to the particular case of the XTAG English grammar.",
+        "In order to be able to generate XTAG parsers, some transformations are made to the grammar, and TAG parsing schemata are extended with feature structure unification support and a simple tree filtering mechanism.",
+        "The generated implementations allow us to study the performance of different TAG parsers when working with a large-scale, wide-coverage grammar."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Since Tree Adjoining Grammars (TAG) were introduced, several different parsing algorithms for these grammars have been developed, each with its peculiar characteristics.",
+        "Identifying the advantages and disadvantages of each of them is not trivial, and there are no comparative studies between them in the literature that work with real-life, wide coverage grammars.",
+        "In this paper, we use a generic tool based on parsing schemata to generate implementations of several TAG parsers and compare them by parsing with the XTAG English Grammar (XTAG, 2001).",
+        "The parsing schemata formalism (Sikkel, 1997) is a framework that allows us to describe parsers in a simple and declarative way.",
+        "A parsing schema * Partially supported by Ministerio de Educaci´on y Cien-cia and FEDER (TIN2004-07246-C03-01, TIN2004-07246C03-02), Xunta de Galicia (PGIDIT05PXIC30501PN, PGIDIT05PXIC10501PN, PGIDIT05SIN044E and PGIDIT05SIN059E), and Programa de becas FPU (Ministerio de Educaci´on y Ciencia).",
+        "We are grateful to Eric Villemonte de la Clergerie and Franc¸ois Barthelemy for their help in converting the XTAG grammar to XML.",
+        "is a representation of a parsing algorithm as a set of inference rules which are used to perform deductions on intermediate results called items.",
+        "These items represent sets of incomplete parse trees which the algorithm can generate.",
+        "An input sentence to be analyzed produces an initial set of items.",
+        "Additionally, a parsing schema must define a criterion to determine which items are final, i.e. which items correspond to complete parses of the input sentence.",
+        "If it is possible to obtain a final item from the set of initial items by using the schema’s inference rules (called deductive steps), then the input sentence belongs to the language defined by the grammar.",
+        "The parse forest can then be retrieved from the intermediate items used to infer the final items, as in (Billot and Lang, 1989).",
+        "As an example, we introduce a CYK-based algorithm (Vijay-Shanker and Joshi, 1985) for TAG.",
+        "Given a tree adjoining grammar G = (VT, VN, S, I, A)1 and a sentence of length n which we denote by a1 a2 ... an2, we denote by P(G) the set of productions {NY → NY1 NY2 ... NYr } such that NY is an inner node of a tree ry E (I U A), and NY1 NY2 ... NY r is the ordered sequence of direct children of NY.",
+        "The parsing schema for the TAG CYK-based algorithm (Alonso et al., 1999) is a function that maps such a grammar G to a deduction system whose domain is the set of items { [NY, i, j, p, q, adj] } verifying that NY is a tree node in an elementary",
+        "Sydney, July 2006. c�2006 Association for Computational Linguistics tree y E (I U A), i and j (0 < i < j) are string positions, p and q may be undefined or instantiated to positions i < p < q < j (the latter only when y E A), and adj E {true, false} indicates whether an adjunction has been performed on node N''.",
+        "The positions i and j indicate that a substring az+1... aj of the string is being recognized, and positions p and q denote the substring dominated by -y’s foot node.",
+        "The final item set would be { [Ra, 0, n, – , – , adj] I α E I } for the presence of such an item would indicate that there exists a valid parse tree with yield a1 a2 ... an and rooted at Ra, the root of an initial tree; and therefore there exists a complete parse tree for the sentence.",
+        "A deductive step \"'1...\"'\"t ξb allows us to infer the item specified by its consequent ξ from those in its antecedents B1 ... Bryn.",
+        "Side conditions (b) specify the valid values for the variables appearing in the antecedents and consequent, and may refer to grammar rules or specify other constraints that must be verified in order to infer the consequent.",
+        "The deductive steps for our CYK-based parser are shown in figure 1.",
+        "The steps DCYK and DECYK are used to start the bottom-up parsing process by recognizing a terminal symbol for the input string, or none if we are using a tree with an epsilon node.",
+        "The DCYK step (where the operation p U p' returns p if p is defined, and p' otherwise) represents the bottom-up parsing operation which joins two subtrees into one, and is analogous to one of the deductive steps of the CYK parser for CFG.",
+        "The DCYK step is used to handle unary branching productions.",
+        "DcYK and DcYK implement the adjunction operation, where a tree Q is adjoined into a node N''; their side condition Q E adj (N'') means that Q must be adjoinable into the node N'' (which involves checking that N'' is an adjunction node, comparing its label to RO’s and verifying that no adjunction constraint disallows the operation).",
+        "Finally, the DcYK step implements the substitution operation in grammars supporting it.",
+        "As can be seen from the example, parsing schemata are simple, high-level descriptions that convey the fundamental semantics of parsing algorithms while abstracting implementation details: they define a set of possible intermediate results and allowed operations on them, but they don’t specify data structures for storing the results or an order for the operations to be executed.",
+        "This high abstraction level makes schemata useful for defining, comparing and analyzing parsers in pencil and paper without worrying about implementation details.",
+        "However, if we want to actually execute the parsers and analyze their results and performance in a computer, they must be implemented in a programming language, making it necessary to lose the high level of abstraction in order to obtain functional and efficient implementations.",
+        "In order to bridge this gap between theory and practice, we have designed and implemented a system able to automatically transform parsing schemata into efficient Java implementations of their corresponding algorithms.",
+        "The input to this system is a simple and declarative representation of a parsing schema, which is practically equal to the formal notation that we used previously.",
+        "For example, this is the DCYK deductive step shown in figure 1 in a format readable by our compiler:",
+        "The parsing schemata compilation technique used by our system is based on the following fundamental ideas (G´omez-Rodriguez et al., 2006a):",
+        "• Each deductive step is compiled to a Java class containing code to match and search for antecedent items and generate the corresponding conclusions from the consequent.",
+        "• The step classes are coordinated by a deductive parsing engine, as the one described in (Shieber et al., 1995).",
+        "This algorithm ensures a sound and complete deduction process, guaranteeing that all items that can be generated from the initial items will be obtained.",
+        "• To attain efficiency, an automatic analysis of the schema is performed in order to create indexes allowing fast access to items.",
+        "As each different parsing schema needs to perform different searches for antecedent items, the index structures we generate are schema-specific.",
+        "In this way, we guarantee constant-time access to items so that the computational complexity of our generated implementations is never above the theoretical complexity of the parsers.",
+        "• Since parsing schemata have an open notation, for any mathematical object can potentially appear inside items, the system includes an extensibility mechanism which can be used to define new kinds of objects to use in schemata."
+      ]
+    },
+    {
+      "heading": "2 Generating parsers for the XTAG grammar",
+      "text": [
+        "By using parsing schemata as the ones in (Alonso et al., 1999; Nederhof, 1999) as input to our system, we can easily obtain efficient implementations of several TAG parsing algorithms.",
+        "In this section, we describe how we have dealt with the particular characteristics of the XTAG grammar in order to make it compatible with our generic compilation technique; and we also provide empirical results which allow us to compare the performance of several different TAG parsing algorithms in the practical case of the XTAG grammar.",
+        "It shall be noted that similar comparisons have been made with smaller grammars, such as simplified subsets of the XTAG grammar, but not with the whole XTAG grammar with all its trees and feature structures.",
+        "Therefore, our comparison provides valuable information about the behavior of various parsers on a complete, large-scale natural language grammar.",
+        "This behavior is very different from the one that can be observed on small grammars, since grammar size becomes a dominant factor in computational complexity when large grammars like the XTAG are used to parse relatively small natural language sentences (G´omez-Rodriguez et al., 2006b)."
+      ]
+    },
+    {
+      "heading": "2.1 Grammar conversion",
+      "text": [
+        "The first step we undertook in order to generate parsers for the XTAG grammar was a full conversion of the grammar to an XML-based format, a variant of the TAG markup language (TAGML).",
+        "In this way we had the grammar in a well-defined format, easy to parse and modify.",
+        "During this conversion, the trees’ anchor nodes were duplicated in order to make our generic TAG parsers allow ad-junctions on anchor nodes, which is allowed in the XTAG grammar."
+      ]
+    },
+    {
+      "heading": "2.2 Feature structure unification",
+      "text": [
+        "Two strategies may be used in order to take unification into account in parsing: feature structures can be unified after parsing or during parsing.",
+        "We have compared the two approaches for the XTAG grammar (see table 1), and the general conclusion is that unification during parsing performs better for most of the sentences, although its runtimes have a larger variance and it performs much worse for some particular cases.",
+        "In order to implement unification during parsing in our parsing schemata based system, we must extend our schemata in order to perform unification.",
+        "This can be done in the following way:",
+        "• Items are extended so that they will hold a feature structure in addition to the rest of the information they include.",
+        "• We need to define two operations on feature structures: the unification operation and the “keep variables” operation.",
+        "The “keep variables” operation is a transformation on feature structures that takes a feature structure as an argument, which may contain features, values, symbolic variables and associations between them, and returns a feature structure containing only the variable-value associations related to a given elementary tree, ignoring the variables and values not associated through these relations, and completely ignoring features.",
+        "• During the process of parsing, feature structures that refer to the same node, or to nodes that are taking part in a substitution or adjunction and",
+        "during and after parsing.",
+        "The following data are shown: mean, trimmed means (10 and 20%), quartiles, standard deviation, and p-value for the Wilcoxon paired signed rank test (the p-value of 0.4545 indicates that no statistically significant difference was found between the medians).",
+        "are going to collapse to a single node in the final parse tree, must be unified.",
+        "For this to be done, the test that these nodes must unify is added as a side condition to the steps that must handle them, and the unification results are included in the item generated by the consequent.",
+        "Of course, considerations about the different role of the top and bottom feature structures in adjunction and substitution must be taken into account when determining which feature structures must be unified.",
+        "• Feature structures in items must only hold variable-value associations for the symbolic variables appearing in the tree to which the structures refer, for these relationships hold the information that we need in order to propagate values according to the rules specified in the unification equations.",
+        "Variable-value associations referring to different elementary trees are irrelevant when parsing a given tree, and feature-value and feature-variable associations are local to a node and can’t be extrapolated to other nodes, so we won’t propagate any of this information in items.",
+        "However, it must be used locally for unification.",
+        "Therefore, steps perform unification by using the information in their antecedent items and recovering complete feature structures associated to nodes directly from the grammar, and then use the “keep-variables” operation to remove the information that we don’t need in the consequent item.",
+        "• In some algorithms, such as CYK, a single deductive step deals with several different elementary tree nodes that don’t collapse into one in the final parse tree.",
+        "In this case, several “keep variables” operations must be performed on each step execution, one for each of these nodes.",
+        "If we just unified the information on all the nodes and called “keep variables” at the end, we could propagate information incorrectly.",
+        "• In Earley-type algorithms, we must take a decision about how predictor steps handle feature structures.",
+        "Two options are possible: one is propagating the feature structure in the antecedent item to the consequent, and the other is discarding the feature structure and generating a consequent whose associated feature structure is empty.",
+        "The first option has the advantage that violations of unification constraints are detected earlier, thus avoiding the generation of some items.",
+        "However, in scenarios where a predic",
+        "tor is applied to several items differing only in their associated feature structures, this approach generates several different items while the discarding approach collapses them into a single consequent item.",
+        "Moreover, the propagating approach favors the appearance of items with more complex feature structures, thus making unification operations slower.",
+        "In practice, for XTAG we have found that these drawbacks of propagating the structures overcome the advantages, especially in complex sentences, where the discarding approach performs much better."
+      ]
+    },
+    {
+      "heading": "2.3 Tree filtering",
+      "text": [
+        "The full XTAG English grammar contains thousands of elementary trees, so performance is not good if we use the whole grammar to parse each sentence.",
+        "Tree selection filters (Schabes and Joshi, 1991) are used to select a subset of the grammar, discarding the trees which are known not to be useful given the words in the input sentence.",
+        "To emulate this functionality in our parsing schema-based system, we have used its extensibility mechanism to define a function Selects-tree(a, T) that returns true if the terminal symbol a selects the tree T. The implementation of this function is a Java method that looks for this information in XTAG’s syntactic database.",
+        "Then the function is inserted in a filtering step on our schemata:"
+      ]
+    },
+    {
+      "heading": "alpha E Trees/SELECTS-TREE(A;α)",
+      "text": [
+        "The presence of an item of the form [Selected, α] indicates that the tree α has been selected by the filter and can be used for parsing.",
+        "In order for the filter to take effect, we add [Selected, α] as an antecedent to every step in our schemata introducing a new tree α into the parse (such as initters, substitution and adjoining steps).",
+        "In this way we guarantee that no trees that don’t pass the filter will be used for parsing."
+      ]
+    },
+    {
+      "heading": "3 Comparing several parsers for the XTAG grammar",
+      "text": [
+        "In this section, we make a comparison of several different TAG parsing algorithms – the CYK-based algorithm described at (Vijay-Shanker and Joshi, 1985), Earley-based algorithms with (Alonso et al., 1999) and without (Schabes, 1994) the valid prefix property (VPP), and Nederhof’s algorithm (Nederhof, 1999) – on the XTAG English grammar (release 2.24.2001), by using our system and the ideas we have explained.",
+        "The schemata for these algorithms without unification support can be found at (Alonso et al., 1999).",
+        "These schemata were extended as described in the previous sections, and used as input to our system which generated their corresponding parsers.",
+        "These parsers were then run on the test sentences shown in table 2, obtaining the performance measures (in terms of runtime and amount of items generated) that can be seen in table 3.",
+        "Note that the sentences are ordered by minimal runtime.",
+        "As we can see, the execution times are not as good as the ones we would obtain if we used Sarkar’s XTAG distribution parser written in C (Sarkar, 2000).",
+        "This is not surprising, since our parsers have been generated by a generic tool without knowledge of the grammar, while the XTAG parser has been designed specifically for optimal performance in this grammar and uses additional information (such as tree usage frequency data from several corpora, see (XTAG, 2001)).",
+        "However, our comparison allows us to draw conclusions about which parsing algorithms are better suited for the XTAG grammar.",
+        "In terms of memory usage, CYK is the clear winner, since it clearly generates less items than the other algorithms, and a CYK item doesn’t take up more memory than an Earley item.",
+        "On the other hand, if we compare execution times, there is not a single best algorithm, since the performance results depend on the size and complexity of the sentences.",
+        "The Earley-based algorithm with the VPP is the fastest for the first, “easier” sentences, but CYK gives the best results for the more complex sentences.",
+        "In the middle of the two, there are some sentences where the best performance is achieved by the variant of Earley that doesn’t verify the valid prefix property.",
+        "Therefore, in practical cases, we should take into account the most likely kind of sentences that will be passed to the parser in order to select the best algorithm.",
+        "Nederhof’s algorithm is always the one with the slowest execution time, in spite of being an improvement of the VPP Earley parser that reduces worst-case time complexity.",
+        "This is probably because, when extending the Nederhof schema in order to support feature structure unification, we get a schema that needs more unification operations than Earley’s and has to use items that store several feature structures.",
+        "Nederhof’s algorithm would probably perform better in relation to the others if we had used the strategy of parsing without feature structures and then performing unification on the output parse forest."
+      ]
+    },
+    {
+      "heading": "4 Conclusions",
+      "text": [
+        "A generic system that generates parsers from algebraic specifications (parsing schemata) has been applied to the particular case of the XTAG grammar.",
+        "In order to be able to generate XTAG parsers, some transformations were made to the grammar, and TAG parsing schemata were extended with feature structure unification support and a simple tree filtering mechanism.",
+        "The generated implementations allow us to compare the performance of different TAG parsers when working with a large-scale grammar, the XTAG English grammar.",
+        "In this paper, we have shown the results for four algorithms: a CYK-based algorithm, Earley-based algorithms with and without the VPP, and Nederhof’s algorithm.",
+        "The result shows that the CYK-based parser is the least memory-consuming algorithm.",
+        "By measuring execution time, we find that CYK is the fastest algorithm for the most complex sentences, but the Earley-based algorithm with the VPP is the fastest for simpler cases.",
+        "Therefore, when choosing a parser for a practical application, we should take",
+        "1.",
+        "He was a cow 9.",
+        "He wanted to go to the city 2.",
+        "He loved himself 10.",
+        "That woman in the city contributed to this article 3.",
+        "Go to your room 11.",
+        "That people are not really amateurs at intelectual duelling 4.",
+        "He is a real man 12.",
+        "The index is intended to measure future economic performance 5.",
+        "He was a real man 13.",
+        "They expect him to cut costs throughout the organization 6. Who was at the door 14.",
+        "He will continue to place a huge burden on the city workers 7.",
+        "He loved all cows 15.",
+        "He could have been simply being a jerk 8.",
+        "He called up her 16.",
+        "A few fast food outlets are giving it a try",
+        "machine used for all the tests was an Intel Pentium 4 / 3.40 GHz, with 1 GB RAM and Sun Java Hotspot virtual machine (version 1.4.2 01-b06) running on Windows XP.",
+        "Best results for each sentence are shown in boldface.",
+        "into account the kinds of sentences most likely to be used as input in order to select the most suitable algorithm."
+      ]
+    }
+  ]
+}

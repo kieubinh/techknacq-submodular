@@ -1,0 +1,453 @@
+{
+  "info": {
+    "authors": [
+      "Nathanael Chambers"
+    ],
+    "book": "EMNLP",
+    "id": "acl-D13-1185",
+    "title": "Event Schema Induction with a Probabilistic Entity-Driven Model",
+    "url": "https://aclweb.org/anthology/D13-1185",
+    "year": 2013
+  },
+  "references": [
+    "acl-C00-2136",
+    "acl-D07-1075",
+    "acl-D09-1016",
+    "acl-H91-1059",
+    "acl-J93-3001",
+    "acl-M92-1008",
+    "acl-N06-1039",
+    "acl-N13-1104",
+    "acl-P03-1028",
+    "acl-P03-1029",
+    "acl-P04-1056",
+    "acl-P06-2027",
+    "acl-P06-2094",
+    "acl-P10-1029",
+    "acl-P10-2054",
+    "acl-P11-1054",
+    "acl-P11-1098",
+    "acl-P11-1114",
+    "acl-P98-1067",
+    "acl-W06-2207",
+    "acl-W98-1106"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Event schema induction is the task of learning high-level representations of complex events (e.g., a bombing) and their entity roles (e.g., perpetrator and victim) from unlabeled text.",
+        "Event schemas have important connections to early NLP research on frames and scripts, as well as modern applications like template extraction.",
+        "Recent research suggests event schemas can be learned from raw text.",
+        "Inspired by a pipelined learner based on named entity coreference, this paper presents the first generative model for schema induction that integrates coreference chains into learning.",
+        "Our generative model is conceptually simpler than the pipelined approach and requires far less training data.",
+        "It also provides an interesting contrast with a recent HMM-based model.",
+        "We evaluate on a common dataset for template schema extraction.",
+        "Our generative model matches the pipeline's performance, and outperforms the HMM by 7 F1 points (20%)."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Early research in language understanding focused on high-level semantic representations to drive their models.",
+        "Many proposals, such as frames and scripts, used rich event schemas to model the situations described in text.",
+        "While the field has since focused on more shallow approaches, recent work on schema induction shows that event schemas might be learn-able from raw text.",
+        "This paper continues the trend, addressing the question, can event schemas be induced from raw text without prior knowledge?",
+        "We present a new generative model for event schemas, and it produces state-of-the-art induction results, including a 7 F1 point gain over a different generative proposal developed in parallel with this work.",
+        "Event schemas are unique from most work in information extraction (IE).",
+        "Current relation discovery (Banko et al., 2007a; Carlson et al., 2010b) focuses on atomic facts and relations.",
+        "Event schemas build relations into coherent event structures, often called templates in IE.",
+        "For instance, an election template jointly connects that obama won a presidential election with romney was the defeated, the election occurred in 2012, and the popular vote was 50-48.",
+        "The entities in these relations fill specific semantic roles, as in this template schema: Template Schema for Elections (events: nominate, vote, elect, win, declare, concede)",
+        "Traditionally, template extractors assume foreknowledge of the event schemas.",
+        "They know a Winner exists, and research focuses on supervised learning to extract winners from text.",
+        "This paper focuses on the other side of the supervision spectrum.",
+        "The learner receives no human input, and it first induces a schema before extracting instances of it.",
+        "Our proposed model contributes to a growing line of research in schema induction.",
+        "The majority of previous work relies on ad-hoc clustering algorithms (Filatova et al., 2006; Sekine, 2006; Chambers and Jurafsky, 2011).",
+        "Chambers and Jurafsky is a pipelined approach, learning events first, and later learning syntactic patterns as fillers.",
+        "It requires",
+        "several ad-hoc metrics and parameters, and it lacks the benefits of a formal model.",
+        "However, central to their algorithm is the use of coreferring entity mentions to knit events and entities together into an event schema.",
+        "We adapt this entity-driven approach to a single model that requires fewer parameters and far less training data.",
+        "Further, experiments show state-of-the-art performance.",
+        "Other research conducted at the time of this paper also proposes a generative model for schema induction (Cheung et al., 2013).",
+        "Theirs is not entity-based, but instead uses a sequence model (HMM-based) of verb clauses.",
+        "These two papers thus provide a unique opportunity to compare two very different views of document structure.",
+        "One is entity-driven, modeling an entity's role by its coreference chain.",
+        "The other is clause-driven, classifying individual clauses based on text sequence.",
+        "Each model makes unique assumptions, providing an interesting contrast.",
+        "Our entity model outperforms by 7 F1 points on a common extraction task.",
+        "The rest of the paper describes in detail our main contributions: (1) the first entity-based generative model for schema induction, (2) a direct pipeline/formal model comparison, (3) results improving state-of-the-art performance by 20%, and (4) schema induction from the smallest amount of training data to date."
+      ]
+    },
+    {
+      "heading": "2 Previous Work",
+      "text": [
+        "Unsupervised learning for information extraction usually learns binary relations and atomic facts.",
+        "Models can learn relations like Person is married to Person without labeled data (Banko et al., 2007b), or rely on seed examples for ontology induction (dog is a mammal) and attribute extraction (dogs have tails) (Carlson et al., 2010b; Carlson et al., 2010a; Huang and Riloff, 2010; Durme and Paşca, 2008).",
+        "These do not typically capture the deeper connections mod-eled by event schemas.",
+        "Algorithms that do focus on event schema extraction typically require both the schemas and labeled corpora, such as rule-based approaches (Chinchor et al., 1993; Rau et al., 1992) and modern supervised classifiers (Freitag, 1998; Chieu et al., 2003; Bunescu and Mooney, 2004; Patwardhan and Riloff, 2009; Huang and Riloff, 2011).",
+        "Classifiers rely on the labeled examples?",
+        "surrounding context for features (Maslennikov and Chua, 2007).",
+        "Weakly supervised learning removes some of the need for labeled data, but most still require the event schemas.",
+        "One common approach is to begin with unlabeled, but clustered event-specific documents, and extract common word patterns as extractors (Riloff and Schmelzenbach, 1998; Sudo et al., 2003; Riloff et al., 2005; Filatova et al., 2006; Patwardhan and Riloff, 2007; Chen et al., 2011).",
+        "Bootstrapping with seed examples of known slot fillers has been shown to be effective (Yangarber et al., 2000; Surdeanu et al., 2006).",
+        "Shinyama and Sekine (2006) presented unrestricted relation discovery to discover relations in unlabeled documents.",
+        "Their algorithm used redundant documents (e.g., all describe Hurricane Ivan) to observe repeated proper nouns.",
+        "The approach requires many documents about the exact same event instance, and relations are binary (not schemas) over repeated named entities.",
+        "Our model instead learns schemas from documents with mixed topics that don't describe the same event, so repeated proper nouns are less helpful.",
+        "Chen et al. (2011) perform relation extraction with no supervision on earthquake and finance domains.",
+        "Theirs is a generative model that represents relations as predicate/argument pairs.",
+        "As with others, training data is pre-clustered by event type and there is no schema connection between relations.",
+        "This paper builds the most on Chambers and Ju-rafsky (2011).",
+        "They learned event schemas with a three-stage clustering algorithm that included a requirement to retrieve extra training data.",
+        "This paper removes many of these complexities.",
+        "We present a formal model that uniquely models coreference chains.",
+        "Advantages include a joint clustering of events and entities, and a formal probabilistic interpretation of the resulting schemas.",
+        "We achieve better performance, and do so with far less training data.",
+        "Cheung et al. (2013) is most related as a generative formulation of schema induction.",
+        "They propose an HMM-based model over latent event variables, where each variable generates the observed clauses.",
+        "Latent schema variables generate the event variables (in the spirit of preliminary work by O?Connor (2012)).",
+        "There is no notion of an entity, so learning uses text mentions and relies on the local HMM win",
+        "message: id dev-muc3-0112 (bellcore, mitre) incident: date 10 mar 89 incident: location peru: huanuco, ambo (town) incident: type bombing incident: stage accomplished incident: instrument explosive: ?-?",
+        "perp: individual ?shining path members?",
+        "dow for event transitions.",
+        "Their model was created in parallel with our work, and provides a nice contrast in both approach and results.",
+        "Ours outperforms their model by 20% on a MUC-4 evaluation.",
+        "In summary, this paper extends most previous work on event schema induction by removing the supervision.",
+        "Of the recent ?unsupervised?",
+        "work, we present the first entity-driven generative model, and we experiment on a mixed-domain corpus."
+      ]
+    },
+    {
+      "heading": "3 Dataset: The MUC-4 Corpus",
+      "text": [
+        "The corpus from the Message Understanding Conference (MUC-4) serves as the challenge text (Sundheim, 1991), and will ground discussion of our model.",
+        "MUC-4 is also used by the closest previous work.",
+        "It contains Latin American newswire about terrorism events, and it provides a set of hand-constructed event schemas that are traditionally called template schemas.",
+        "It also maps labeled templates to the text, providing a dataset for template extraction evaluations.",
+        "Until very recently, only extraction has been evaluated.",
+        "We too evaluate our model through extraction, but we also compare our learned schemas to the hand-created template schemas.",
+        "An example of a filled in MUC-4 template is given in Figure 1.",
+        "The MUC-4 corpus defines six template types: Attack, Kidnapping, Bombing, Arson, Robbery, and Forced Work Stoppage.",
+        "Documents are often labeled with more than one template and type.",
+        "Many include multiple events at different times in different locations.",
+        "The corpus is particularly challenging because template schemas are intermixed and entities can play multiple roles across instances.",
+        "The training corpus contains 1300 documents, 733 of which are labeled with at least one schema.",
+        "567 documents are not labeled with any schemas.",
+        "These unlabeled documents are articles that report on non-specific political events and speeches.",
+        "They make the corpus particularly challenging.",
+        "The development and test sets each contain 200 documents."
+      ]
+    },
+    {
+      "heading": "4 A Generative Model for Event Schemas",
+      "text": [
+        "This paper's model is an entity-based approach, similar in motivation to Haghighi and Klein (2010) and the pipelined induction of Chambers and Jurafsky (2011).",
+        "Coreference resolution guides the learning by providing a set of pre-resolved entities.",
+        "Each entity receives a schema role label, so it allows all mentions of the entity to inform that role choice.",
+        "This important constraint links coreferring mentions to the same schema role, and distinguishes our approach from others (Cheung et al., 2013)."
+      ]
+    },
+    {
+      "heading": "4.1 Illustration",
+      "text": [
+        "The model represents a document as a set of entities.",
+        "An entity is a set of entity mentions clustered by coreference resolution.",
+        "We will use the following two sentences for illustration: A truck bomb exploded near the embassy.",
+        "Three militia planted it, and then they fled.",
+        "This text contains five entity mentions.",
+        "A perfect coreference resolution system will resolve these five mentions into three entities:",
+        "a truck bomb (a truck bomb, it) Instrument the embassy (the embassy) Target three militia (three militia, they) Perpetrator it they The schema roles, or template slots, are the type of target knowledge we want to learn.",
+        "Each entity will be labeled with both a slot variable s and a template variable t (e.g., the s=perpetrator of a t=bombing).",
+        "The lexical context of the entity mentions guides the learning model to this end."
+      ]
+    },
+    {
+      "heading": "4.2 Definitions",
+      "text": [
+        "A document d ?",
+        "D is represented as a set of entities Ed.",
+        "Each entity e ?",
+        "Ed is a triple: e = (h,M,F )",
+        "Text A truck bomb exploded near the embassy.",
+        "Three militia planted it, and then they fled.",
+        "2.",
+        "Me is a set of entity mentions m ?",
+        "Me.",
+        "Each mention is a pairm = (p, d): the predicate, and the typed dependency from the predicate to the mention (e.g., push and subject-push).",
+        "3.",
+        "Fe is a set of binary entity features.",
+        "This paper only uses named entity types as features, but",
+        "generalizes to other features as well.",
+        "A document is thus reduced to its entities, their grammatical contexts, and entity features.",
+        "Figure 2 continues our example using this formulation.",
+        "he is chosen to be e's longest non-pronoun mention m ?",
+        "Me.",
+        "Mentions are labeled with NER and WordNet synsets to create an entity's features Fe ?",
+        "{Person, Org, Loc, Event, Time, Object, Other}.",
+        "We use the Stanford NLP toolkit to parse, extract typed dependencies, label with NER, and run coreference."
+      ]
+    },
+    {
+      "heading": "4.3 The Generative Models",
+      "text": [
+        "Similar to topics in LDA, each document d in our model has a corresponding multinomial over schema types ?d, drawn from a Dirichlet.",
+        "For each entity in the document, a hidden variable t is drawn according to ?d.",
+        "These t variables represent the high level schema types, such as bombing or kidnapping.",
+        "The predicates associated with each of the entity's mentions are then drawn from the schema's multinomial over predicates Pt.",
+        "The variable t also generates a hidden variable s from its distribution over slots, such as perpetrator and victim.",
+        "Finally, the entity's canonical head word is generated from ?s, all entity mentions?",
+        "typed dependencies from ?s, and named entity types from ?s.",
+        "The most important characteristic of this model is the separation of event words from the lexical properties of specific entity mentions.",
+        "The schema type variables t only model the distribution of event words (bomb, plant, defuse), but the slot variables s model the syntax (subject-bomb, subject-plant, object-arrest) and entity words (suspect, terrorist, man).",
+        "This allows the high-level schemas to first select predicates, and then forces predicate arguments to prefer slots that are in the parent schema type.",
+        "Formally, a document d receives a labeling Zd where each entity e ?",
+        "Ed is labeled Zd,e = (t, s) with a schema type t and a slot s. The joint distribution of a document and labeling is then as follows:",
+        "The plate diagram for the model is given in Figure 3.",
+        "The darker circles correspond to the observed entity components in Figure 2.",
+        "We assume the following generative process for a document d: Generate ?d from Dir(?)",
+        "for each schema type t = 1...m do",
+        "for each entity e ?",
+        "Ed do Generate schema type t from Multinomial(?d) Generate slot s from UniformDist(k) Generate head word h from Multinomial(?s) for each mention m ?Me do Generate predicate token p from Multinomial(Pt) Generate typed dependency d from Multinomial(?s) for each entity type i = 1..|Fe |do Generate entity type f from Multinomial(?s) The number of schema types m and the number of slots per schema k are chosen based on training set performance.",
+        "model.",
+        "Hyper-parameters are omitted for readability.",
+        "The Flat Relation Model We also experiment with a Flat Relation Model that removes the hidden t variables, ignoring schema types.",
+        "Figure 4 visually compares this flat model with the full model.",
+        "We found that the predicate distribution Pt hurts performance in a flat model.",
+        "Predicates are more informative at the higher level, but less so for slots where syntax is more important.",
+        "We thus removed Pt from the model, and everything else remains the same.",
+        "This flat model now learns a large set of k slots S that aren't connected by a high-level schema variable.",
+        "Each slot s ?",
+        "S has a corresponding triple of multinomials (h,M,F ) similar to above: (1) a multinomial over the head mentions ?s, (2) a multinomial over the grammatical relations of the entity mentions ?s, and (3) a multinomial over the entity features ?s.",
+        "For each entity in a document, a hidden slot s ?",
+        "S is first drawn from ?, and then the observed entity (h,M,F ) is drawn according to the multinomials (?s, ?s, ?s).",
+        "We later evaluate this flat model to show the benefit of added schema structure."
+      ]
+    },
+    {
+      "heading": "4.4 Inference",
+      "text": [
+        "We use collapsed Gibbs sampling for inference, sampling the latent variables te,d and se,d in se",
+        "relation model to the full template model.",
+        "The observed f ?",
+        "F variables are not included for clarity.",
+        "quence conditioned on a full setting of all the other variables (Griffiths and Steyvers, 2004).",
+        "Initial parameter values are set by randomly setting t and s variables from the uniform distribution over schema types and slots, then computing the other parameter values based on these initial settings.",
+        "The hyperpa-rameters for the dirichlet distributions were chosen from a small grid search (see Experiments).",
+        "Beyond standard inference, we added one constraint to the model that favors grammatical distributions 's that do not contain conflicts.",
+        "The subject and direct object of a verb should not both receive high probability mass under the same schema slot ?s.",
+        "For instance, the victim of a kidnapping should not favor both the subject and object of a single verb.",
+        "Semantic roles should (typically) select one syntactic slot, so this constraint encourages that behavior.",
+        "During sampling of se,d, we use a penalty factor ?",
+        "to make conflicting relations less likely.",
+        "Formally,",
+        "bility is computed as normal.",
+        "We normalize the distributions after penalties are computed."
+      ]
+    },
+    {
+      "heading": "4.5 Entity Extraction for Template Filling",
+      "text": [
+        "Inducing event schemas is only one benefit of the model.",
+        "The learned model can also extract specific instances of the learned schemas without ad",
+        "ditional complexity.",
+        "To evaluate the effectiveness of the model, we apply the model to perform standard template extraction on MUC-4.",
+        "Previous MUC-4 induction required an extraction algorithm separate from induction because induction created hard clusters (Chambers and Jurafsky, 2011).",
+        "Cluster scores don't have a natural interpretation, so extraction required several parameters/thresholds to tune.",
+        "Our model instead simply relies on model inference.",
+        "We run inference as described above and each entity receives a template label te,d and a template slot label se,d.",
+        "These labels are the extractions, and it requires no other parameters.",
+        "The model thus requires far less machinery than a pipeline, and the experiments below further show that this simpler model outperforms the pipeline.",
+        "Beyond parameters, the question of ?irrelevant?",
+        "documents is a concern in MUC-4.",
+        "Approximately half the corpus are documents that are not labeled with a template, so past algorithms required extra processing stages to filter out these irrelevant documents.",
+        "Patwardhan and Riloff (2009) and Chambers and Jurafsky (2011) make initial decisions as to whether they should extract or not from a document.",
+        "Huang and Riloff (2011) use a genre detector for this problem.",
+        "Even the generative HMM-based model of Cheung et al. (Cheung et al., 2013) requires an extra filtering parameter.",
+        "Our formal model is unique in not requiring additional effort.",
+        "Ours is the only approach that doesn't require document filtering."
+      ]
+    },
+    {
+      "heading": "5 Evaluation Setup",
+      "text": [
+        "Evaluating on MUC-4 has a diverse history that complicates comparison.",
+        "The following balances comparison against previous work and enables future comparison to our results."
+      ]
+    },
+    {
+      "heading": "5.1 Template Schema Slots",
+      "text": [
+        "Most systems do not evaluate performance on all MUC-4 template slots.",
+        "They instead focus on four main slots, ignoring the parameterized slots that involve deeper reasoning (such as ?stage of execution?",
+        "and ?effect of incident?).",
+        "The four slots and example entity fillers are shown here:",
+        "We also focus only on these four slots.",
+        "We merged MUC's two perpetrator slots (individuals and orgs) into one gold Perpetrator.",
+        "Previous work has both split the two and merged the two.",
+        "We merge them because the distinction between an individual and an organization is often subtle and not practically important to analysts.",
+        "This is also consistent with the most recent event schema induction in Chambers and Jurafsky (2011) and Cheung et al. (2013).",
+        "One peculiarity in MUC-4 is that some templates are labeled as optional (i.e., all its slots are optional), and some required templates contain optional slots (i.e., a subset of slots are optional).",
+        "We ignore both optional templates and specific optional slots when computing recall, as in previous work (Patwardhan and Riloff, 2007; Patwardhan and Riloff, 2009; Chambers and Jurafsky, 2011).",
+        "Comparison between the extracted strings and the gold template strings uses head word scoring.",
+        "We do not use gold parses for the text, so head words are defined simply as the rightmost word in the noun phrase.",
+        "The exception is when the extracted phrase is of the form ?A of B?, then the rightmost word in ?A?",
+        "is used as the head.",
+        "This is again consistent with previous work1.",
+        "The standard evaluation metrics are precision, recall, and F1 score."
+      ]
+    },
+    {
+      "heading": "5.2 Mapping Learned Slots",
+      "text": [
+        "Induced schemas need to map to gold schemas before evaluation.",
+        "Which learned slots correspond to MUC-4 slots?",
+        "There are two methods of mapping.",
+        "The first ignores the schema type variables t, and simply finds the best performing s variable for each gold template slot2.",
+        "We call this the slot-only mapping evaluation.",
+        "The second approach is to map each template variable t to the best gold template type g, and limit the slot mapping so that only the slots under t can map to slots under g. We call this the template mapping evaluation.",
+        "The slot-only mapping can result in higher scores since it is not constrained to preserve schema structure in the mapping.",
+        "Chambers and Jurafsky (2011) used template mapping in their evaluation.",
+        "Cheung et al. (2013) used slot-only mapping.",
+        "We run both evaluations in this paper and separately compare both."
+      ]
+    },
+    {
+      "heading": "6 Experiments",
+      "text": [
+        "We use the Stanford CoreNLP toolkit for text processing and parsing.",
+        "We developed the models on the 1300 document MUC-4 training set.",
+        "We then learned once on the entire 1700 training/dev/test set, and report extraction numbers from the inferred labels on the 200 document test set.",
+        "Each experiment was repeated 10 times.",
+        "Reported numbers are averaged across these runs.",
+        "There are two structure variables for the model: the number of schema types and the number of slots under each type.",
+        "We searched for the optimal values on the training set before evaluating on test.",
+        "The hyperparameters for all evaluations were set to ?",
+        "= ?",
+        "= ?",
+        "= ?",
+        "= 1, ?",
+        "= .1 based on a grid search."
+      ]
+    },
+    {
+      "heading": "6.1 Template Schema Induction",
+      "text": [
+        "The first evaluation compares the learned schemas to the gold schemas in MUC-4.",
+        "Since most previous work assumes this knowledge ahead of time, we align our schemas with the main MUC-4 template types to measure quality.",
+        "We inspected the learned event schemas that mapped to MUC-4 schemas based on the template mapping extraction evaluation.",
+        "Figure 5 shows some of the learned distributions for two mapped schemas: kidnappings and bombings.",
+        "The predicate distribution for each event schema is shown, as well as the top 5 head words and grammatical relations for each slot.",
+        "The words and events that were jointly learned in these examples appear quite accurate.",
+        "The bombing and kidnap schemas learned all of the equivalent MUC-4 gold slots.",
+        "Interestingly, our model also learned Locations and Times as important entities that appear in the text.",
+        "These entities are not traditionally included in the MUC-4 extraction task.",
+        "Figure 6 lists the MUC-4 slots that we did and did not learn for the four most prevelant types.",
+        "We report 71% recall, with almost all errors due to the model's failure to learn about arsons.",
+        "Arson templates only occur in 40 articles, much less than the 200 bombing and over 400 attack.",
+        "We show below that overall extraction performs well despite this.",
+        "The learned distributions for Attack end up extracting Arson perpetrators and Arson victims in the actual extraction evaluation.",
+        "learned by our model nonetheless.",
+        "learned schema first maps to a gold MUC template.",
+        "Learned slots can then only map to slots in that template."
+      ]
+    },
+    {
+      "heading": "6.2 Extraction Experiments",
+      "text": [
+        "We now present the full extraction experiment that is traditionally used for evaluating MUC-4 performance.",
+        "Although our learned schemas closely match gold schemas, extraction depends on how well the model can extract from diverse lexical contexts.",
+        "We ran inference on the full training and test sets, and used the inferred labels as schema labels.",
+        "These labels were mapped and evaluated against the gold MUC-4 labels as discussed in Section 5.",
+        "Performance is compared to two state-of-the-art induction systems.",
+        "Since these previous two models used different methods to map their learned schemas, we compare separately.",
+        "Table 1 shows the template mapping evaluation with Chambers and Jurafsky (C&J).",
+        "Table 2 shows the slot-only mapping evaluation with Cheung et al. Our model achieves an F1 score comparable to C&J, and 20% higher than Cheung et al. Part of the greater increase over Cheung et al. is the mapping difference.",
+        "For each MUC-4 type, such as bombing, any four learned slots can map to the four MUC4 bombing slots.",
+        "There is no constraint that the learned slots must come from the same schema type.",
+        "The more strict template mapping (Table 1) ensures that entire schema types are mapped together, and it reduces our performance from .41 to .33.",
+        "The macro-level F1 scores can be broken down into individual slot performance.",
+        "Table 3 shows these results ranging from .26 to .45.",
+        "The Instrument role proves easiest to learn, consistent with C&J.",
+        "A large portion of MUC-4 includes irrelevant documents.",
+        "Cheung et al. (2013) evaluated their model without irrelevant documents in the test set that to see how performance is affected.",
+        "We compare against their numbers in Table 4.",
+        "Results are closer now with ours outperforming .46 to .43 F1.",
+        "This suggests that the HMM-based approach stumbles more on spurious documents, but performs better on relevant ones.",
+        "sification.",
+        "These results ignore false positives extracted from ?irrelevant?",
+        "documents in the test set."
+      ]
+    },
+    {
+      "heading": "6.3 Model Ablation",
+      "text": [
+        "Table 2 shows that the flat relation model (no latent type variables t) is inferior to the full schema model.",
+        "F1 drops 20% without the explicit modeling of both schema types t and their entity slots s. The entity features Fe are less important.",
+        "Experiments without them show a slight drop in performance (2 F1 points), small enough that they could be removed for efficiency.",
+        "However, it is extremely useful to learn slots with NER labels like Person or Location.",
+        "Finally, we experimented without the subject/object constraint (Section 4.4).",
+        "Performance drops 5-10% depending on the number of schemas learned.",
+        "Anecdotally, it merges too many schema slots that should be separate.",
+        "We recommend using this constraint as it has little impact on CPU time."
+      ]
+    },
+    {
+      "heading": "6.4 Extension: Reduce Training Size",
+      "text": [
+        "One of the main benefits of this generative model appears to be the reduction in training data.",
+        "The pipelined approach in C&J required an information retrieval stage to bring in hundreds of other docu",
+        "ments from an external corpus.",
+        "This paper's generative model doesn't require such a stage.",
+        "We thus attempted to induce and extract event schemas from just the 200 test set documents, with no training or development data.",
+        "We repeated this experiment 30 times and averaged the results, setting the number of templates t = 20 and slots s = 10 as in the main experiment.",
+        "The resulting F1 score for the template-mapping evaluation fell to 0.27 from the full data experiment of 0.33 F1.",
+        "Adding more training documents in another experiment did not significantly increase performance over 0.27 until all training and development documents were included.",
+        "This could be explained by the development set being more similar to the test set than training.",
+        "We did not investigate further to prevent over-experimentation on test."
+      ]
+    },
+    {
+      "heading": "7 Discussion",
+      "text": [
+        "Our model is one of the first generative formulations of schema induction.",
+        "It produces state-of-the-art performance on a traditional extraction task, and performs with less training data as well as a more complex pipelined approach.",
+        "Further, our unique entity-driven approach outperforms an HMM-based model developed in parallel to this work.",
+        "Our entity-driven proposal is strongly influenced by the ideas in the pipeline model of Chambers and Jurafsky (2011).",
+        "Coreference chains have been used in a variety of learning tasks, such as narrative learning and summarization.",
+        "Here we are the first to show how it can be used for schema induction in a probabilistic model, connecting predicates across a document in a way that is otherwise difficult to represent.",
+        "The models perform similarly, but ours also includes significant benefits like a reduction in complexity, reproducibility, and a large reduction in training data requirements.",
+        "This paper also implies that learning and extraction need not be independent algorithms.",
+        "Our model's inference procedure to learn schemas is the same one that labels text for extraction.",
+        "C&J required 3-4 separate pipelined steps.",
+        "Cheung et al. (2013) required specific cutoffs for document classification before extraction.",
+        "Not only does our model perform well, but it does so without these steps.",
+        "Highlighted here are key differences between this proposal and the HMM-based model of Cheung et al.",
+        "(2013).",
+        "One of the HMM strengths is the inclusion of sequence-based knowledge.",
+        "Each slot label is influenced by the previous label in the text, encouraging syntactic arguments of a predicate to choose the same schema.",
+        "This knowledge is only loosely present in our document distribution ?.",
+        "Cheung et al. also include a hidden event variable between the template and slot variables.",
+        "Our model collapses this event variable and makes fewer dependency assumptions.",
+        "This difference requires further investigation as it is unclear if it provides valuable information, or too much complexity.",
+        "We also note a warning for future work on proper evaluation methodology.",
+        "This task is particularly difficult to compare to other models due to its combination of both induction and then extraction.",
+        "There are many ways to map induced schemas to gold answers, and this paper illustrates how extraction performance is significantly affected by the choice.",
+        "We suggest the template-mapping evaluation to preserve learned structure.",
+        "Finally, these induced results are far behind supervised learning (Huang and Riloff, 2011).",
+        "There is ample room for improvement and future research in event schema induction."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work was partially supported by a grant from the Office of Naval Research.",
+        "It was also supported, in part, by the Johns Hopkins Human Language Technology Center of Excellence.",
+        "Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author.",
+        "Thanks to Eric Wang for his insights into Bayesian modeling, Brendan O?Connor for his efforts on normalizing MUC-4 evaluation details, Frank Ferraro and Benjamin Van Durme for helpful conversations, and to the reviewers for insightful feedback."
+      ]
+    }
+  ]
+}

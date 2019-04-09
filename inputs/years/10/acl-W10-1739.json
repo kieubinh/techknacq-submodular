@@ -1,0 +1,164 @@
+{
+  "info": {
+    "authors": [
+      "Loïc Barrault"
+    ],
+    "book": "Proceedings of the Joint Fifth Workshop on Statistical Machine Translation and MetricsMATR",
+    "id": "acl-W10-1739",
+    "title": "MANY: Open Source MT System Combination at WMT’10",
+    "url": "https://aclweb.org/anthology/W10-1739",
+    "year": 2010
+  },
+  "references": [
+    "acl-P07-1040",
+    "acl-P08-2021"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "LIUM participated in the System Combination task of the Fifth Workshop on Statistical Machine Translation (WMT 2010).",
+        "Hypotheses from 5 French/English MT systems were combined with MANY, an open source system combination software based on confusion networks currently developed at LIUM.",
+        "The system combination yielded significant improvements in BLEU score when applied on WMT'09 data.",
+        "The same be-havior has been observed when tuning is performed on development data of this year evaluation."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "This year, the LIUM computer science laboratory has participated in the French-English system combination task at WMT'10 evaluation campaign.",
+        "The system used for this task is MANY1 (Barrault, 2010), an open source system combination software based on Confusion Networks (CN).",
+        "Several improvements have been made in order to being able to combine many systems outputs in a decent time.",
+        "The focus has been put on the tuning step, and more precisely how to perform system parameter tuning.",
+        "Two methods have been experimented corresponding to two different representations of system combination.",
+        "In the first one, system combination is considered as a whole : fed by system hypotheses as input and generating a new hypothesis as output.",
+        "The second method considers that the alignment module is independent from the decoder, so that the parameters from each module can be tuned separately.",
+        "Those tuning approaches are described in section 3.",
+        "Before that, a quick description of MANY, including recent developments, can be found in section 2.",
+        "Results on WMT'09 data are presented in section 4 along results of tuning on newssyscombtune2010."
+      ]
+    },
+    {
+      "heading": "2 System description",
+      "text": [
+        "MANY is a system combination software (Barrault, 2010) based on the decoding of a lattice made of several Confusion Networks (CN).",
+        "This is a widespread approach in MT system combination (Rosti et al., 2007); (Shen et al., 2008); (Karakos et al., 2008).",
+        "MANY can be decomposed in two main modules.",
+        "The first one is the alignment module which actually is a modified version of TERp (Snover et al., 2009).",
+        "Its role is to incrementally align the hypotheses against a backbone in order to create a confusion network.",
+        "Those confusion networks are then connected together to create a lattice.",
+        "This module uses different costs (which corresponds to a match, an insertion, a deletion, a substitution, a shift, a synonym and a stem) to compute the best alignment and incrementally build a confusion network.",
+        "In the case of confusion network, the match (substitution, synonyms, and stems) costs are considered when the word in the hypothesis matches (is a substitution, a synonyms or a stems of) at least one word of the considered confusion sets in the CN, as shown in Figure 1.",
+        "The second module is the decoder.",
+        "This decoder is based on the token pass algorithm and it accepts as input the lattice previously created.",
+        "The probabilities computed in the decoder can be expressed as follow :",
+        "where Len(W ) is the length of the hypothesis,",
+        "sulting in a confusion network.",
+        "Pws(n) is the score of the nth word in the lattice, Plm(n) is its LM probability, Lpen(n) is the length penalty (which apply when Wn is not a null-arc), Npen(n) is the penalty applied when crossing a null-arc, and the 'i are the features weights.",
+        "Multithreading One major issue with system combination concerns scaling.",
+        "Indeed, in order to not lose information about word order, all system hypotheses are considered as backbone and all other hypotheses are aligned to it to create a CN.",
+        "Consequently, if we consider N system outputs, then to build N confusion networks, N (N ' 1) alignments with modified TERp have to be performed.",
+        "Moreover, in order to get better results, the TERp costs have to be optimized, which requires a lot of iterations, all of which calculate N (N ' 1) alignments.",
+        "However, the building of a CN with system i as backbone does not depend on the building of CN with other system as backbone.",
+        "Therefore multi-threading has been integrated into MANY so that multiple CNs can be created in parallel.",
+        "From now on, the number of thread can be specified in the configuration file."
+      ]
+    },
+    {
+      "heading": "3 Tuning",
+      "text": [
+        "As mentioned before, MANY is made of two main modules : the alignment module based on a modified version of TERp and the decoder.",
+        "Considering 10 systems, 19 parameters in total have to be optimized in order to get better results.",
+        "By default, TERp costs are set to 0.0 for match and 1.0 for everything else.",
+        "These costs are not correct, since a shift in that case will hardly be possible.",
+        "TERp costs, system priors, fudge factor, null-arc penalty, length penalty are tuned with Condor (a global optimizer based on the Powell's algorithm, (Berghen and Bersini, 2005)).",
+        "Two ways of tuning have been experimented.",
+        "The first one consists in optimizing the whole set of parameters together (see section 3.1).",
+        "The second one rely on the (maybe likely) independence of the TERp parameters towards those of the decoder and consists in tuning TERp parameters in a first step and then using the optimized TERp costs when tuning the decoder parameters (see section 3.2)."
+      ]
+    },
+    {
+      "heading": "3.1 Tuning all parameters together",
+      "text": [
+        "Condor is an optimizer which aims at minimizing a certain objective function.",
+        "In our case, the objective function is the whole system combination.",
+        "As input, it takes the whole set of parameters (i.e. TERp costs except match costs (which is always set to 0), system priors, the fudge factor, and null-arc and length penalty) and outputs -BLEU score.",
+        "The BLEU score is one of the most robust metrics as presented in (Leusch et al., 2009), which is consequently an obvious target for optimization.",
+        "Such a tuning protocol has the disadvantage to be slower as all the confusion networks have to be regenerated at each step because the TERp costs provided by the optimizer will hardly be the same for two iterations (thus, confusion networks computed during previous iterations can hardly be reused).",
+        "Another issue with this approach is that it is hard to converge when the parameter set is that large.",
+        "This is mainly due to the fact that we cannot guarantee the convexity of the problem.",
+        "However, one advantage is that the possible correlation between all parameters are taken into account during the optimization process, which is not the case when optimizing in several steps."
+      ]
+    },
+    {
+      "heading": "3.2 Two-step tuning",
+      "text": [
+        "Tuning TERp parameters : In order to optimize TERp parameters (i.e. del, ins, sub, shift, stem and syn costs), we have to determine which measure to use to evaluate a certain configuration.",
+        "We naturally considered the minimization of the TERp score.",
+        "To do so, the confusion networks are built using the set of parameters given by the optimizer.",
+        "TERp scores are then calculated between the reference and each CN, and summed up.",
+        "The goal of this step is to guide the confusion networks generation process to produce sentences",
+        "similar to the reference.",
+        "Consequently, if the confusion networks generated at this step have a lower TERp score, then this means that the decoder is more likely to find a better hypothesis inside.",
+        "Tuning decoder parameters : Based on the TERp configuration determined at the previous step, this step aims at finding good parameter values.",
+        "Those parameters control the final hypothesis size and the importance given to the language model probabilities compared to the translation scores (occurring on words).",
+        "The metric which is minimized is -BLEU for the same reasons mentioned in section 3.1."
+      ]
+    },
+    {
+      "heading": "4 Experiments and Results",
+      "text": [
+        "During experiments, data from last year evaluation campaign are used for testing the tuning approach.",
+        "When tuning all parameters together, the set obtained is presented in Table 3.",
+        "The 2-step tuning",
+        "data.",
+        "can observe that 2-step tuning provides almost 0.9 BLEU point improvement on development corpus which is well reflected on test set with a gain of more than 0.7 BLEU.",
+        "The best results are obtain when tuning all parameters together, which give more than 1 BLEU point improvement on dev and more than 0.9 on test."
+      ]
+    },
+    {
+      "heading": "4.1 Discussion",
+      "text": [
+        "Choosing a measure to optimize the TERp costs is not something easy.",
+        "One important remark is that default (equal) costs are not suitable to get good confusion networks.",
+        "The goal of the confusion networks is to make possible the generation of a new hypothesis which can be different from those provided by each individual system.",
+        "In these experiments, TERp calculated between the CNs and the reference is used as the distance to be minimized by the optimizer.",
+        "We can notice that for the 2-step optimization, the deletion cost is very small.",
+        "This is probably not a value which is expected, because in this case, this means that deletions can occur in an hypothesis without penalizing it a lot.",
+        "However, this parameter set has a beneficial impact on the system combination performance.",
+        "Another comment is that the system weights are not directly proportional to the results.",
+        "This suggests that some phrases proposed by weaker systems can have a higher importance for system combination.",
+        "By contrast, optimizing parameters all together provides more fair weights, according to the re",
+        "sults of the single systems."
+      ]
+    },
+    {
+      "heading": "4.2 2010 evaluation campaign",
+      "text": [
+        "For this year system combination tasks, a development corpus (syscombtune) and the test (syscombtest), described in Table 6, were provided to participants.",
+        "models has been trained on all monolingual data provided for the translation tasks.",
+        "In addition, LDC's Gigaword collection was used for both languages.",
+        "Data corresponding to the development and test periods were removed from the Gigaword collections.",
+        "The result provided by the system with this configuration can be compared to the single systems in Table 8.",
+        "A behavior comparable to WMT'09 evaluation campaign is observed, which suggests that the approach is correct."
+      ]
+    },
+    {
+      "heading": "5 Conclusion and future work",
+      "text": [
+        "We have shown that tuning all parameters together is better than 2-step tuning.",
+        "However, the second method has not been fully explored.",
+        "Tuning TERp parameters targeting minimum TERp score is not satisfying.",
+        "Therefore, an alternative measure, like ngram agreement which would be more related to BLEU, can be considered in order to obtain better parameters.",
+        "Further improvement for MANY will be considered like case insensitive combination then re-casing the output using majority vote on the confusion networks.",
+        "This is currently a work in progress."
+      ]
+    },
+    {
+      "heading": "6 Acknowledgement",
+      "text": [
+        "This work has been partially funded by the European Union under the EuroMatrix Plus project (http://www.euromatrixplus.net, IST-2007.2.2FP7-231720)"
+      ]
+    }
+  ]
+}

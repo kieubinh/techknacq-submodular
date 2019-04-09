@@ -1,0 +1,252 @@
+{
+  "info": {
+    "authors": [
+      "Masaru Tomita"
+    ],
+    "book": "International Conference on Computational Linguistics",
+    "id": "acl-C90-1012",
+    "title": "The Generalized LR Parser/Compiler V8-4: A Software Package for Practical NL Projects",
+    "url": "https://aclweb.org/anthology/C90-1012",
+    "year": 1990
+  },
+  "references": [
+    "acl-C86-1016",
+    "acl-C88-2096",
+    "acl-J87-1004",
+    "acl-P84-1075"
+  ],
+  "sections": [
+    {
+      "heading": "1. Introduction",
+      "text": [
+        "This paper.'",
+        "describes a software package designed for practical projects which involve natural language parsing.",
+        "The Generalized LR Parser/Compiler V8-4 is based on Tomita's Generalized LR Parsing Algorithm [7, 6], augmented by pseudo/full unification modules.",
+        "While the parser/compiler is not a commercial product, it has been thoroughly tested and heavily used by many projects inside and outside CMU last three years.",
+        "It is publicly available with some restrictions for profit-making industries2.",
+        "It is written entirely in CommonLisp, and no system-dependent functions, such as window graphics, are used for the sake of portability.",
+        "Thus, it should run on any systems that run CommonLisp in principle3, including IBM RT/PC, Mac II, Symbolics and HP Bobcats.",
+        "Each rule consists of a context-free phrase structure description and a cluster of pseudo equations as in figure 1-1.",
+        "The non-terminals in the phrase structure part of the rule are referenced in the equations as x0 .",
+        ".",
+        ".xn, where x0 is the non-terminal 1Many members of CMU Center for Machine Translation have made contributions to the development of the system.",
+        "People who implemented parts of the system, besides the author, are: Hideto Kagamida, Kevin Knight, Hiroyuki Musha and Kazuhiro Toyoshima.",
+        "People who made contributions in maintaining the system include: Steve Morrisson, Eric Nyberg, Hiroakl Saito and Hideto Tomabechi.",
+        "People who provided valuable comments/bug reports in writing and debugging grammars include: Donna Gates, Lori Levin, Toru Matsuda and Teruko Mitamura.",
+        "Other members who made indirect contributions in many ways include: Ralph Brown, Jaime Carbonell,",
+        "in the left hand side (here, <DEC>) and xn is the nth non-terminal in the right hand side (here, xl represents <NP> and x2 represents <VP>).",
+        "The pseudo equations are used to check certain attribute values, such as verb form and person agreement, and to construct a f-structure.",
+        "In the example, the first equation in the example states that the case of <NP> must be nominative, and the second equation states that the form of <VP> must be finite.",
+        "Then one of the following two must be true: (1) the time of <VP> is present and agreements of <NP> and <VP> agree, OR (2) the time of <VP> is past.",
+        "If all of the conditions hold, let the f-structure of <DEC> be that of <VP>, create a slot called \"subj\" and put the f-structure of <NP> there, and create a slot called \"passive\" and put \"-\" there.",
+        "Pseudo equations are described in detail in section 3.",
+        "Grammar compilation is the key to this efficient parsing system.",
+        "A grammar written in the correct format is to be compiled before being used to parse sentences.",
+        "The context-free phrase structure rules are compiled into an Augmented LR Parsing Table, and the equations are compiled into CommonLisp functions.",
+        "The runtime parser then does the shift-reduce parsing guided by the parsing table, and each time a grammar rule is applied, its CommonLisp function compiled from equations is evaluated.",
+        "In the subsequence sections, features of the Generalized LR Parser/Compiler v8-4 are briefly described."
+      ]
+    },
+    {
+      "heading": "2. Top-Level Functions",
+      "text": [
+        "There are three top-level functions: ; to compile a grammar (compgra grammar-file-name) ; to load a compiled grammar (loacigra grammar-file-name) ; to parse a sentence string (p sentence)"
+      ]
+    },
+    {
+      "heading": "3. Pseudo Equations",
+      "text": [
+        "This section describes pseudo equations for the Generalized LR Parser/Compiler V8-4."
+      ]
+    },
+    {
+      "heading": "3.1. Pseudo Unification, =",
+      "text": [
+        "path val Get a value from path, unify it with val, and assign the unified value back to path.",
+        "If the unification fails, this equation fails.",
+        "If the value of path is undefined, this equation behaves like a simple assignment.",
+        "If path has a value, then this equation behaves like a test statement.",
+        "path 1 = path2 Get values from path 1 and path2, unify them, and assign the unified value back to path1 and path2.",
+        "If the unification fails, this equation fails.",
+        "If both path1 and path2 have a value, then this equation behaves like a test statement.",
+        "If the value of path 1 is not defined, this equation behaves like a simple assignment."
+      ]
+    },
+    {
+      "heading": "3.2. Overwrite Assignment, e=",
+      "text": [
+        "path <= val Assign val to the slot path.",
+        "If path 1 is already defined, the old value is simply overwritten.",
+        "path 1 <= path2 Get a value from path2, and assign the value to pathl.",
+        "If path 1 is already defined, the old value is simply",
+        "Evaluate lisp-function-call, and assign the returned value to path.",
+        "If path 1 is already defined, the old value is simply overwritten.",
+        "lisp-function-call can be an arbitrary lisp code, as long as all functions called in lisp-function-call are defined.",
+        "A path can be used as a special function that returns a value of the slot.",
+        "Get a value from path2, assign the value to path1, and remove the value of path2 (assign nil to path2).",
+        "If a value already exists in path 1, then the new value is unified with the old value.",
+        "If the unification fails, then this equation fails."
+      ]
+    },
+    {
+      "heading": "3.4. Append Multiple Value, >",
+      "text": [
+        "pathl > path2 Get a value from path2, and assign the value to path 1.",
+        "If a value already exists in path1, the new value is appended to the old value.",
+        "The resulting value of path1 is a multiple value."
+      ]
+    },
+    {
+      "heading": "3.5. Pop Multiple Value, <",
+      "text": [
+        "path 1 < path2 The value of path2 should be a multiple value.",
+        "The first element of the multiple value is popped off, and assign the value to path 1.",
+        "If path 1 already has a value, unify the new value with the old value.",
+        "If path2 is undefined, this equation fails."
+      ]
+    },
+    {
+      "heading": "3.6. *DEFINED* and *UNDEFINED*",
+      "text": [
+        "path = *DEFINED* Check if the value of path is defined.",
+        "If undefined, then this equation fails.",
+        "If defined, do nothing."
+      ]
+    },
+    {
+      "heading": "3.7. Constraint Equations, =c",
+      "text": [
+        "This equation removes the value in path, and the path becomes undefined."
+      ]
+    },
+    {
+      "heading": "3.9. Disjunctive Equations, *OR*",
+      "text": [
+        "(*OR* list-of-equations list-of-equations .",
+        ".",
+        ". )",
+        "All lists of equations are evaluated disjunctively.",
+        "This is an inclusive OR, as oppose to exclusive OR; Even if one of the lists of equations is evaluated successfully, the rest of lists will be also evaluated anyway."
+      ]
+    },
+    {
+      "heading": "3.10. Exclusive OR, *EOR*",
+      "text": [
+        "(*EOR* list-of-equations list-of-equations .",
+        ".",
+        ".",
+        ". )",
+        "This is the same as disjunctive equations *OR*, except an exclusive OR is used.",
+        "That is, as soon as one of the element is evaluated successfully, the rest of elements will be ignored.",
+        "3.11.",
+        "Case Statement, *CASE*",
+        "The *CASE* statement first gets the value in path.",
+        "The value is then compared with Key1, Key2, ...., and as soon as the value is eq to some key, its rest of equations are evaluated."
+      ]
+    },
+    {
+      "heading": "3.12. Test with an User-defined LISP Function, *TEST*",
+      "text": [
+        "(*TEST* lisp-function-call) The lisp-function-call is evaluated, and if the function returns nil, it fails.",
+        "If the function returns a non-nil value, do nothing.",
+        "A path can be used as special function that returns a value of the slot."
+      ]
+    },
+    {
+      "heading": "3.13. Recursive Evaluation of Equations, *INTERPRET*",
+      "text": [
+        "(* INTERPRET path) The *INTERPRET* statement first gets a value from path.",
+        "The value of path must be a valid list of equations.",
+        "Those equations are then recursively evaluated.",
+        "This *INTERPRET* statement resembles the \"eval\" function in Lisp.",
+        "Unification of two multiple values is append.",
+        "When unified with a value, each element is unified with a value.",
+        "For example, (unify ' (*MULTIPLE* a b",
+        "The user can define his own special values.",
+        "An unification function with the name uNiFy* user-defined* must be defined.",
+        "The function should take two arguments, and returns a new value or *FAIL* if the unification fails."
+      ]
+    },
+    {
+      "heading": "4. Standard Unification Mode",
+      "text": [
+        "The pseudo equations described in the previous section are different from what functional grammarians call \"unification\".",
+        "The user can, however, select \"full (standard) unification mode\" by setting the global variable *UNIFICATION-NODE* from PSEUDO to",
+        "FULL.",
+        "In the full unification mode, equations are interpreted as standard equations in a standard functional unification grammar [5], although some of the features such as user-defined function calls cannot be used.",
+        "However, most users of the parser/compiler find it more convenient to use PSEUDO unification than FULL unification, bot only because it is more efficient, but also because it has more practical features including user-defined function calls and user-defined special values.",
+        "Those practical features are crucial to handle low-level non-linguistic phenomena such as time and date expressions [8] and/or to incorporate semantic and pragmatic processing of the user's choice.",
+        "More discussions on PSEUDO and FULL unifications can be found in [10]."
+      ]
+    },
+    {
+      "heading": "5. Other Important Features",
+      "text": []
+    },
+    {
+      "heading": "5.1. Character Basis Parsing",
+      "text": [
+        "The user has a choice to make his grammar \"character basis\" or standard \"word basis\".",
+        "When \"character basis mode\" is chosen, terminal symbols in the grammar are characters, not words.",
+        "There are at least two possible reasons to make it character basis:",
+        "1.",
+        "Some languages, such as Japanese, do not have a space between words.",
+        "If a grammar is written in character basis, the user does not have to worry about word segmentation of unsegmented sentences.",
+        "2.",
+        "Some languages have much more complex morphology than English.",
+        "With the character basis mode, the user can write morphological rules in the very same formalism as syntactic rules."
+      ]
+    },
+    {
+      "heading": "5.2. Wild Card Character",
+      "text": [
+        "In pseudo unification mode, the user can use a wild card character \"%\" in his grammar to match any character (if character basis) or any word (if word basis).",
+        "This feature is especially useful to handle proper nouns and/or unknown words."
+      ]
+    },
+    {
+      "heading": "5.3. Grammar Debugging Tools",
+      "text": [
+        "The Generalized LR Parser/Compiler V8-4 includes some debugging functions.",
+        "They include:",
+        "• dmode --- debugging mode; to show a trace of rule applications by the parser.",
+        "• trace --- to trace a particular rule.",
+        "• disp-trees, disp-nodes, etc.",
+        "--- to display partial trees or values of nodes in a tree.",
+        "All of the debugging tools do not use any fancy graphic interface for the sake of system portability."
+      ]
+    },
+    {
+      "heading": "5.4. Interpretive Parser",
+      "text": [
+        "The Generalized LR Parser/Compiler V8-4 includes another parser based on chart parsing which can parse a sentence without ever compiling a grammar: ; to load a grammar (i-loadgra grammar-file-name) ; to run the interpretive parser (i-p sentence) While its run time speed is significantly slower than that of the GLR parser, many users find it useful for debugging because grammar does not need to be compiled each time a small change is made."
+      ]
+    },
+    {
+      "heading": "5.5. Grammar Macros",
+      "text": [
+        "The user can define and use macros in a grammar.",
+        "This is especially useful In case there are many similar rules in the grammar.",
+        "A macro can be defined in the same way as Common Lisp macros.",
+        "Those macros are expanded before the grammar is compiled."
+      ]
+    },
+    {
+      "heading": "6. Concluding Remarks",
+      "text": [
+        "Some of the important features of the Generalized LR Parser/Compiler have been highlighted.",
+        "More detailed descriptions can be found in its user's manual [9].",
+        "Unlike most other available software [1, 2, 4], the Generalized LR Parser/Compiler v8-4 is designed specifically to be used in practical natural language systems, sacrificing perhaps some of the linguistic and theoretical elegancy.",
+        "The system has been thoroughly tested and heavily used by many users in many projects inside and outside CMU last three",
+        "years.",
+        "Center for Machine Translation of CMU has developed rather extensive grammars for English and Japanese for their translation projects, and some experimental grammars for French, Spanish, Turkish and Chinese.",
+        "We also find the system very suitable to write and parse task-dependent semantic grammars.",
+        "Finally, a project is going on at CMU to integrate the parser/compiler with a speech recognition system (SPHINX [3])."
+      ]
+    },
+    {
+      "heading": "7. References",
+      "text": []
+    }
+  ]
+}

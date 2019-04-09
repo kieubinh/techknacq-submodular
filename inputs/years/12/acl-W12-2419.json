@@ -1,0 +1,211 @@
+{
+  "info": {
+    "authors": [
+      "Ramnath Balasubramanyan",
+      "Kathryn Rivard",
+      "William W. Cohen",
+      "Jelena Jakovljevic",
+      "John L. Woolford"
+    ],
+    "book": "BioNLP: Proceedings of the 2012 Workshop on Biomedical Natural Language Processing",
+    "id": "acl-W12-2419",
+    "title": "Evaluating Joint Modeling of Yeast Biology Literature and Protein-Protein Interaction Networks",
+    "url": "https://aclweb.org/anthology/W12-2419",
+    "year": 2012
+  },
+  "references": [],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Block-LDA is a topic modeling approach to perform data fusion between entity-annotated text documents and graphs with entity-entity links.",
+        "We evaluate Block-LDA in the yeast biology domain by jointly modeling PubMed R?",
+        "articles and yeast protein-protein interaction networks.",
+        "The topic coherence of the emergent topics and the ability of the model to retrieve relevant scientific articles and proteins related to the topic are compared to that of a text-only approach that does not make use of the protein-protein interaction matrix.",
+        "Evaluation of the results by biologists show that the joint modeling results in better topic coherence and improves retrieval performance in the task of identifying top related papers and proteins."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "The prodigious rate at which scientific literature is produced makes it virtually impossible for researchers to manually read every article to identify interesting and relevant papers.",
+        "It is therefore critical to have automatic methods to analyze the literature to identify topical structure in it.",
+        "The latent structure that is identified can be used for different applications such as enabling browsing, retrieval of papers related to a particular subtopic etc.",
+        "Such applications assist in common scenarios such as helping a researcher identify a set of articles to read (perhaps a set of well-regarded surveys) to familiarize herself with a new sub-field; helping a researcher to stay abreast with the latest advances in his field by identifying relevant articles etc.",
+        "In this paper, we focus on the task of organizing a large collection of literature about yeast biology to enable topic oriented browsing and retrieval from the literature.",
+        "The analysis is performed using topic modeling(Blei et al., 2003) which has, in the last decade, emerged as a versatile tool to uncover latent structure in document corpora by identifying broad topics that are discussed in it.",
+        "This approach complements traditional information retrieval tasks where the objective is to fulfill very specific information needs.",
+        "In addition to literature, there often exist other sources of domain information related to it.",
+        "In the case of yeast biology, an example of such a resource is a database of known protein-protein interactions (PPI) which have been identified using wetlab experiments.",
+        "We perform data fusion by combining text information from articles and the database of yeast protein-protein interactions, by using a latent variable model ?",
+        "Block-LDA (Balasubramanyan and Cohen, 2011) that jointly models the literature and PPI networks.",
+        "We evaluate the ability of the topic models to return meaningful topics by inspecting the top papers and proteins that pertain to them.",
+        "We compare the performance of the joint model i.e. Block-LDA with a model that only considers the text corpora by asking a yeast biologist to evaluate the coherence of topics and the relevance of the retrieved articles and proteins.",
+        "This evaluation serves to test the utility of Block-LDA on a real task as opposed to an internal evaluation (such as by using perplexity metrics for example).",
+        "Our evaluaton shows that the joint model outperforms the text-only approach both in topic co",
+        "herence and in top paper and protein retrieval as measured by precision@10 values.",
+        "The rest of the paper is organized as follows.",
+        "Section 2 describes the topic modeling approach used in the paper.",
+        "Section 3 describes the datasets used followed by Section 4 which details the setup of the experiments.",
+        "The results of the evaluation are presented in Section 5 which is followed by the conclusion."
+      ]
+    },
+    {
+      "heading": "2 Block-LDA",
+      "text": [
+        "The Block-LDA model (plate diagram in Figure 1) enables sharing of information between the component on the left that models links between pairs of entities represented as edges in a graph with latent block structure, and the component on the right that models text documents, through shared latent topics.",
+        "More specifically, the distribution over the entities of the type that are linked is shared between the block model and the text model.",
+        "The component on the right, which is an extension of the LDA models documents as sets of ?bags of entities?, each bag corresponding to a particular type of entity.",
+        "Every entity type has a topic wise multinomial distribution over the set of entities that can occur as an instance of the entity type.",
+        "This model is termed as Link-LDA(Nallapati et al., 2008) in the literature.",
+        "The component on the left in the figure is a generative model for graphs representing entity-entity links with an underlying block structure, derived from the sparse block model introduced by Parkki-nen et al. (2009).",
+        "Linked entities are generated from topic specific entity distributions conditioned on the topic pairs sampled for the edges.",
+        "Topic pairs for edges (links) are drawn from a multinomial defined over the Cartesian product of the topic set with itself.",
+        "Vertices in the graph representing entities therefore have mixed memberships in topics.",
+        "In contrast to Mixed-membership Stochastic Blockmodel (MMSB) introduced by Airoldi et al. (2008), only observed links are sampled, making this model suitable for sparse graphs.",
+        "LetK be the number of latent topics (clusters) we wish to recover.",
+        "Assuming documents consist of T different types of entities (i.e. each document contains T bags of entities), and that links in the graph are between entities of type tl, the generative process is as follows.",
+        "1.",
+        "Generate topics: For each type t ?",
+        "1, .",
+        ".",
+        ".",
+        ", T , and topic z ?",
+        "1, .",
+        ".",
+        ".",
+        ",K, sample ?t,z ?",
+        "Dirichlet(?",
+        "), the topic specific entity distribution.",
+        "2.",
+        "Generate documents.",
+        "For every document d ?",
+        "{1 .",
+        ".",
+        ".",
+        "D}: ?",
+        "Sample ?d ?",
+        "Dirichlet(?D) where ?d is the topic mixing distribution for the document.",
+        "?",
+        "For each type t and its associated set of entity mentions et,i, i ?",
+        "{1, ?",
+        "?",
+        "?",
+        ", Nd,t}: ?",
+        "Sample a topic zt,i ?Multinomial(?d) ?",
+        "Sample an entity et,i ?",
+        "Multinomial(?t,zt,i) 3.",
+        "Generate the link matrix of entities of type tl: ?",
+        "Sample piL ?",
+        "Dirichlet(?L) where piL describes a distribution over the Cartesian product of the set of topics with itself, for links in the dataset.",
+        "?",
+        "For every link ei1 ?",
+        "ei2, i ?",
+        "{1 ?",
+        "?",
+        "?NL}: ?",
+        "Sample a topic pair ?zi1, zi2?",
+        "?",
+        "Note that unlike the MMSB model, this model generates only realized links between entities.",
+        "Given the hyperparameters ?D, ?L and ?, the joint distribution over the documents, links, their topic distributions and topic assignments is given by",
+        "A commonly required operation when using models like Block-LDA is to perform inference on the model to query the topic distributions and the topic assignments of documents and links.",
+        "Due to the intractability of exact inference in the Block-LDA model, a collapsed Gibbs sampler is used to perform approximate inference.",
+        "It samples a latent topic for an entity mention of type t in the text corpus conditioned on the assignments to all other entity mentions using the following expression (after collapsing ?D):",
+        "Similarly, we sample a topic pair for every link conditional on topic pair assignments to all other links after collapsing piL using the expression:",
+        "Et refers to the set of all entities of type t. The n's are counts of observations in the training set.",
+        "?",
+        "nzte - the number of times an entity e of type t is observed under topic z ?",
+        "nzd - the number of entities (of any type) with topic z in document d ?",
+        "nL?z1,z2?",
+        "- count of links assigned to topic pair ?z1, z2?",
+        "The topic multinomial parameters and the topic distributions of links and documents are easily recovered using their MAP estimates after inference",
+        "using the counts of observations.",
+        "A de-noised form of the entity-entity link matrix can also be recovered from the estimated parameters of the model.",
+        "Let B be a matrix of dimensions",
+        "of the strength of association between the entities in Etl is given by M = B TZB.",
+        "In the context of this paper, de-noising the protein-protein interaction networks studied is an important application.",
+        "The joint model permits information from the large text corpus of yeast publications to be used to de-noise the PPI network and to identify potential interactions that are missing in the observed network.",
+        "While this task is important and interesting, it is outside the scope of this paper and is a direction for future work."
+      ]
+    },
+    {
+      "heading": "3 Data",
+      "text": [
+        "We use a collection of publications about yeast biology that is derived from the repository of scientific publications at PubMed R?.",
+        "PubMed R?",
+        "is a free, open-access on-line archive of over 18 million biological abstracts and bibliographies, including citation lists, for papers published since 1948.",
+        "The subset we work with consists of approximately 40,000 publications about the yeast organism that have been curated in the Saccharomyces Genome Database (SGD) (Dwight et al., 2004) with annotations of proteins that are discussed in the publication.",
+        "We further restrict the dataset to only those documents that are annotated with at least one protein from the protein-protein interactions databases described below.",
+        "This results in a protein annotated document collection of 15,776 publications.",
+        "The publications in this set were written by a total of 47,215 authors.",
+        "We tokenize the titles and abstracts based on white space, lowercase all tokens and eliminate stopwords.",
+        "Low frequency (< 5 occurrences) terms are also eliminated.",
+        "The vocabulary that is obtained consists of 45,648 words.",
+        "The Munich Institute for Protein Sequencing (MIPS) database (Mewes et al., 2004) includes a hand-crafted collection of protein interactions covering 8000 protein complex associations in yeast.",
+        "We use a subset of this collection containing 844 proteins, for which all interactions were hand-curated.",
+        "Finally, we use another dataset of protein-protein interactions in yeast that were observed as a result of wetlab experiments by collaborators of the authors of the paper.",
+        "This dataset consists of 635 interactions that deal primarily with ribosomal proteins and assembly factors in yeast."
+      ]
+    },
+    {
+      "heading": "4 Setup",
+      "text": [
+        "We conduct three different evaluations of the emergent topics.",
+        "Firstly, we obtain topics from only the text corpus using a model that comprises of the right half of Figure 1 which is equivalent to using the Link-LDA model.",
+        "For the second evaluation, we use the Block-LDA model that is trained on the text corpus and the MIPS protein-protein interaction database.",
+        "Finally, for the third evaluation, we replace the MIPS database with the interaction obtained from the wetlab experiments.",
+        "In all the cases, we set K, the number of topics to be 15.",
+        "In each variant, we represent documents as 3 sets of entities i.e. the words in the abstracts of the article, the set of proteins associated with the article as indicated in the SGD database and finally the authors who wrote the article.",
+        "Each topic therefore consists of 3 different multinomial distributions over the sets of the 3 kinds of entities described.",
+        "Topics that emerge from the different variants can possibly be assigned different indices even when they discuss the same semantic concept.",
+        "To compare topics across variants, we need a method to determine which topic indices from the different variants correspond to the same semantic concept.",
+        "To obtain the mapping between topics from each variant, we utilize the Hungarian algorithm (Kuhn, 1955) to solve the assignment problem where the cost of aligning topics together is determined using the Jensen-Shannon divergence measure.",
+        "Once the topics are obtained, we firstly obtain the proteins associated with the topic by retrieving the",
+        "top proteins from the multinomial distribution corresponding to proteins.",
+        "Then, the top articles corresponding to each topic is obtained using a ranked list of documents with the highest mass of their topic proportion distributions (?)",
+        "residing in the topic being considered."
+      ]
+    },
+    {
+      "heading": "4.1 Manual Evaluation",
+      "text": [
+        "To evaluate the topics, a yeast biologist who is an expert in the field was asked to mark each topic with a binary flag indicating if the top words of the distribution represented a coherent subtopic in yeast biology.",
+        "This process was repeated for the 3 different variants of the model.",
+        "The variant used to obtain results is concealed from the evaluator to remove the possibility of bias.",
+        "In the next step of the evaluation, the top articles and proteins assigned to each topic were presented in a ranked list and a similar judgement was requested to indicate if the article/protein was relevant to the topic in question.",
+        "Similar to the topic coherence judgements, the process was repeated for each variant of the model.",
+        "Screenshots of the tool used for obtaining the judgments can be seen in Figure 2.",
+        "It should be noted that since the nature of the topics in the literature considered was highly technical and specialized, it was impractical to get judgements from multiple annotators.",
+        "To evaluate the retrieval of the top articles and proteins, we measure the quality of the results by computing its precision@10 score."
+      ]
+    },
+    {
+      "heading": "5 Results",
+      "text": [
+        "First we evaluate the coherence of the topics obtained from the 3 variants described above.",
+        "Table 1 shows that out of the 15 topics that were obtained, 12 topics were deemed coherent from the text-only model and 13 and 15 topics were deemed coherent from the Block-LDA models using the MIPS and wetlab PPI datasets respectively.",
+        "Next, we study the precision@10 values for each topic and variant for the article retrieval and protein retrieval tasks, which is shown in Figure 3.",
+        "The plots also show horizontal lines representing the mean of the precision@10 across all topics.",
+        "It can be seen from the plots that for both the article and protein retrieval tasks, the joint models work better than the text-only model on average.",
+        "For the article retrieval task, the model trained with the text + MIPS resulted in the higher mean precision@10 whereas for the protein retrieval task, the text + Wetlab PPI dataset returned a higher mean precision@10 value.",
+        "For both the protein retrieval and paper retrieval tasks, the improvements shown by the joint models using either of the PPI datasets over the text-only model (i.e. the Link LDA model) were statistically significant at the 0.05 level using the paired Wilcoxon sign test.",
+        "The difference in performance between the",
+        "two joint models that used the two different PPI networks were however insignificant which indicates that there is no observable advantage in using one PPI dataset over the other in conjunction with the text corpus.",
+        "Table 2 shows examples of poor results of article retrieval obtained using the publications-only model and the improved set of results obtained using the joint model."
+      ]
+    },
+    {
+      "heading": "5.1 Topics",
+      "text": [
+        "Table 3 shows 3 sample topics that were retrieved from each variant described earlier.",
+        "The table shows the top words and proteins associated with the topics.",
+        "The topic label on the left column was assigned manually during the evaluation by the expert annotator.",
+        "Conclusion We evaluated topics obtained from the joint modeling of yeast biology literature and protein-protein interactions in yeast and compared them to topics that were obtained from using only the literature.",
+        "The topics were evaluated for coherence and by measuring the mean precision@10 score of the top articles and proteins that were retrieved for each topic.",
+        "Evaluation by a domain expert showed that",
+        "Words: protein structure binding residues domain structural beta complex atp proteins alpha interactions folding structures form terminal peptide helix model interaction bound domains molecular changes conformational",
+        "the joint modeling produced more coherent topics and showed better precision@10 scores in the article and protein retrieval tasks indicating that the model enabled information sharing between the literature and the PPI networks."
+      ]
+    }
+  ]
+}

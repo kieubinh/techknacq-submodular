@@ -1,0 +1,192 @@
+{
+  "info": {
+    "authors": [
+      "Tobias Günther",
+      "Lenz Furrer"
+    ],
+    "book": "*SEM",
+    "id": "acl-S13-2054",
+    "title": "GU-MLT-LT: Sentiment Analysis of Short Messages using Linguistic Features and Stochastic Gradient Descent",
+    "url": "https://aclweb.org/anthology/S13-2054",
+    "year": 2013
+  },
+  "references": [
+    "acl-C10-2005",
+    "acl-C10-2028",
+    "acl-J92-4003",
+    "acl-N13-1039",
+    "acl-P09-1054",
+    "acl-W11-2207"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper describes the details of our system submitted to the SemEval-2013 shared task on sentiment analysis in Twitter.",
+        "Our approach to predicting the sentiment of Tweets and SMS is based on supervised machine learning techniques and task-specific feature engineering.",
+        "We used a linear classifier trained by stochastic gradient descent with hinge loss and elastic net regularization to make our predictions, which were ranked first or second in three of the four experimental conditions of the shared task.",
+        "Furthermore, our system makes use of social media specific text preprocessing and linguistically motivated features, such as word stems, word clusters and negation handling."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Sentiment analysis, also known as opinion mining, is a research field in the area of text mining and natural language processing, which investigates the automated detection of opinions in language.",
+        "In written text, an opinion is a person's attitude towards some topic, pronounced by verbal (e.g. choice of words, rhetorical figures) or non-verbal means (e.g. emoticons, emphatic spelling).",
+        "More formally, Liu (2012) defines an opinion as the quintuple (ei, aij , sijkl, hk, tl) where ?ei is the name of an entity, aij is an aspect of ei, sijkl is the sentiment on aspect aij of entity ei, hk is the opinion holder, and tl is the time when the opinion is expressed by hk.",
+        "The sentiment sijkl is positive, negative, or neutral, or expressed with different strength/intensity levels [...].",
+        "When an opinion is on the entity itself as a whole, the special aspect GENERAL is used to denote it.",
+        "[...] ei and aij together represent the opinion target?",
+        "(Liu, 2012).",
+        "With the massively growing importance of social media in everyday life, being able to automatically find and classify attitudes in written text allows for estimating the mood of a large group of people, e.g. towards a certain event, service, product, matter of fact or the like.",
+        "As working with the very short and informal texts typical for social networks poses challenges not encountered in more traditional text genres, the International Workshop on Semantic Evaluation (SemEval) 2013 has a shared task on sentiment analysis in microblogging texts, which is detailed in Wilson et al. (2013).",
+        "The task requires sentiment analysis of Twitter1 and SMS messages and comprises two subtasks, one of which deals with determining the sentiment of a given message fragment depending on its context (Task A) and one on overall message polarity classification (Task B).",
+        "We treat both tasks as document-level sentiment classification tasks, which we define according to Liu (2012) as determining the opinion ( ,GENERAL, s, , ) of a given message, where s ?",
+        "{positive, negative, neutral} and ?the entity e, opinion holder h, and time of opinion t are assumed known or irrelevant?",
+        "(Liu, 2012).",
+        "For Task A we only consider the marked fraction of the message to be given.",
+        "This introduction is followed by sections discussing related work (2), details of our system (3), experiments (4) and results and conclusion (5)."
+      ]
+    },
+    {
+      "heading": "2 Related Work",
+      "text": [
+        "Previous approaches to sentiment analysis of microblogging texts make use of a wide range of features, including unigrams, n-grams, part-of-speech tags and polarity values from (usually hand-crafted) sentiment lexicons.",
+        "O?Connor et al. (2010) examine tweets concerned with the 2009 US presidential elections, relying solely on the occurrence of words from a sentiment lexicon.",
+        "Nielsen (2011) investigates the impact of including internet slang and obscene language when building a sentiment lexicon.",
+        "Barbosa and Feng (2010) make use of three different sentiment detection websites to label Twitter data, while Davidov et al. (2010), Kouloumpis et al.",
+        "(2011) and Pak and Paroubek (2010) use Twitter hashtags and emoticons as labels.",
+        "Speriosu et al.",
+        "(2011) propagate information from seed labels along a linked structure that includes Twitter's follower graph, and Saif et al. (2012) specifically address the data-sparsity problem by using semantic smoothing and topic extraction."
+      ]
+    },
+    {
+      "heading": "3 System Description",
+      "text": [
+        "In this section we present the details of our sentiment analysis system, which was implemented in the Python programming language and is publicly available online.2 We used the same preprocessing, feature extraction and learning algorithm for both subtasks, only the hyperparameters of the machine learning algorithm were adjusted to the respective dataset."
+      ]
+    },
+    {
+      "heading": "3.1 Preprocessing",
+      "text": [
+        "Tokenization of the messages was done using a simple regular expression, which matches either URLs, alphanumeric character sequences (plus apostrophe) or non-alphanumeric non-whitespace character sequences.",
+        "This way punctuation sequences like emoticons are preserved, while still being separated from words in case of missing whitespace.",
+        "The same happens to hashtags, so ?#liiike:)?",
+        "gets separated into the three tokens #, liiike and :), which can then be processed separately or as n-grams.",
+        "While this strategy performed reasonably well for us, more sophisticated tokenizers for social media messages",
+        "that handle more special cases like emoticons including letters are thinkable.",
+        "To address the large variety in spelling typical for social networks we store three different variants of each token: a) The raw token found in the message b) A normalized version, in which all characters are converted to lowercase and all digits to 0 c) A collapsed version, in which all adjacent duplicate characters are removed from the normalized version, if it is not present in an English word list.",
+        "That way ?school?",
+        "stays ?school?, but ?liiike?",
+        "gets converted to ?like?."
+      ]
+    },
+    {
+      "heading": "3.2 Features",
+      "text": [
+        "We explored a wide variety of linguistic and lexical features.",
+        "In our final submission we used the following set of features for each message: ?",
+        "The normalized tokens [boolean] ?",
+        "The stems of the collapsed tokens, which were computed using the Porter stemming algorithm (Porter, 1980) implemented in the Python Natural Language Toolkit (Bird et al., 2009).",
+        "[boolean] ?",
+        "The word cluster IDs of raw, normalized and collapsed tokens.",
+        "The clusters were obtained via unsupervised Brown clustering (Brown et al., 1992) of 56,345,753 Tweets by Owoputi et al. (2013) and are available on the web.3 [boolean] ?",
+        "The accumulated (summed) positive and accumulated negative SentiWordNet scores (Baccianella et al., 2010) of all synsets matching the collapsed token strings.",
+        "[continuous] Furthermore, the normalized tokens and stems were marked with a special negation prefix, if they occurred after a negation word or word cluster of negation words.",
+        "If a punctuation token occurred before the end of the message the marking was discontinued at that point."
+      ]
+    },
+    {
+      "heading": "3.3 Machine Learning Methods",
+      "text": [
+        "For the classification of the messages into the positive, negative and neutral classes we use three linear models, which were trained in an one-vs.-all manner.",
+        "At prediction time we simply choose the label with the highest score.",
+        "All training was done using the open-source machine learning toolkit scikitlearn,4 which provides a consistent Python API to fast implementations of various machine learning algorithms (Pedregosa et al., 2011).",
+        "The linear models were trained using stochastic gradient descent (SGD), which is a gradient descent optimization method that minimizes a given loss function.",
+        "The term ?stochastic?",
+        "refers to the fact that the weights of the model are updated for each training example, which is an approximation of batch gradient descent, in which all training examples are considered to make a single step.",
+        "This way SGD is very fast to train, which was important to us to be able to rapidly evaluate different feature combinations and hyperparameter settings using cross-validation.",
+        "Algorithm 1 Stochastic gradient descent with hinge loss and elastic net regularization",
+        "1: t?",
+        "1/(?",
+        "?)",
+        "2: u?",
+        "0 3: Initialize wj and qj with 0 for all j 4: for epoch to NITER do 5: for i to NSAMPLES do 6: s?",
+        "wTx(i) 7: ?",
+        "?",
+        "1/(?",
+        "t) 8: c?",
+        "CLASSWEIGHT(y(i)) 9: u?",
+        "u+ ((1?",
+        "?)",
+        "?",
+        "?)",
+        "10: for j to NFEATURES do",
+        "12: wj ?",
+        "(1?",
+        "?",
+        "?",
+        "?)",
+        "wj ?",
+        "?",
+        "c ?`?wj 13: z ?",
+        "wj 14: if wj > 0 then 15: wj ?",
+        "max(0, wj ?",
+        "(u+ qj)) 16: else if wj < 0 then 17: wj ?",
+        "min(0, wj + (u?",
+        "qj)) 18: qj ?",
+        "qj + (wj ?",
+        "z) 19: t?",
+        "t+ 1",
+        "The loss function we used was hinge loss, which is a large-margin loss function known for its use in support vector machines.",
+        "To avoid overfitting the training set we employed elastic net regularization, which is a combination of L1 and L2 regularization.",
+        "A simplified version of the SGD learning procedure implemented in scikit-learn is shown in Algorithm 1, where w is the weight vector of the model, x(i) the feature vector of sample i, y(i) ?",
+        "{?1,+1} the ground truth label of sample i, ?",
+        "the learning rate, ?",
+        "the regularization factor and ?",
+        "the elastic net mixing parameter.",
+        "Be aware that we did not pick samples at random or shuffle the data, which is crucial in case of training data which is sorted by classes.",
+        "The initial learning rate is set heuristically and updated following Shalev-Shwartz et al. (2007).6 The way of applying the L1 penalty (lines 13 to 18) is published as ?cumulative L1 penalty?",
+        "in Tsuruoka et al. (2009).",
+        "The final settings for the hyperparameters were determined by running a cross-validated grid search on the combined training and development sets and can be found in Table 1."
+      ]
+    },
+    {
+      "heading": "4 Experiments",
+      "text": [
+        "For our experiments and the final model training we used the combined training and development set of the shared task.",
+        "For Task A we removed messages labeled ?objective?",
+        "prior to training, while we merged them into the ?neutral?",
+        "class for Task B.",
+        "This left us with 9419 training samples (5855 positive, 457 neutral, 3107 negative) for Task A and 10368 training samples (3855 positive, 4889 neutral, 1624 negative) for Task B.",
+        "As the shared task was evaluated on average F1 of the positive and negative class, disregarding the neutral class, we also provide",
+        "During the process of preparing our submission we used 10-fold cross-validation to evaluate different combinations of features, machine learning algorithms and their hyperparameter settings.",
+        "While we found the features described in section 3.2 to be useful, we did not find further improvement by using n-grams and part-of-speech tags, despite using the Twitter-specific part-of-speech tagger by Owoputi et al.",
+        "(2013).",
+        "Table 2 shows a cross-validated ablation study on the features, removing one group of features at a time to see their contribution to the model.",
+        "Using only normalized tokens is referred to as bag-of-words (bow).",
+        "One can see that word clusters are the most important for our model, causing the highest overall loss in F1 performance when being removed.",
+        "Nevertheless, all other features contribute to the performance of the model as well.",
+        "Further improvement can be made by carefully picking a machine learning algorithm and tuning its hyperparameters.",
+        "For this task we found linear models to perform better than other classification methods such as naive bayes, decision tree / random forest and k-nearest neighbor.",
+        "Figure 1 shows that models trained with the method described in section 3.3 (marked SGD) clearly outperforms models trained with the popular perceptron algorithm (which could be described as stochastic gradient descent with zero-one loss, no regularization and constant learning rate, marked PER) with increasing training set size.",
+        "The values were obtained by training on different portions of the training set of Task B and testing on the previously unseen Task B Twitter test set (3813 samples).",
+        "Starting from a certain amount of available training data, the choice of the training algorithm becomes even more important than the choice of features."
+      ]
+    },
+    {
+      "heading": "5 Results and Conclusion",
+      "text": [
+        "The results of our submission for the four hidden test sets of the shared task can be found in Table 3.",
+        "Given the relatively small deviation from the results of the cross-validation on combined training and development set and the good ranks obtained in the shared task system ranking, we conclude that the method for sentiment analysis in microblogging messages presented in this paper yields competitive results.",
+        "We showed that the performance for this task can be improved by using linguistically motivated features as well as carefully choosing a learning algorithm and its hyperparameter settings."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "We would like to thank the organizers of the shared task for their effort, Peter Prettenhofer for his help with getting to the bottom of the SGD implementation in scikit-learn and Richard Johansson as well as the anonymous reviewers for their helpful comments on the paper."
+      ]
+    }
+  ]
+}

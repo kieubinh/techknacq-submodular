@@ -1,0 +1,297 @@
+{
+  "info": {
+    "authors": [
+      "Andre Kempe"
+    ],
+    "book": "Workshop on New Methods in Language Processing and Computational Natural Language Learning",
+    "id": "acl-W98-1205",
+    "title": "Look-Back and Look-Ahead in the Conversion of Hidden Markov Models into Finite State Transducers",
+    "url": "https://aclweb.org/anthology/W98-1205",
+    "year": 1998
+  },
+  "references": [
+    "acl-A88-1019",
+    "acl-A92-1021",
+    "acl-A97-1012",
+    "acl-C96-2105",
+    "acl-E95-1021",
+    "acl-J94-3001",
+    "acl-J95-2004",
+    "acl-P95-1003",
+    "acl-P97-1059"
+  ],
+  "sections": [
+    {
+      "text": [
+        "Xerox Research Centre Europe – Grenoble Laboratory 6, chemin de Maupertuis – 38240 Meylan – France andre.kempeexrce.xerox.com http://www.xrce.xerox.com/research/m1tt"
+      ]
+    },
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper describes the conversion of a Hidden Markov Model into a finite state transducer that closely approximates the behavior of the stochastic model.",
+        "In some cases the transducer is equivalent to the HMM.",
+        "This conversion is especially advantageous for part-of-speech tagging because the resulting transducer can be composed with other transducers that encode correction rules for the most frequent tagging errors.",
+        "The speed of tagging is also improved.",
+        "The described methods have been implemented and successfully tested."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "This paper presents an algorithm' which approximates a Hidden Markov Model (HMM) by a finite-state transducer (FST).",
+        "We describe one application, namely part-of-speech tagging.",
+        "Other potential applications may be found in areas where both HMMs and finite-state technology are applied, such as speech recognition, etc.",
+        "The algorithm has been fully implemented.",
+        "An HMM used for tagging encodes, like a transducer, a relation between two languages.",
+        "One language contains sequences of ambiguity classes obtained by looking up in a lexicon all words of a sentence.",
+        "The other language contains sequences of tags obtained by statistically disambiguating the class sequences.",
+        "From the outside, an HMM tagger behaves like a sequential transducer that deterministically maps every class sequence to a tag sequence, e.g.:"
+      ]
+    },
+    {
+      "heading": "[DET, PRO] [ADJ, NOUN] [ADJ, NOUN] [END] DET ADJ NOUN END",
+      "text": [
+        "'There are other (different) algorithms for HMM to FST conversion: An unpublished one by Julian M. Kupiec and John T. Maxwell (p.c.",
+        "), and n-type and s-type approximation by Kempe (1997).",
+        "The main advantage of transforming an HMM is that the resulting transducer can be handled by finite state calculus.",
+        "Among others, it can be composed with transducers that encode:",
+        "• correction rules for the most frequent tagging errors which are automatically generated (Brill, 1992; Roche and Schabes, 1995) or manually written (Chanod and Tapanainen, 1995), in order to significantly improve tagging accuracy'.",
+        "These rules may include long-distance dependencies not handled by 11MM taggers, and can conveniently be expressed by the replace operator (Kaplan and Kay, 1994; Karttunen, 1995; Kempe and Karttunen, 1996).",
+        "• further steps of text analysis, e.g. light parsing or extraction of noun phrases or other phrases (Ait-Mokhtar and Chanod, 1997).",
+        "These compositions enable complex text analysis to be performed by a single transducer.",
+        "The speed of tagging by an FST is up to six times higher than with the original HMM.",
+        "The motivation for deriving the FST from an HMM is that the HMM can be trained and converted with little manual effort.",
+        "An HMM transducer builds on the data (probability matrices) of the underlying HMM.",
+        "The accuracy of this data has an impact on the tagging accuracy of both the HMM itself and the derived transducer.",
+        "The training of the HMM can be done on either a tagged or untagged corpus, and is not a topic of this paper since it is exhaustively described in the literature (Bahl and Mercer, 1976; Church, 1988).",
+        "An HMM can be identically represented by a weighted FST in a straightforward way.",
+        "We are, however, interested in non-weighted transducers.",
+        "'Automatically derived rules require less work than manually written ones but are unlikely to yield better results because they would consider relatively limited context and simple relations only.",
+        "Kempe 29 Look-Back and Look-Ahead in the Conversion of HMMs Andre Kempe (1998) Look-Back and Look-Ahead in the Conversion of Hidden Markov Models into Finite State Transducers.",
+        "In D.M.W.",
+        "Powers (ed.)",
+        "NeMLaP3/CoNLL98: New Methods in Language Processing and Computational Natural Language Learning, ACL, pp 29-37."
+      ]
+    },
+    {
+      "heading": "2 b-Type Approximation",
+      "text": [
+        "This section presents a method that approximates a (first order) Hidden Markov Model (HMM) by a finite-state transducer (FST), called b-type approxi-mation'.",
+        "Regular expression operators used in this section are explained in the annex.",
+        "Looking up, in a lexicon, the word sequence of a sentence produces a unique sequence of ambiguity classes.",
+        "Tagging the sentence by means of a (first order) HMM consists of finding the most probable tag sequence T given this class sequence C (eq.",
+        "1, fig. 1).",
+        "The joint probability of the sequences C and T can be estimated by:"
+      ]
+    },
+    {
+      "heading": "2.1 Basic Idea",
+      "text": [
+        "The determination of a tag of a particular word cannot be made separately from the other tags.",
+        "Tags can influence each other over a long distance via transition probabilities.",
+        "In this approach, an ambiguity class is disambiguated with respect to a context.",
+        "A context consists of a sequence of ambiguity classes limited at both ends by some selected tag4.",
+        "For the left context of length 13 we use the term look-back, and for the right context of length a we use the term lookahead.",
+        "In figure 1, the tag t?",
+        "can be selected from the class ci because it is between two selected tags4 which are t2 at a look-back distance of g 2 and t1+2 at 3Name given by the author, to distinguish the algorithm from n-type and s-type approximation (Kempe, 1997).",
+        "'The algorithm is explained for a first order HMM.",
+        "In the case of a second order HMM, b-type sequences must begin and end with two selected tags rather than one.",
+        "a lookahead distance of a = 2.",
+        "Actually, the two selected tags tli_2 and t42 allow not only the disambiguation of the class ei but of all classes inbetween, i.e. ci_i, ci and ci+1.",
+        "We approximate the tagging of a whole sentence by tagging subsequences with selected tags at both ends (fig.",
+        "1), and then overlapping them.",
+        "The most probable paths in the tag space of a sentence, i.e. valid paths according to this approach, can be found as sketched in figure 2.",
+        "A valid path consists of an ordered set of overlapping sequences in which each member overlaps with its neighbour except for the first or last tag.",
+        "There can be more than one valid path in the tag space of a sentence (fig.",
+        "2).",
+        "Sets of sequences that do not overlap in such a way are incompatible according to this model, and do not constitute valid paths (fig.",
+        "3)."
+      ]
+    },
+    {
+      "heading": "2.2 b-Type Sequences",
+      "text": [
+        "Given a length /3 of look-back and a length a of lookahead, we generate for every class c0, every look-back sequence t_o C1 C._1, and every look",
+        "Each such original b-type sequence (eq.",
+        "3,4; fig. 4) is disambiguated based on a first order HMM.",
+        "Here we use the Viterbi algorithm (Viterbi, 1967; Ra-biner, 1990) for efficiency.",
+        "For an original b-type sequence, the joint probability of its class sequence C with its tag sequence T (fig.",
+        "4), can be estimated by:",
+        "At every position in the look-back sequence and in the lookahead sequence, a boundary # may occur, i.e. a sentence beginning or end.",
+        "No look-back (0 = 0) or no lookahead (a = 0) is also allowed.",
+        "The above probability estimation (eq.",
+        "5) can then be expressed more generally (fig.",
+        "4) as:",
+        "with prniadte being and with Pend being",
+        "When the most likely tag sequence is found for an original b-type sequence, the class co in the middle position (eq.",
+        "3) is associated with its most likely tag to.",
+        "We formulate constraints for the other tags 1_0 and ta and classes c_0+1....c_i and ci...coc_i of the original b-type sequence.",
+        "Thus we obtain a tagged b-type sequence 5:",
+        "In expression 14 the subscripts 0 -0+1...0...a-1 a denote the position of the tag or class in the b-type sequence, and the superscripts BO B(13--1)...B1 and Al...A(a -1) Act express constraints for preceding and following tags and classes which are part of other b-type sequences.",
+        "In the examples: CONJ-B2 [DET, PRON1-B1 [ADJ, NOUN, VERB] :ADJ [NOUN, VERB]-Al VERB-A2 (15) ADJ is the most likely tag in the class EADJ , NOUN >VERB] if it is preceded by the tag CONJ two positions back (B2), by the class [DET , PRON3 one position back (B1), and followed by the class [NOUN , VERB] one position ahead (Al) and by the tag VERB two positions ahead (A2).",
+        "Boundaries are denoted by a particular symbol # and can occur at the edge of the look-back and lookahead sequence:",
+        "[ADJ, NOUN.",
+        "VERB] : ADJ [NOUN, VERB]-A1 VERB-A2 (21) sRegular expression operators used in this article are explained in the annex.",
+        "Note that look-back of length 0 and lookahead of length a also include all sequences shorter than 0 or a, respectively, that are limited by #.",
+        "For a given length 0 of look-back and a length a of look-ahead, we generate every possible original b-type sequence (eq.",
+        "3), disambiguate it statistically (eq.",
+        "5-13), and encode the tagged b-type sequence Bi (eq.",
+        "14) as an FST.",
+        "All sequences Bi are then",
+        "and we generate a preliminary tagger model B'",
+        "where all sequences Bi can occur in any order and number (including zero times) because no constraints have yet been applied."
+      ]
+    },
+    {
+      "heading": "2.3 Concatenation Constraints",
+      "text": [
+        "To ensure a correct concatenation of sequences Bi, we have to make sure that every B, is preceded and followed by other B, according to what is encoded in the look-back and lookahead constraints.",
+        "E.g. the sequence in example (21) must be preceded by a sentence beginning, #, and the class [DET ,PRON] and followed by the class [NOUN, VERB] and the tag VERB.",
+        "We create constraints for preceding and following tags, classes and sentence boundaries.",
+        "For the look-back, a particular tag ti or class cj is required for a particular distance of S < -1, by5:",
+        "with ut and Lic being the union of all tags and all classes respectively.",
+        "A sentence beginning, #, is required for a particular look-back distance of (5< -1, on the side of the tags, by:",
+        "In the case of lookahead we require for a particular distance of (5> 1, a particular tag i2 or class c, or a sentence end, #, on the side of the tags, in a similar way by:",
+        "All tags tt are required for the look-back only at the distance of 6 = - /3 and for the lookahead only at the distance of 6 = a.",
+        "All classes cj are required for distances of 6 E + 1, -1] and SE [1, a - I].",
+        "Sentence boundaries, #, are required for distances of (5 E[-0,-1] and SE [1, a].",
+        "We create the intersection Rt of all tag constraints, the intersection Rc of all class constraints, and the intersection R* of all sentence boundary constraints:",
+        "All constraints are enforced by composition with the preliminary tagger model B' (eq.",
+        "24).",
+        "The class constraint Rc is composed on the upper side of B' which is the side of the classes (eq.",
+        "14), and both the tag constraint Rt and the boundary constraint' R* are composed on the lower side of B', which is the side of the tags':",
+        "Having ensured correct concatenation, we delete all symbols r that have served to constrain tags, classes or boundaries, using Dr:",
+        "By composing' B – (eq.",
+        "34) on the lower side with Dr and on the upper side with the inverted relation D,..i., we obtain the final tagger model B:",
+        "We call the model a b-type model, the corresponding FST a b-type transducer, and the whole algorithm leading from the HMM to the transducer, a b-type approximation of an HMM."
+      ]
+    },
+    {
+      "heading": "2.4 Properties of b-Type Transducers",
+      "text": [
+        "There are two groups of b-type transducers with different properties: FSTs without look-back and/or without lookahead (/3-a = 0) and FSTs with both look-back and lookahead (/3-a > 0).",
+        "Both accept any sequence of ambiguity classes.",
+        "b-Type FSTs with a = 0 are always sequential.",
+        "They map a class sequence that corresponds to the word sequence of a sentence, always to exactly one tag sequence.",
+        "Their tagging accuracy and similarity with the underlying HMM increases with growing + a.",
+        "A b-type FST with 0=0 and a = 0 is equivalent to an nO-type FST, and with /3=1 and a =0 it is equivalent to an nl-type FST (Kempe, 1997).",
+        "b-Type FSTs with 0-a >0 are in general not sequential.",
+        "For a class sequence they deliver a set of different tag sequences, which means that the tagging results are ambiguous.",
+        "This set is never empty, and the most probable tag sequence according to the underlying HMM is always in this set.",
+        "The longer the look-back distance /3 and the lookahead distance a are, the larger the FST and the smaller the set of resulting tag sequences.",
+        "For sufficiently large f3+a, this set may contain always only one tag sequence.",
+        "In this case the FST is equivalent to the underlying HMM.",
+        "For reasons of size however, this FST may not be computable for particular HMMs (sec.",
+        "4)."
+      ]
+    },
+    {
+      "heading": "3 An Implemented Finite-State Tamer",
+      "text": [
+        "The implemented tagger requires three transducers which represent a lexicon, a guesser and an approximation of an HMM mentioned above.",
+        "Both the lexicon and guesser are sequential, i.e. deterministic on the input side.",
+        "They both unambiguously map a surface form of any word that they accept to the corresponding ambiguity class (fig.",
+        "5, col. 1 and 2): First of all, the word is looked for in the 'For efficiency reasons, we actually do not delete the constraint symbols r by composition.",
+        "We rather traverse the network, and overwrite every symbol r with the empty string symbol e. In the following determinization of the network, all c are eliminated.",
+        "lexicon.",
+        "If this fails, it is looked for in the guesser.",
+        "If this equally fails, it gets the label [UNKNOWN] which denotes the ambiguity class of unknown words.",
+        "Tag probabilities in this class are approximated by tags of words that appear only once in the training corpus.",
+        "As soon as an input token gets labeled with the tag class of sentence end symbols (fig.",
+        "5: [SENT] ), the tagger stops reading words from the input.",
+        "At this point, the tagger has read and stored the words of a whole sentence (fig.",
+        "5, col. 1) and generated the corresponding sequence of classes (fig.",
+        "5, col. 2).",
+        "The class sequence is now mapped to a tag sequence (fig.",
+        "5, col. 3) using the HMM transducer.",
+        "A b-type FST is not sequential in general (sec.",
+        "2.4), so to obtain a unique tagging result, the finite-state tagger can be run in a special mode, where only the first result found is retained, and the tagger does not look for other results8.",
+        "Since paths through an FST have no particular order, the result retained is random.",
+        "The tagger outputs the stored word and tag sequence of the sentence, and continues in the same way with the remaining sentences of the corpus.",
+        "The tagger can be run in a statistical mode nere the number of tag sequences found per sentence is counted.",
+        "These numbers give an overview of the degree of non-sequentiality of the concerned b-type transducer (sec.",
+        "2.4).",
+        "'This mode of retaining the first result only is not necessary with n-type and s-type transducers which are both sequential (Kempe, 1997)."
+      ]
+    },
+    {
+      "heading": "4 Experiments and Results",
+      "text": [
+        "This section compares different FSTs with each other and with the original HMM.",
+        "As expected, the FSTs perform tagging faster than the HMM.",
+        "Since all FSTs are approximations of HMMs, they show lower tagging accuracy than the HMMs.",
+        "In the case of FSTs with )3> 1 and a= 1, this difference in accuracy is negligible.",
+        "Improvement in accuracy can be expected since these FSTs can be composed with FSTs encoding correction rules for frequent errors (sec.",
+        "1).",
+        "For all tests below an English corpus, lexicon and guesser were used, which were originally annotated with 74 different tags.",
+        "We automatically recoded the tags in order to reduce their number, i.e. in some cases more than one of the original tags were recoded into one and the same new tag.",
+        "We applied different recodings, thus obtaining English corpora, lexicons and guessers with reduced tag sets of 45, 36, 27, 18 and 9 tags respectively.",
+        "FSTs with ,3 = 2 and a = 1 and with )3 = 1 and a = 2 were equivalent, in all cases where they could be computed.",
+        "Table 1 compares different FSTs for a tag set of 36 tags.",
+        "The b-type FST with no look-back and no lookahead which is equivalent to an nO-type FST (Kempe, 1997), shows the lowest tagging accuracy (b-FST ([3= 0, a =0): 87.21 %).",
+        "It is also the smallest transducer (1 state and 181 arcs, as many as tag classes) and can be created faster than the other FSTs (6 sec.).",
+        "The highest accuracy is obtained with a b-type FST with ,3 = 2 and a = 1 (b-FST (/3 = 2, a = 1): 97.34 %) and with an s-type FST (Kempe, 1997) trained on 1 000 000 words (s+nl-FST (1M, F1): 97.33 %).",
+        "In these two cases the difference in accuracy with respect to the underlying HMM (97.35 %) is negligible.",
+        "In this particular test, the s-type FST comes out ahead because it is considerably smaller than the b-type FST.",
+        "The size of a b-type FST increases with the size of the tag set and with the length of look-back plus look-ahead, +ct.",
+        "Accuracy improves with growing )3+a.",
+        "b-Type FSTs may produce ambiguous tagging results (sec.",
+        "2.4)1 In such instances only the first result was retained (sec.",
+        "3).",
+        "Table 2 shows the tagging accuracy and the agreement of the tagging results with the results of the underlying HMM for different FSTs and tag sets of different sizes.",
+        "To get results that are almost equivalent to those of an HMM, a b-type FST needs at least a look-back of = 2 and a lookahead of a = 1 or vice versa.",
+        "For reasons of size, this kind of FST could only be computed for tag sets with 36 tags or less.",
+        "A b-type FST with g = 3 and a = 1 could only be computed for the tag set with 9 tags.",
+        "This FST gave exactly the same tagging results as the underlying HMM.",
+        "Table 3 illustrates which of the b-type FSTs are sequential, i.e. always produce exactly one tagging result, and which of the FSTs are non-sequential.",
+        "For all tag sets, the FSTs with no look-back (# = 0) and/or no lookahead (a = 0) behaved sequentially.",
+        "Here 100 % of the tagged sentences had only one result.",
+        "Most of the other FSTs (fl.",
+        "a> 0) behaved non-sequentially.",
+        "For example, in the case of 27 tags with )3 = 1 and a = 1, 90.08% of the tagged sentences had one result, 9.46 % had two results, 0.23 % had tree results, etc.",
+        "Non-sequentiality decreases with growing look-back and look-ahead, #+ a, and should completely disappear with sufficiently large 0-I-a.",
+        "Such b-type FSTs can, however, only be computed for small tag sets.",
+        "We could compute this kind of FST only for the case of 9 tags with #=3 and a=1.",
+        "The set of alternative tag sequences for a sentence, produced by a b-type FST with ,8 • a > 0, always contains the tag sequence that corresponds with the result of the underlying HMM."
+      ]
+    },
+    {
+      "heading": "5 Conclusion and Future Research",
+      "text": [
+        "The algorithm presented in this paper describes the construction of a finite-state transducer (FST) that approximates the behaviour of a Hidden Markov Model (HMM) in part-of-speech tagging.",
+        "The algorithm, called b-type approximation, uses look-back and lookahead of freely selectable length.",
+        "The size of the FSTs grows with both the size of the tag set and the length of the look-back plus lookahead.",
+        "Therefore, to keep the FST at a computable size, an increase in the length of the look-back or look-ahead, requires a reduction of the number of tags.",
+        "In the case of small tag sets (e.g. 36 tags), the look-back and lookahead can be sufficiently large to obtain an FST that is almost equivalent to the original HMM.",
+        "In some tests s-type FSTs (Kempe, 1997) and b-type FSTs reached equal tagging accuracy.",
+        "In these cases s-type FSTs are smaller because they encode the most frequent ambiguity class sequences of a training corpus very accurately and all other sequences less accurately.",
+        "b-Type PSTs encode all sequences with the same accuracy.",
+        "Therefore, a b-type FST can reach equivalence with the original HMM, but an s-type FST cannot.",
+        "The algorithms of both conversion and tagging are fully implemented.",
+        "The main advantage of transforming an HMM is that the resulting FST can be handled by finite state calculus9 and thus be directly composed with other FSTs.",
+        "The tagging speed of the FSTs is up to six times higher than the speed of the original HMM.",
+        "Future research will include the composition of HMM transducers with, among others: • FSTs that encode correction rules for the most frequent tagging errors in order to significantly improve tagging accuracy (above the accuracy of the underlying HMM).",
+        "These rules can either be extracted automatically from a corpus (Brill, 1992) or written manually (Chanod and Tapanainen, 1995).",
+        "• FSTs for light parsing, phrase extraction and other text analysis (Ait-Mokhtar and Chanod, 1997).",
+        "An HMM transducer can be composed with one or more of these FSTs in order to perform complex text analysis by a single FST."
+      ]
+    },
+    {
+      "heading": "ANNEX: Regular Expression Operators",
+      "text": [
+        "Below, a and b designate symbols, A and B designate languages, and R and Q designate relations between two languages.",
+        "More details on the following operators and pointers to finite-state literature can be found in http://www.xrce.xerox.",
+        "com/researchhatt/fst A Complement (negation).",
+        "Set of all strings except those from the language A."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "I am grateful to all colleagues who helped me, particularly to Lauri Karttunen (XRCE Grenoble) for extensive discussion, and to Julian Kupiec (Xerox PARC) for sending me information on his own related work.",
+        "Many thanks to Irene Maxwell for correcting various versions of the paper."
+      ]
+    }
+  ]
+}

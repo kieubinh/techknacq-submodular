@@ -1,0 +1,307 @@
+{
+  "info": {
+    "authors": [
+      "Zhifei Li",
+      "Sanjeev P. Khudanpur"
+    ],
+    "book": "Proceedings of the ACL-08: HLT Second Workshop on Syntax and Structure in Statistical Translation (SSST-2)",
+    "id": "acl-W08-0402",
+    "title": "A Scalable Decoder for Parsing-Based Machine Translation with Equivalent Language Model State Maintenance",
+    "url": "https://aclweb.org/anthology/W08-0402",
+    "year": 2008
+  },
+  "references": [
+    "acl-D07-1090",
+    "acl-D07-1104",
+    "acl-N07-1063",
+    "acl-P00-1056",
+    "acl-P02-1040",
+    "acl-P03-1021",
+    "acl-P03-2041",
+    "acl-P05-1034",
+    "acl-P06-1077",
+    "acl-P06-1121",
+    "acl-P07-1019",
+    "acl-W05-1506",
+    "acl-W06-1626"
+  ],
+  "sections": [
+    {
+      "text": [
+        "A Scalable Decoder for Parsing-based Machine Translation with Equivalent Language Model State Maintenance",
+        "Zhifei Li and Sanjeev Khudanpur",
+        "We describe a scalable decoder for parsing-based machine translation.",
+        "The decoder is written in JAVA and implements all the essential algorithms described in Chiang (2007): chart-parsing, m-gram language model integration, beam-and cube-pruning, and unique fc-best extraction.",
+        "Additionally, parallel and distributed computing techniques are exploited to make it scalable.",
+        "We also propose an algorithm to maintain equivalent language model states that exploits the back-off property of m-gram language models: instead of maintaining a separate state for each distinguished sequence of \"state\" words, we merge multiple states that can be made equivalent for language model probability calculations due to back-off.",
+        "We demonstrate experimentally that our decoder is more than 30 times faster than a baseline decoder written in PYTHON.",
+        "We propose to release our decoder as an open-source toolkit."
+      ]
+    },
+    {
+      "heading": "1. Introduction",
+      "text": [
+        "Large-scale parsing-based statistical machine translation (MT) has made remarkable progress in the last few years.",
+        "The systems being developed differ in whether they use source-or target-language syntax.",
+        "For instance, the hierarchical translation system of Chiang (2007) extracts a synchronous grammar from pairs of strings, Quirk et al.",
+        "(2005), Liu et al.",
+        "(2006) and Huang et al.",
+        "(2006) perform syntactic analyses in the source-language, and Galley et al.",
+        "(2006) use target-language syntax.",
+        "A critical component in parsing-based MT systems is the decoder, which is complex to implement and scale up.",
+        "Most of the systems described above employ tailor-made, dedicated decoders that are not open-source, which results in a high barrier to entry for other researchers in the field.",
+        "However, with the algorithms proposed in (Huang and Chiang, 2005; Chiang, 2007; Huang and Chiang, 2007), it is possible to develop a general-purpose decoder that can be used by all the parsing-based systems.",
+        "In this paper, we describe an important firststep towards an extensible, general-purpose, scalable, and open-source parsing-based MT decoder.",
+        "Our decoder is written in JAVA and implements all the essential algorithms described in Chiang (2007): chart-parsing, m-gram language model integration, beam-and cube-pruning, and unique k-best extraction.",
+        "Additionally, parallel and distributed computing techniques are exploited to make it scalable.",
+        "Straightforward integration of an m-gram language model (LM) into a parsing-based decoder substantially increases its computational complexity.",
+        "Therefore, it is important to develop efficient methods for LM integration.",
+        "We propose an algorithm to maintain equivalent LM states by exploiting the back-off property of m-gram LMs.",
+        "Specifically, instead of maintaining a separate state for each distinguished sequence of \"state\" words, we merge multiple states that can be made equivalent for LM calculations by anticipating such back-off.",
+        "We demonstrate experimentally that our decoder is 38 times faster than a previous decoder written in PYTHON.",
+        "Furthermore, the distributed computing permits improving translation quality via large-scale LMs.",
+        "We have successfully use our decoder to translate about a million sentences in a parallel corpus for large-scale discriminative training experiments."
+      ]
+    },
+    {
+      "heading": "2. Parsing-based MT Decoder",
+      "text": [
+        "In this section, we discuss the core algorithms implemented in our decoder.",
+        "These algorithms have been discussed by Chiang (2007) in detail, and we recapitulate the essential parts here for completeness.",
+        "Our decoder assumes a probabilistic synchronous context-free grammar (SCFG).",
+        "Following the notation in Venugopal et al.",
+        "(2007), a probabilistic SCFG comprises a set of source-language terminal symbols TS, a set of target-language terminal symbols TT, a shared set of nonterminal symbols N, and a set of rules of the form where X e N, 7 e [N U TS]* is a (mixed) sequence of nonterminals and source terminals, a £ [N UTT ]* is a sequence of nonterminals and target terminals, ~ is a one-to-one correspondence or alignment between the nonterminal elements of 7 and a, and w > 0 is a weight assigned to the rule.",
+        "An illustrative rule for Chinese-to-English translation is where the Chinese word ft (pronounced de or di) means of, and the alignment, encoded via subscripts on the nonterminals, causes the two noun phrases around ft to be reordered around of in the translation.",
+        "The rule weight is omitted in this example.",
+        "A bilingual SCFG derivation is analogous to a monolingual CFG derivation.",
+        "It begins with a pair of aligned start symbols.",
+        "At each step, an aligned pair of nonterminals is rewritten as the two corresponding components of a single rule.",
+        "In this sense, the derivations are generated synchronously.",
+        "Our decoder presently handles SCFGs of the kind extracted by Heiro (Chiang, 2007), but is easily extensible to more general SCFGs and closely related formalisms such as synchronous tree substitution grammars (Eisner, 2003; Chiang, 2006).",
+        "Given a source-language sentence f *, the decoder must find the target-language yield e(D) of the best derivation D among all derivations with source-language yield f (D) = f *, i.e. where w(D) is the composite weight ofD.",
+        "The parser may be treated as a deductive proof system (Shieber etal., 1995).",
+        "Formally (cf. (Chiang, 2007)), a parser defines a space of weighted items, with some items designated as axioms and some as goals, and a set of inference rules of the form which states that if all the antecedent items Ii are provable, respectively with weight wi, then the consequent item I is provable with weight w, provided the side condition 0 holds.",
+        "For a grammar with a maximum of two (pairs of) nonterminals per rule, Figure 1 illustrates the resulting chart parsing procedure, including the integration of an m-gram LM.",
+        "The actual decoding algorithm maintains a chart, which contains an array of cells.",
+        "Each cell in turn maintains a list of proved items.",
+        "The parsing process starts with the axioms, and proceeds by applying the inference rules to prove more and more items until a goal item is proved.",
+        "Whenever the parser proves a new item, it adds the item to the appropriate chart cell.",
+        "It also maintains backpointers to antecedent items, which are used for fc-best extraction, as discussed in Section 2.4 below.",
+        "In a SCFG-based decoder, an item is identified by its source-language span, left-side nonterminal label, and left-and right-context for the target-language m-gram LM.",
+        "Therefore, in a given cell, the maximum possible number of items is O(\\N\\\\TT|(m\"1)), and the worst case decoding complexity is where K is the maximum number of nonterminal pairs per rule and n is the source-language sentence length (Venugopal et al., 2007).",
+        "Figure 1: Inference rules from Chiang (2007) for a parser with an m-gram LM.",
+        "G denotes the translation grammar.",
+        "w[x/X] denotes substitution of the string x for the symbol X in the string w. The function p( ) provides the LM probability for all complete m-grams in a string, while the function q( ) elides symbols whose m-grams have been accounted for by Details about the functions p( ) and q( ) are provided in Section 4.",
+        "Severe pruning is needed in order to make the decoding computationally feasible for SCFGs with large vocabularies TT and detailed nonterminal sets.",
+        "In our decoder, we incorporate two pruning techniques described by (Chiang, 2007; Huang and Chiang, 2007).",
+        "For beam pruning, in each cell, we discard all items whose weight is worse, by a relative threshold [3, than the weight of the best item in the same cell.",
+        "If too many items pass the threshold, a cell only retains the top-6 items by weight.",
+        "When combining smaller items to obtain a larger item by applying an inference rule, we use cube-pruning to simulate k-best extraction in each destination cell, and discard combinations that lead to an item whose weight is worse than the best item in that cell by a margin of e.",
+        "For each source-language sentence f *, the output of the chart-parsing algorithm may be treated as a hyper-graph representing a set of likely hypotheses D in (2).",
+        "Briefly, a hyper-graph is a set of vertices and hyper-edges, with each hyper-edge connecting a set of antecedent vertices to a consequent vertex, and a special vertex designated as the target vertex.",
+        "In parsing parlance, a vertex corresponds to an item in the chart, a hyper-edge corresponds to a SCFG rule with the nonterminals on the right-side replaced by back-pointers to antecedent items, and the target vertex corresponds to the goal item.",
+        "Given a hyper-graph for a source-language sentence f *, we use the A;-best extraction algorithm of Huang and Chiang (2005) to extract its k most likely translations.",
+        "Moreover, since many different derivations D in (2) may lead to the same target-language yield e(D), we adopt the modification described in Huang et al.",
+        "(2006) to efficiently generate the unique k best translations of f *."
+      ]
+    },
+    {
+      "heading": "3. Parallel and Distributed Computing",
+      "text": [
+        "Many applications of parsing-based MT entail the use of SCFGs extracted from millions of bilingual sentence pairs and LMs extracted from billions of words of target-language text.",
+        "This requires the decoder to make use of distributed computing to spread the memory required to load large-scale SCFGs and LMs onto multiple processors.",
+        "Furthermore, techniques such as iterative minimum error-rate training (Och et al., 2003) as well as web-based MT services require the decoder to translate a large number of source-language sentences per unit time.",
+        "This requires the decoder to make use of parallel computing to utilize each individual multi-core processor more effectively.",
+        "We have incorporated two such performance enhancements in our decoder.",
+        "We have enhanced our decoder to translate multiple source-language sentences in parallel by exploiting the ability of a multi-core processor to concurrently run several threads that share memory.",
+        "Specifically, given one (or more) document(s) containing multiple source-language sentences, the decoder automatically splits the set of sentences into several subsets, and initiates concurrent decoding threads; once all the threads finish, the main thread merges back the translations.",
+        "Since all the threads naturally share memory, the decoder needs to load the (large) SCFG and LM into memory only once.",
+        "This multithreading provides a very significant speed-up.",
+        "It is not possible in some cases to load a very large LM into memory on a single machine, particularly if the SCFG is also very large.",
+        "In other cases, loading the LM each time the decoder runs may be too time-consuming relative to the time required for decoding itself, such as in iterative decoding with updated combination weights during minimum error-rate training.",
+        "It is therefore desirable to have dedicated servers to load parts of the LM – an idea that has been exploited by (Zhang et al., 2006; Emami et al., 2007; Brants et al., 2007).",
+        "Our implementation can load a (partitioned) LM on different servers before initiating decoding.",
+        "The decoder remotely calls the servers to obtain individual LM probabilities, and linearly interpolates them on the fly using a given set of interpolation weights.",
+        "With this architecture, one can deal with a very large target-language text corpus by splitting it into many parts and training separate LMs from each.",
+        "The runtime interpolation capability may also be used for LM adaptation, e.g. for building document-specific language models.",
+        "To mitigate potential network communication delays inherent to a distributed LM, we implement a simple cache mechanism in the decoder.",
+        "The cache saves the outcomes of the most recent LM calls, including interpolated LM probabilities; the cache is reset whenever its size exceeds a threshold.",
+        "We could have maintained a cache at each LM server as well; however, the resultant saving is not significant because the trie data-structures used to implement m-gram LMs are quite fast relative to the cache lookup overhead."
+      ]
+    },
+    {
+      "heading": "4. Equivalent LM-state Maintenance",
+      "text": [
+        "It is clear from the complexity (3) of the inference rules (Figure 1) that a straightforward integration of an m-gram LM adds a multiplicative factor of \\TT \\K(m – i) to the computational complexity of the decoder, where TT is the set of target-language terminal symbols.",
+        "We illustrate in this section how this potentially very large multiplier can be dramatically reduced by exploiting the structure of the LM.",
+        "Integrating an LM into chart parsing requires two functions p( ) and q( ) (see Figure 1) that operate on strings over TT U {*}, where * is a special \"placeholder\" symbol for an elided part of a target-language string.",
+        "The function p(e) calculates the LM probability of the complete m-grams in e = ei ... ei, i.e.",
+        "where hi = ei – (m – i) ...ei – i is the m – 1-word \"LM history\" of the target-language word ei.",
+        "Since the p-probability of e does not include the LM probability for the partial m-grams (i.e., the first (m – 1) words) of e, the exact weights of two items [X, i,j; e] and [X, e'\\ in the chart are not available during the bottom-up pruning of Section 2.3.",
+        "Therefore, as an approximation, we also compute an estimate of the LM probability of the m – 1-gram prefix of e. This estimated probability is taken into account for pruning purposes (only).",
+        "The function q( ei .",
+        ".",
+        ".",
+        "ei) determines the left and right LM states that must be maintained for future computation of the exact LM probability, respectively, of ei ... em – i and ei+i ... ei",
+        "ei... em – i * ei – (m – 2) ...ei otherwise.",
+        "While many different methods are popular for estimating m-gram LMs, most store the estimated LM parameters in the ARPA back-off file format; using the notation ej to denote a target-language word sequence ei ei+i ... ej, the LM probability calculation is carried out as = (n(em) if em e LM where the lower order probability PBO(em \\ em – i) is recursively defined in the same way, and P(e>m – i) is the back-off weight of the history.",
+        "The LM file contains the parameter n(-) for each listed m-gram, and the parameters n(-) and /3(-) for each listed mm-gram, 1 < mi < m; for unlisted m-grams, f3(-) = 1 by definition.",
+        "Observe from (7) that if em is not listed in the LM, the back-off weight P(•) is the same for all words em, and the backed-off probability PBO(em \\ •) is the same for all words ei .",
+        "Furthermore, as m grows, the fraction of possible m-grams actually observed in a training corpus diminishes rapidly.",
+        "The maximum possible number of items in a cell increases exponentially with the LM order m, as discussed in Section 2.2.",
+        "With pruning (cf.",
+        "Section 2.3), we restrict the maximum number of items in each cell to some threshold b.",
+        "Intuitively, therefore, if we increase the LM order m, we should also increase the beam size b to reduce search errors.",
+        "This could slow down the decoder significantly.",
+        "Recall from the previous subsection, however, that when m increases, the fraction of m-grams that will need to back-off also increases.",
+        "Moreover, even for modest values of m, the decoder considers many \"unseen\" m-grams (due to reordering and translation combinations) that do not appear in natural texts, leading to frequent back-off during the LM probability calculation (7).",
+        "In this subsection, we propose a method to collapse equivalent LM states so that the decoder effectively considers many more items in each cell without increasing beam size.",
+        "We merge multiple LM states (6) that already have – or back-off to – the same \"LM history\" in the calculation (7) of LM probabilities, e.g. due to different unlisted m-grams that back-off to the same m – 1-gram.",
+        "For simplicity, we only consider LM state merging by the function q() of (6) when l > m – 1.",
+        "Though the equivalent LM state maintenance technique is discussed here in the context of a parsing-based MT decoder, it is also applicable to standard left-to-right phrase-based decoders.",
+        "In particular, the right-side equivalent LM state maintenance proposed in Section 4.3.1 may be used.",
+        "Recall that the right LM state e\\ – lmm – 2) of eiiserves as the \"LM history\" for calculating the exact LM probabilities of the yet-to-be-determined word el+i.",
+        "Recall further the computation (7) of",
+        "• If the m-gram ell+im – 2) is not listed in the LM for any word el+i, then the LM will back-off to",
+        "PBO(ei+i \\ ell – lmi – :i)), which does not depend on the word ei – (m – 2).",
+        "If these two conditions hold true, q(^) may safely elide the word ei – (m – 2) in (6) no matter what words follow eii .",
+        "The right LM state is thus reduced from m – 1 words to m – 2 words.",
+        "The argument above can be applied recursively to the resulting right LM state ell – lmi – 2)+i, where i e [0,m – 2], leading to the equivalent right state computation procedure of Figure 2.",
+        "The procedure IS-A-PREFIX(em) checks if its argument em is a prefix of any fc-gram listed in the LM, k e [rm, m].",
+        "Recall that the left LM state eim – i of eii is the prefix whose exact LM probability is unknown during bottom-up parsing, and is replaced by the estimated probability p(em – i) of (5) for pruning purposes.",
+        "Recall further the computation (7) of",
+        "Pbo(em – i \\ em – 2).",
+        "• If the m-gram em – i is not listed in the LM for any word eo, then it will back-off to",
+        "When carrying out the reduction of the left and right LM states to their shortest equivalents, the formula (4) for calculating the probability of the complete m-grams in an item [X, i,j; e], where e = e\\, is modified as with the further qualification that some care must be taken later to incorporate the back-off weights of the \"LM histories\" of the suffix of e>m – i that went missing due to left LM state reduction.",
+        "As done in the SRILM toolkit (Stolcke, 2002), a back-off m-gram LM is stored using a reverse trie data structure.",
+        "We store the suffix and prefix information in the same data structure without incurring much additional memory cost.",
+        "Specifically, the prefix information is stored at the back-off state, while the suffix information is stored as one bit alongside the regular m-gram probability."
+      ]
+    },
+    {
+      "heading": "4. break > stop reducing ers",
+      "text": []
+    },
+    {
+      "heading": "7. return ers",
+      "text": [
+        "which can be computed right away based on eim – i without waiting for the unknown eo.",
+        "Moreover, the back-offweight does not depend on the word em 1.",
+        "reduce the left LM state in (6) from e>m to e",
+        "m – 2 i.",
+        "Also, p(-) should also co-opt PBO(em – i \\ em – 2) into the complete m-gram probability of (4) and p() should exclude em – i in (5).",
+        "The argument above can again be applied recursively to the resulting left LM state ei, i e [1,m – 1], leading to the equivalent left state procedure of Figure 3.",
+        "The procedure IS-A-SUFFIX(em) checks if em is a suffix of any listed k-gram in the LM, k e [m, m].",
+        "In Figure 3, fin refers to the probability that can be computed right away based on the state itself, for co-opting into the complete m-gram probability of (4) as mentioned above."
+      ]
+    },
+    {
+      "heading": "2. fin < – 1 > update to final probability p",
+      "text": [
+        "4 if IS-A-SUFFIX(ei)"
+      ]
+    },
+    {
+      "heading": "5. break > stop reducing els",
+      "text": [
+        "PBo(ei I e\\",
+        "> reduce state"
+      ]
+    },
+    {
+      "heading": "9. return els, fin",
+      "text": [
+        "The estimated probability of the left LM state is modified as",
+        "Therefore, q() may safely elide the word em – i, and p(e",
+        "p(EQ-L-STATE(em-1).els) otherwise,",
+        "with p as defined in (5).",
+        "Finally, the LM state function is",
+        "EQ-R-STATE(e",
+        ") .",
+        "ers otherwise."
+      ]
+    },
+    {
+      "heading": "5. Experimental Results",
+      "text": [
+        "In this section, we evaluate the performance of our decoder on a Chinese to English translation task.",
+        "We use various parallel text corpora distributed by the Linguistic Data Consortium (LDC) for the NIST MT evaluation.",
+        "The parallel data we select contains about 570K Chinese-English sentence pairs, adding up to about 19M words on each side.",
+        "To train the English language models, we use the English side of the parallel text and a subset of the English Giga-word corpus, for a total of about 130M words.",
+        "We use the GIZA toolkit (Och and Ney, 2000), a suffix-array architecture (Lopez, 2007), the SRILM toolkit (Stolcke, 2002), and minimum error rate training (Och et al., 2003) to obtain word-alignments, a translation model, language models, and the optimal weights for combining these models, respectively.",
+        "We use a PYTHON implementation of a state-of-the-art decoder as our baseline for decoder comparisons.",
+        "For a direct comparison, we use exactly the same models and pruning parameters.",
+        "The SCFG contains about 3M rules, the 5-gram LM explicitly lists about 49M k-grams, k = 1,2,..., 5, and the pruning uses [3 = 10, b = 30 and e = 0.1.",
+        "Table 1: Decoder Comparison: Translation speed and quality on the 2003 and 2005 NIST MT benchmark tests.",
+        "As shown in Table 1, the JAVA decoder (without explicit parallelization) is 22 times faster than the PYTHON decoder, while achieving slightly better translation quality as measured by BLEU-4 (Pap-ineni et al., 2002).",
+        "The parallelization further speeds it up by a factor of 1.7, making the parallel JAVA decoder is 38 times faster than the PYTHON decoder.",
+        "We have used the decoder to successfully decode about one million sentences for a large-scale discriminative training experiment.",
+        "We use the SRILM toolkit to build eight 7-gram language models, and load and call the LMs using a",
+        "the baseline.",
+        "Thanks also go to David Chiang who originally implement the decoder.",
+        "distributed LM architecture as discussed in Section 3.2.",
+        "As shown in Table 2, the 7-gram distributed language model (DLM) significantly improves translation performance over the 5-gram LM.",
+        "However, decoding is significantly slower (12.2 sec/sent when using the non-parallel decoder) due to the added network communication overhead.",
+        "Table 2: Distributed language model: the 7-gram LM cannot be loaded alongside the SCFG on a single machine; via distributed computing, it yields significant improvement in BLEU-4 over a 5-gram.",
+        "To reduce the number of search errors, one may either increase the beam size, or employ techniques such as the equivalent LM state maintenance described in Section 4.",
+        "In this subsection, we compare the tradeoff between the search effort (measured by decoding time per sentence) and the search quality (measured by the average model cost of the best translation found).",
+        "Intuitively, collapsing equivalent LM states is useful only when the language model is very sparse, i.e., most of the evaluated m-grams will need to backoff.",
+        "A sparse LM is obtained in practice by using a large order m relative to the amount of training data.",
+        "To test this intuition, we train a 7-gram LM using only the English side of the parallel text (~ 19M words).",
+        "Figure 4 compares maintenance of the full LM state v/s the equivalent LM state.",
+        "The beam size b for decoding with equivalent LM states is fixed at 30; it is increased considerably – 30, 50, 70, 90, 120, and 150 – with the full LM state in an effort to reduce search errors.",
+        "It is clear from the figure that collapsing items that differ due only to equivalent LM states improves the search quality considerably while actually reducing search effort.",
+        "This shows the effectiveness of equivalent LM state maintenance.",
+        "LM type",
+        "# k-grams",
+        "MT '03",
+        "MT '05",
+        "5-gram LM",
+        "49 M",
+        "34.5%",
+        "32.9%",
+        "7-gram DLM",
+        "310M",
+        "35.5%",
+        "33.9%",
+        "Decoder",
+        "Speed (sec/sent)",
+        "BLEU-4",
+        "MT '03",
+        "MT '05",
+        "Python",
+        "26.5",
+        "34.4%",
+        "32.7%",
+        "Java",
+        "1.2",
+        "34.5%",
+        "32.9%",
+        "Java (parallel)",
+        "0.7",
+        "Figure 4: Search quality with equivalent 7-gram LM state maintenance (EquivLM) and without it (Baseline) as a function of search effort as controlled by the beam size.",
+        "We also train a 3-gram LM using an English corpus of about 130M words, and repeat the above experiments.",
+        "In this case, maintaining equivalent LM states costs more decoding time than using the full LM state to achieve the same search quality.",
+        "This is due partly to our inefficient implementation of the prefix-and suffix-lookup required to determine the equivalent LM state, and partly to the fact that with 130M words, a 3-gram LM backs off less frequently."
+      ]
+    },
+    {
+      "heading": "6. Conclusions",
+      "text": [
+        "We have described a scalable decoder for parsing-based machine translation.",
+        "It is written in JAVA and implements all the essential algorithms described in Chiang (2007): chart-parsing, m-gram language model integration, beam-and cube-pruning, and unique best extraction.",
+        "Additionally, parallel and distributed computing techniques are exploited to make it scalable.",
+        "We demonstrate that our decoder is 38 times faster than a baseline decoder written in PYTHON, and that the distributed language model is very useful to improve translation quality in a large-scale task.",
+        "We also describe an algorithm that exploits the back-off property of an m-gram model to maintain equivalent LM states, and show that better search quality is obtained with less search effort when the search space is organized to exploit this equivalence.",
+        "We plan to incorporate some additional syntax-based components into the decoder and release it as an open-source toolkit."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "We thank Philip Resnik, Chris Dyer, Smaranda Muresan and Adam Lopez for very helpful discussions, and the anonymous reviewers for their constructive comments.",
+        "This research was partially supported by the Defense Advanced Research Projects Agency's GALE program via Contract No HR0011-06-2-0001."
+      ]
+    }
+  ]
+}

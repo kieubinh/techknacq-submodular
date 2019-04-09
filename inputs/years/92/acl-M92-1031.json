@@ -1,0 +1,254 @@
+{
+  "info": {
+    "authors": [
+      "James R. Cowie",
+      "Louise Guthrie",
+      "Yorick Wilks"
+    ],
+    "book": "Message Understanding Conference",
+    "id": "acl-M92-1031",
+    "title": "CRL/NMSU and Brandeis: Description of the MucBruce System as Used for MUC-4",
+    "url": "https://aclweb.org/anthology/M92-1031",
+    "year": 1992
+  },
+  "references": [
+    "acl-C90-2002",
+    "acl-H92-1047",
+    "acl-J91-4003"
+  ],
+  "sections": [
+    {
+      "heading": "INTRODUCTION",
+      "text": [
+        "Through their involvement in the Tipster project the Computing Research Laboratory at New Mexico State University and the Computer Science Department at Brandeis University are developing a method for identifying articles of interest and extracting and storing specific kinds of information from large volumes of Japanese and English texts.",
+        "We intend that the method be general and extensible.",
+        "The techniques involved are not explicitly tied to these two languages nor to a particular subject area.",
+        "Development for Tipster has been going on since September, 1992.",
+        "The system we have used for the MUC-4 tests has only implemented some of the features we plan to include in our final Tipster system.",
+        "It relies intensively on statistics and on context-free text marking to generate templates.",
+        "Some more detailed parsing has been added for a limited lexicon, but lack of fuller coverage places an inherent limit on its performance.",
+        "Most of the information produced in our MUC templates is arrived at by probing the text which surrounds 'significant' words for the template type being generated, in order to find appropriately tagged fillers for the template fields."
+      ]
+    },
+    {
+      "heading": "OVERVIEW OF THE TEMPLATE FILLING PROCESS",
+      "text": [
+        "The overall system architecture is shown in Figure 1.",
+        "Three independent processes operate on an input text.",
+        "One, the Text Tagger, marks a variety of strings with semantic information.",
+        "The other two, the Relevant Template Filter and the Relevant Paragraph Filter, perform word frequency analysis to determine whether a text should be allowed to generate templates for particular incident types and which paragraphs are specifically related to each incident type.",
+        "These predictions are used by the central process in the system, the Template Constructor, which uses a variety of heuristics to extract template information from the tagged text.",
+        "A skeleton template structure is then passed to the final process, the Template Formatter, which performs some consistency checking, creates cross references and attempts to expand any names found in the template to the longest form in which they occur in the text.",
+        "Each of the above processes is described in more detail below."
+      ]
+    },
+    {
+      "heading": "Relevancy Filters",
+      "text": [
+        "We have developed a procedure for detecting document types in any language.",
+        "The system requires training texts for the types of documents to be classified and is developed on a sound statistical basis using probabilistic models of word occurrence [Guthrie and Walker 1991].",
+        "This may operate on letter grams of appropriate size or on actual words of the language being targeted and develops optimal detection algorithms from automatically generated \"word\" lists.",
+        "The system depends on the availability of appropriate training",
+        "texts.",
+        "So far the method has been applied to English, discriminating between Tipster and MUC texts, and to Japanese between Tipster texts and translations of ACM proceedings.",
+        "In both cases the classification scheme developed was correct 99% of the time.",
+        "The method has now been extended to the identification of relevant paragraphs and relevant template types for the MUC documents.",
+        "This is a more complex problem due to the non-homogeneous nature of the texts and the difficulty of deriving training sets of text.",
+        "Each process uses two sets of words, one which occurs with high probability in the texts of interest, and the other which occurs in the 'non-interesting' texts.",
+        "Due to the complexity of separating relevant from non-relevant information for the MUC texts we actually use three filters, two trained on sets of non-relevant and relevant paragraphs and one trained on sets of relevant and non-relevant texts.",
+        "The lists of relevant and non-relevant paragraphs were derived using the templates of the 1300 text test corpus.",
+        "Any paragraph which contributed two or more string fills to a particular template was used as part of the relevant training set; paragraphs contributing only one string fill were regarded as of dubious accuracy and were not placed in either set and all other paragraphs were considered as non-relevant.",
+        "Word lists were derived automatically by finding those words in the relevant training set which occurred within a threshold of most frequently occurring words in the relevant paragraphs and not in the non-relevant paragraphs, and vice versa to obtain a set of non-relevant words.",
+        "The relevant template marker consists of two processes, the first trained on a set of texts consisting of paragraphs from the MUC corpus which produced two or more string fills against text consisting of paragraphs which generated no string fills.",
+        "These allow us to determine, based on word counts taken at paragraph level, whether the whole text should be checked for specific template types.",
+        "The second stage is activated if any single paragraph in the text is found to be 'relevant'.",
+        "This stage is trained on the set of texts which generated a particular template type against texts which produced no templates.",
+        "There are separate relevant and non-relevant lists of words used to determine each template type.",
+        "The result is a vector represented as a Prolog fact which determines whether the texts will be allowed to generate templates of a particular type.",
+        "Thus:"
+      ]
+    },
+    {
+      "heading": "FREQUENCY WORD 199 BOMB 115 EXPLOSION 99 INJURED 83 EXPLODED 82 DYNAMITE 65 CAR 65 BOMBS 58 STREET 53 PLACED 49 DAMAGED",
+      "text": [
+        "slot(4, ['NO', 'ARSON', 'NO', 'ATTACK', 'YES', 'BOMBING', 'NO', 'KIDNAPPING', 'NO', 'ROBBERY', 'NO', 'DUMMY']).",
+        "The relevant paragraph filter is the final stage and uses word lists which were derived from relevant and non-relevant paragraphs for each template type.",
+        "Once again this operates at the paragraph level and produces a list of paragraph numbers for each template type.",
+        "These paragraph lists are only used if the relevant template filter has also predicted a template of that type.",
+        "This stage produces a vector of relevant paragraphs.",
+        "Thus: rel_parasa[1,3,5],'ARSON', [1,2,3,4,5],'ATTACK', [1,3],'BOMBING', 0 , 'KIDNAPPING' , [], 'ROBBERY' , [],'DUMMY']).",
+        "The two stages can be thought of as first distinguishing relevant texts for a particular template type from among all texts and second, given a relevant text, to distinguish between the relevant and non-relevant paragraphs within that text for the template type.",
+        "Partial word lists for relevant and non-relevant texts are given in Tables 1 and 2.",
+        "The full lists contain 124 and 117 words respectively.",
+        "Partial relevant word lists for BOMBING at the text level (relevant template) and the paragraph level are given in Tables 3 and 4.",
+        "The full lists contain 176 and 51 words respectively."
+      ]
+    },
+    {
+      "heading": "Semantic 'Digging",
+      "text": [
+        "A key question for the Tipster and MUC tasks is the correct identification of place names, company and organization names, and the names of individuals.",
+        "We now have available to us several sources of geographic, company and personal name information.",
+        "In addition the templates provided for MUC also supplied name information.",
+        "These have been incorporated in a set of tagging files which provide lexical information as a preprocessing stage for every text.",
+        "The details of the Text Tagger are shown in Figure 2, which is a screen dump of an interface which allows examination of the operation of each stage in the filter.",
+        "The text window on the left shows the state of a text after the group dates process has converted dates to standard form and on the right after the temporary tags placed to identify date constituents have been removed.",
+        "Each stage, apart from the last, marks the text with tags in the form: < \\TYPE> ACTUAL TEXT STRING {SEMANTIC INFORMATION} <\\ENDTYPE> Thus for example a date takes the form: <\\date> 5 DAYS AGO {date(\"14 APR 89\",890414)} <\\enddate> In general each stage in the pipeline is only allowed to modify text which is not already marked, although an examination of already marked text is allowed.",
+        "Several stages also place temporary markers in the text",
+        "to allow subsequent grouping by following stages.",
+        "These temporary markers are removed by the filter stages.",
+        "Each text is marked as follows:",
+        "For processing by the template constructor the final convert facts stage changes each sentence into a Prolog fact, containing sentence and paragraph numbers and a list of structures holding the marked items Thus:.",
+        "All the programs in the Tagger are written in 'C' or Lex.",
+        "We describe three of these components in more detail."
+      ]
+    },
+    {
+      "heading": "Known Items",
+      "text": [
+        "This program uses a large list of known strings which is held alphabetically.",
+        "For each word in the text a binary search is performed on the list.",
+        "When a match is found it will be with the longest string beginning with the word, subsequent words in the text are compared with the matched string.",
+        "If the complete string is matched then this portion of text is marked with the information associated with the string.",
+        "If a complete match is not achieved the word is checked against the previous item in the list, which may also match the word, and the process is repeated.",
+        "The strings and information in the file are derived from a variety of sources.",
+        "The place name information provided for MUG, organization, target and weapon names derived from the MUC templates and further lists of human occupations and titles derived from Longman's."
+      ]
+    },
+    {
+      "heading": "Proper Names",
+      "text": [
+        "The proper name filter uses a variety of methods to successfully identify a large majority of the human names found in a MUG text.",
+        "It uses two data resources; a complete word list of all the Longman Dictionary headwords and a list of English and Spanish first and last names.",
+        "In addition it uses the hidden Markov Model algorithm described by BBN in MUC-3 to identify Spanish words.",
+        "The first stage marks words not in Longman's, Spanish words and known first and last names.",
+        "The second stage decides whether a group of these items is indeed a name.",
+        "Any group containing a Spanish word or a known name is recognized, unknown words on their own must be preceded by a title of some kind (identified by the Known Items step).",
+        "Once an unknown item is identified as a name, however, it is added temporarily to the list of first and last names, so if it occurs in isolation later in the text it will be recognized correctly.",
+        "A further complication to the problem of name recognition was found in several names which contained text which had already been",
+        "identified as a place name.",
+        "In this case the proper name marker overrides the previous marking and marks the entire section of text as a human name."
+      ]
+    },
+    {
+      "heading": "Date Parts",
+      "text": [
+        "The date marker uses a wide variety of patterns which have been identified in the MUC and Tipster texts as referring to time.",
+        "Each date is converted to a standard form and the identified text marked.",
+        "Relative time expressions are always converted with reference to the headline date on the text.",
+        "This assumption appears to be valid in the vast majority of cases we have examined"
+      ]
+    },
+    {
+      "heading": "Template Construction",
+      "text": [
+        "The template constructor uses the tagged text and the list of relevant paragraphs for each template type to generate skeleton templates which are produced as a list of triples, SLOT NUMBER, SET FILL, STRING FILL.",
+        "For example: [ [0, 'TST2-MUC4-0048' ,null], [1, '6' ,nu113,"
+      ]
+    },
+    {
+      "heading": "[4, 'ATTACK' ,null], C2,'19 APR 89' ,null],",
+      "text": [
+        "A sequence of paragraphs is assumed to generate a new template.",
+        "The sentences in these paragraphs are examined for a sentence containing a key verb for the template type.",
+        "Sentences before this sentence are held in reverse order and sentences after in normal order.",
+        "Each sentence is stripped of any prefatory clause terminated by \"that\" (e.g. GOVERNMENT OFFICIALS REPORTED TODAY THAT).",
+        "The remainder of the sentence is reordered into lists containing texts marked with specific semantic types.",
+        "These correspond to the appropriate fillers for the main sections of the template.",
+        "The sentence is then marked as active or passive.",
+        "A search is then made in the current sentence and either the previous or the succeeding ones for items satisfying the appropriate conditions to fill a template slot.",
+        "Thus for an active sentence the perpetrator will be sought in the head of the sentence and then, if not found, in previous sentences.",
+        "This provides a crude form of reference resolution as pronouns are not marked with any specific semantic information.",
+        "The target is checked for in the tail of the sentence and then in subsequent sentences.",
+        "This process is repeated for all the main fields of the template.",
+        "It relies heavily on the fact that our text locating techniques are accurate.",
+        "If no appropriate action word is found the template creation process is abandoned.",
+        "The process is also abandoned if some of the template filling criteria are not satisfied (eg if the human target is a military officer).",
+        "The template construction program is written in Prolog and was compiled to run standalone using Quintus Prolog.",
+        "We obviously need to add more precise syntax and semantics at the sentence level and to provide a structure which allows the interrelationship of a group of sentences to be captured.",
+        "The advantage of the",
+        "method We are using at the moment is that it is robust and can be used as a fall-back whenever the more precise methods fail.",
+        "A limited amount of semantic parsing was implemented before the final MUC-4 test.",
+        "This overrode the robust method whenever an appropriate parse was found.",
+        "Due to the limited number of lexical entries we were able to generate before the test, it was not possible to accurately assess the impact of the more precise grammar.",
+        "Below are given sample entries of the lexical structures used in the MUC-4 tests.",
+        "The transitive verb murder and gerundive nominal killing illustrate the current state of the integration of lexical semantic information (seen in the qualia field) with corpus-related information derived from tuning (seen in the cospec field) [Pustejovsky 1991].",
+        "Cospecificalion is a semantic tagging of what collocational patterns the lexical item may enter into.",
+        "The sem field specifies directly how to map the qualia values into the appropriate slots in the MUC templates.",
+        "Parsing rules which allow indeterminate gaps are used to match the cospecification against the key sentences found.",
+        "A parser-generator uses the cospec fields of the GLS's to construct the parsing rules, with type constraints obtained from the corresponding qualia fields.",
+        "Certain operators within the rules (such as np( ) and \"*\") allow varying degrees of unspecified material to be considered in the constituents of the parse.",
+        "The parsing rules can in this way be seen as specifying complex regular expressions.",
+        "Because of this looseness, the parser will not break due to unknown items or intervening material.",
+        "These parsing rules are individually pre7compiled into compact Prolog code (each a small expression matching machine) before being included into the template constructor.",
+        "The term-unification machinery of Prolog automatically relates the syntactic constituents of the parse with the type constraints from the qualia and also with the arguments of the template semantics, avoiding the need for complex type matching and argument matching procedures.",
+        "Performance is degraded by the current partial implementation of the cospec field in the lexical structure definition.",
+        "The statistical-based corpus-tuning program for the lexical structures was not included for the MUC-4 test runs, but is on development-schedule for inclusion in the Tipster test run later this summer.",
+        "The cospec for a lexical item ideally encodes corpus-based usage information for each semantic aspect of the word (e.g. its qualia, event type, and argument structure).",
+        "This is a statistically-encoded structure of all admissible semantic collocations associated with the lexical item.",
+        "The initial seeding of the LS's is being done from lexical entries in the Longman Dictionary of Contemporary English [Proctor et al. 1978], largely using tools described in [Wilks et al. 1990].",
+        "These are then automatically adapted to the format of generative lexical structures.",
+        "It is these lexical structures which are then statistically tuned against the corpus, following the methods outlined in [Pustejovsky 1992] and [Anick and Pustejovsky 1990].",
+        "Semantic features for a lexical item which are missing or only partially specified from dictionary seeding are, where possible, induced from a semantic model of the corpus.",
+        "1.",
+        "MESSAGE: TEMPLATE 2.",
+        "INCIDENT: DATE 3.",
+        "INCIDENT: LOCATION 4.",
+        "INCIDENT: TYPE 5.",
+        "INCIDENT: STAGE OF EXECUTION 6.",
+        "INCIDENT: INSTRUMENT ID 7.",
+        "INCIDENT: INSTRUMENT TYPE 8.",
+        "PERP: INCIDENT CATEGORY 9.",
+        "PERP: INDIVIDUAL ID 10.",
+        "PERP: ORGANIZATION ID 11.",
+        "PERP: ORGANIZATION CONFIDENCE 12.",
+        "PHYS TGT: ID 13.",
+        "PHYS TOT: TYPE 14.",
+        "PHYS TOT: NUMBER"
+      ]
+    },
+    {
+      "heading": "Template Formatting",
+      "text": [
+        "This final stage is also a Prolog program.",
+        "This takes as input the lists of triples produced by the previous stage and a list of every name found in the text.",
+        "It then produces the final template, introducing cross references between serially defined fields which are related to each other.",
+        "The name list is used to attempt to choose the fullest version of a name found in the text and substitute this for any shorter versions found in the template outline.",
+        "TST2-MUC4-0048 MucBruce generates four templates for this text.",
+        "All are related to the vehicle bomb described at the beginning of the text.",
+        "The template and relevant paragraphs filters produce the following predictions: slot(4, ['NO', 'ARSON', 'NO', 'ATTACK', 'YES', 'BOMBING', 'NO', 'KIDNAPPING', 'NO', 'ROBBERY', 'NO', 'DUMMY']).",
+        "rel_parasa[1,3,6,6,13,18,19,20],'ARSON', [1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,17,18,19,20,21],'ATTACK', [1,3,4,5,6,7,8,9,10,11,13,14,16,17,18,19,20],'BOMBING', [1,3,6,7,16,17,20],'KIDNAPPING', [19,20],'ROBBERY', [],'DUMMY']).",
+        "This means that only 4 BOMBING templates will be produced.",
+        "The first of these produces a reasonably complete match to the key; details on the driver and bodyguards are omitted.",
+        "The remaining three templates are incorrect, carrying only the information that a bombing has taken place.",
+        "The attack on the home is not identified by our naive method of multiple template generation, as it already occurs in a sequence of paragraphs in which only the first event is found."
+      ]
+    },
+    {
+      "heading": "CONCLUSIONS",
+      "text": [
+        "We feel that our present system, given its only partially completed state, shows potential.",
+        "In particular the following techniques seem generally useful:",
+        "• The recognition of text types and subtexts within a text using statistical techniques trained on large numbers of sample texts.",
+        "• The use of the key templates to derive system lexicons.",
+        "• The automatic seeding of lexical structures from machine readable dictionaries.",
+        "• The use of lexically-driven cospecification to provide a robust parsing method at the sentence level.",
+        "• The successful combination of a variety of techniques in the human name recognizer • The production of a number of independent tools for tagging texts.",
+        "The system is robust and provides a good starting point for the application of more sophisticated techniques.",
+        "Given appropriate data it should be possible to produce a similar system for a different domain in a matter of weeks.",
+        "The tagger software is already being adapted to Japanese and we have already established that we can achieve similar performance with the statistical methods for Japanese texts using character bigrams."
+      ]
+    },
+    {
+      "heading": "ACKNOWLEDGEMENTS",
+      "text": [
+        "The system described here has been created using work funded by DARPA under contract number MDA90491-C-9328.",
+        "The following colleagues at CRL and Brandeis have contributed time, ideas, programming ability and enthusiasm to the development of the MucBruce system; Federica Busa, Peter Dilworth, Ted Dunning, Eric Eiverson, Steve Helmreich, Wang Jin, Fang Lin, Bill Ogden, Gees Stein, and Takahiro Wakao"
+      ]
+    },
+    {
+      "heading": "BIBLIOGRAPHY",
+      "text": []
+    }
+  ]
+}

@@ -1,0 +1,275 @@
+{
+  "info": {
+    "authors": [
+      "Masaaki Nagata"
+    ],
+    "book": "International Conference on Computational Linguistics",
+    "id": "acl-C94-1032",
+    "title": "A Stochastic Japanese Morphological Analyzer Using a Forward-DP Backward-A* N-Best Search Algorithm",
+    "url": "https://aclweb.org/anthology/C94-1032",
+    "year": 1994
+  },
+  "references": [
+    "acl-A88-1019",
+    "acl-A92-1018",
+    "acl-H91-1060"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We present a novel method for segmenting the input sentence into words and assigning parts of speech to the words.",
+        "It consists of a statistical language model and an efficient two-pass N-best search algorithm.",
+        "The algorithm does not require delimiters between words.",
+        "Thus it is suitable for written Japanese.",
+        "The proposed Japanese morphological analyzer achieved 95.1% recall and 94.6% precision for open text when it was trained and tested on the ATR Corpus."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "In recent years, we have seen a fair number of papers reporting accuracies of more than 95% for English part of speech tagging with statistical language modeling techniques [2-4,10,11].",
+        "On the other hand, there are few works on stochastic Japanese morphological analysis [9, 12, 14], and they don't seem to have convinced the Japanese NU' community that the statistically-based techniques are superior to conventional rule-based techniques such as [16, 17].",
+        "We show in this paper that we can build a stochastic Japanese morphological analyzer that offers approximately 95% accuracy on a statistical language modeling technique and an efficient two-pass N-best search strategy.",
+        "We used the simple tri-POS model as the tagging model for -Japanese.",
+        "Probability estimates were obtained after training on the ATIL Dialogue Database [5], whose word segmentation and part of speech Lag assignment were laboriously performed by hand.",
+        "We propose a novel search strategy for getting Lhe N best morphological analysis hypotheses for the input sentence.",
+        "It consists of the forward dynamic programming search and the backward A* search.",
+        "The proposed algorithm amalgamates and extends three well-known algorithms in different fields: the Minimum Connective-Cost Method [7] for Japanese morphological analysis, Extended Viterbi Algorithm for character recognition [6], and Tree-Trellis N-Best Search for speech recognition [15].",
+        "We also propose a novel method for handling unknown words uniformly within the statistical approach.",
+        "Using character trigrams as the word model, it generates the N-best word hypotheses that match the leftmost substrings starting at a given position in the input sentence.",
+        "Moreover, we propose a novel method for evaluating the performance of morphological analyzers.",
+        "Unlike English, Japanese does not place spaces between words.",
+        "It is difficult, even for native Japanese, to place word boundaries consistently because of the agglutinative nature of the language.",
+        "Thus, there were no standard performance metrics.",
+        "We applied bracketing accuracy measures [1], which is originally used for English parsers, to Japanese morphological analyzers.",
+        "We also slightly extended the original definition to describe the accuracy of the N-best candidates.",
+        "In the following sections, we first describe the techniques used in the proposed morphological analyzer, we then explain the evaluation metrics and show the system's performance by experimental results."
+      ]
+    },
+    {
+      "heading": "2 Tagging Model",
+      "text": []
+    },
+    {
+      "heading": "2.1 Tri-POS Model and Relative Frequency Training",
+      "text": [
+        "We used the tri-POS (or triclass, tri-tag, tri-Cgram etc.)",
+        "model as the tagging model for Japanese.",
+        "Consider a word segmentation of the input sentence W = w1L/L2 Lon and a sequence of tags T £112... t„ of the same length.",
+        "The morphological analysis task can be formally defined as finding a set of word segmentation and parts of speech assignment that maximize the joint probability of word sequence and tag sequence P(W,7').",
+        "In the tri-POS model, the joint probability is approximated by the product of parts of speech trigram probabilities P(ii Li) and word output probabilities for given part of speech Nwilti):",
+        "In practice, we consider sentence boundaries as special symbols as follows.",
+        "P(Y17,T) = (7)",
+        "where \"#\" indicates the sentence boundary marker.",
+        "If we have some tagged text available, we can estimate the probabilities Ntilti_2,1;_i) and P(wilti) by computing the relative frequencies of the corresponding events on this data:',",
+        "where f indicates the relative frequency, N (to , t) is t'ie number of times a given word w appears with tag t, acid N(ti_2,4_1,1i) is the number of times that sequence ii-21i-iii appears in the text.",
+        "It is inevitable to si ;for from sparse-data problem in the part of speech tag trigram probability'.",
+        "To handle open text, trigram poi:-ability is smoothed by interpolated estimation, which simply interpolates trigram, bigram, unigram, and",
+        "where f indicates the relative•frequency and V is a uniform probability that each tag will occur.",
+        "The nonnegative weights (I; satisfy q3 + 111 + go = 1, and they are adjusted so as to make the observed data most probable after the adjustment by using EM algorithm'-."
+      ]
+    },
+    {
+      "heading": "2.2 Order Reduction and Recursive Tracing",
+      "text": [
+        "In order to understand the search algorithm described in the next section, we will introduce the second order HMM and extended Viterbi algorithm [6].",
+        "Considering the combined state sequence U = alto an, where tti ti and ui = we have",
+        "Substituting Equation (6) into Equation (1), we have 1We used 120 part of speech tags.",
+        "In the ATR Corpus, 26 parts of speech, 13 conjugation types, and 7 conjugation forms are defined.",
+        "Out of 26, 5 parts of speech have conjugation.",
+        "Since we used a list of part of speech, conjugation type, and conjugation form as a tag, there are 119 tags in the ATR Corpus.",
+        "We added the sentence boundary marker to them.",
+        "1To handle open text, word output probability P(tui IN) must also be smoothed.",
+        "This problem is discussed in a later section as the unknown word problem.",
+        "Equation (7) have the same form as the first order model.",
+        "Consider the partial word sequence Wi wi and the partial tag sequence Ti = ti•••ti, we have",
+        "Equation (8) suggests that, to find the maximum P(Wi, TO for each m , we need only to: remember the maximum P(Wi...1,Ti-1), extend each of these probabilities to every tti by computing Equation (8), and select the maximum P(Wi, Ti) for each Thus, by increasing i by 1 to a, selecting the a„ that maximize P(w„,T„), and backtracing the sequence leading to the maximum probability, we can get the optimal tag sequence."
+      ]
+    },
+    {
+      "heading": "3 Search Strategy",
+      "text": [
+        "The search algorithm consists of a forward dynamic programming search and a backward A* search.",
+        "First, a linear time dynamic programming is used for recording the scores of all partial paths in a table'.",
+        "A backward A5 algorithm based tree search is then used to extend the partial paths.",
+        "Partial paths extended in the backward tree search are ranked by their corresponding full path scores, which are computed by adding the scores of backward partial path scores to the corresponding best possible scores of the remaining paths which are prerecorded in the forward search.",
+        "Since the score of the incomplete portion of a path is exactly known, the backward search is admissible.",
+        "That is, the top-N candidates are exact."
+      ]
+    },
+    {
+      "heading": "3.1 The Forward DP Search",
+      "text": [
+        "Table 1 shows the two data structures used in our algorithm.",
+        "The structure parse stores the information of a word and the best partial path up to the word.",
+        "Parse.",
+        "start and parse .end are the indices of the start and end positions of the word in the sentence.",
+        "Parse .pos is the part of speech tag, which is a list of part of speech, conjugation type, and conjugation form in our system for Japanese.",
+        "Parse.nth-order-state is a list of the last two parts of speech tags including that of the current word.",
+        "This slot corresponds to the combined state in the second order TIMM.",
+        "Parse.prob-so-far is the score of the best partial path from the beginning of the sentence to the word.",
+        "Parse .previous is the pointer to the (best) previous parse structure as in conventional Viterbi decoding, which is not necessary if we use the backward N best search.",
+        "The structure word represents the word information in the dictionary including its lexical form, part of speech tag, and word output probability given the part of speech.",
+        "parse structure start die beginning position of the word end the end position of the word pos part of speech tag of the word nth-order-state a list of the last two parts of speech prob-so-far the best partial path score from tile start previous a pointer to previous parse structure word structurt form lexical form of the word pos part of speech tag of the word prob word output probability Before explaining the forward search, we will define some functions and tables used in the algorithm.",
+        "In the forward search, we use a table called parse-list, whose key is the end position of the parse structure, and whose value is a list of parse structures that have the best partial path scores for each combined state at the end position.",
+        "Function register-to-parse-list registers a parse structure against the parse-list and maintains the best partial parses.",
+        "Function get-parse-list returns a list of parse structures at the specified position.",
+        "We also use the function leftmost-substrings which returns a list of word structures in the dictionary whose lexical form matches the substrings starting at the specified position in the input sentence.",
+        "function forward-paas (string) begin initial-step(); t Pads special symbols at both ends for b.1 to length(string) do foreach parse in get-parse-list (i) do foreach word in leftmost-substrings(string,i) do pos-ngrasi append(parse.nth-order-state, list (word .pos) ) if (trantsprob(pos-ngram) > 0) then new-parse stake-parse(); new-parse .st art 1;",
+        "new-parse.end :•tr i + length(word.form); new-pars• .pos word.poa; new-parse .nth-order-at ate :d rest (po a-ngram) ; new-parse .prob-so-far parse.prob-so-far • transprob(pos-ngram) • word.prob; new-parse .prev ions := parse ; register-parse-to-parse-list (new-parse) ; register-parse-to-path-map(new-parse); endif end end end final-step(); It Handles transition to the end symbol.",
+        "end",
+        "Figure 1 shows the central part of the forward dynamic programming search algorithm.",
+        "It starts front the beginning of the input sentence, and proceeds character by character.",
+        "At each point in the sentence, it looks up the combination of the best partial parses ending at the point and word hypotheses starting at that point.",
+        "If the connection of a partial parse and a word hypothesis is allowed by the tagging model, a new continuation parse is made and registered in the parse-list.",
+        "The partial path score for the new continuation parse is the product of the best partial path score up to the point, the trigram probability of the last three parts of speech tags and the word output probability for the part of speech`."
+      ]
+    },
+    {
+      "heading": "3.2 The Backward AC Search",
+      "text": [
+        "The backward search uses a table called path-map, whose key is the end position of the parse structure, and whose value is a list of parse structures that have the best partial path scores for each distinct combination of the start position and the combined state.",
+        "The difference between parse-list and path-map is that path-map is classified by the start position of the last word in addition to the combined state.",
+        "This distinction is crucial for the proposed N best algorithm.",
+        "For the forward search to finch a parse that maximizes Equation (I), it is the parts of speech sequence that matters.",
+        "For the backward N-best search, however, we want N most likely word segmentation and part of speech sequence.",
+        "Parse-list may shadow less probable candidates that have the same part of speech sequence for the best scoring candidate, but differ in the segmentation of the last word.",
+        "As shown in Figure 1, path-map is made during the forward search by the function register-parse-to-path-map, which registers a parse structure to path-map and maintains the best partial parses in the table's criteria.",
+        "Now we describe the central part of the backward A* search algorithm.",
+        "But we assume that the readers know the A* algorithm, and explain only the way we applied the algorithm to Lhe problem.",
+        "We consider a parse structure as a state in A° search.",
+        "Two states are equal if their parse structures have the same start position, end position, and combined state.",
+        "The backward search starts at the end of the input sentence, and backtracks to the beginning of the sentence using the path-map.",
+        "Initial states are obtained by looking up the entries of the sentence end position of the path-map.",
+        "The successor states are obtained by first, looking up the entries of the path-map at the start position of the current parse, then checking whether they satisfy the constraint of the combined state transition in the second order 11MM, and whether the transition is allowed by the tagging model.",
+        "The combined state transition constraint means that the part of speech sequence in the parse .nth-order-state of the current parse, ignor-'In Figure 1, function transprob returns tile probability of given trigram.",
+        "Functions initial-step and final-step treat the transitions at sentence boundaries.",
+        "ing the last element, equals that of the previous parse, ignoring the first element.",
+        "The state transition cost of the backward search is the product of the part of speech trigram probability and the word output probability.",
+        "The score estimate of the remaining portion of a path is obtained from the parse.prob-so-far slot in the parse structure.",
+        "The backward search generates the N best hypotheses sequentially and there is no need to preset N. The complexity of the backward search is significantly less than that of the forward search."
+      ]
+    },
+    {
+      "heading": "4 Word Model",
+      "text": [
+        "To handle open text, we have to cope with unknown words.",
+        "Since Japanese do not put spaces between words, we have to identify unknown words at first.",
+        "To do this, we can look at the spelling (character sequence) that may constitute a word, or look at the context to identify words that are acceptable in this context.",
+        "Once word hypotheses for unknown words are generated, the proposed N-best algorithm will find the most likely word segmentation and part of speech assignment taking into account the entire sentence.",
+        "Therefore, we can formalize the unknown word problem as determining the span of an unknown word, assigning its part of speech, and estimating its probability given its part of speech.",
+        "Let us call a computational model that determines the probability of any word hypothesis given its lexical form and its part of speech the \"word model\".",
+        "The word model must account for morphology and word formation to estimate the part of speech and the probability of a word hypothesis.",
+        "For the first approximation, we used the character trigram of each part of speech as the word model.",
+        "Let C = cic2 c, denote the sequence of n characters that constitute word to whose part of speech is -1.",
+        "We approximate the probability of the word given part of speech P(wit) by the trigram probabilities,",
+        "where special symbol \"#\" indicates the word boundary marker.",
+        "Character trigram probabilities are estimated from the training corpus by computing relative frequency of character bigram and trigram that appeared in words tagged as t.",
+        "where Ni(ci_2, ci_i,c1) is the total number of times character trigram appears in words tagged as t in the training corpus.",
+        "Note that the character trigram probabilities reflect the frequency of word tokens in the training corpus.",
+        "Since there are more than 3,000 characters in Japanese, trigram probabilities are smoothed by interpolated estimation to cope with the sparse-data problem.",
+        "It is ideal to make this character trigram model for all open class categories.",
+        "However, the amount of training data is too small for low frequency categories if we divide it by part of speech tags.",
+        "Therefore, we made trigram models only for the 4 most frequent parts of speech that are open categories and have no conjugation.",
+        "They are common noun, proper noun, sateen noun', and numeral.",
+        "a probability if the input string is a word belonging to the category.",
+        "In both examples, the correct category has the largest probability.",
+        "> (get-leftmost-substrings-with-word-model \"4-4iXL-C",
+        "Figure 3 shows the N-best word hypotheses generated by using the character trigram models.",
+        "A word hypothesis is a list of word boundary, part of speech assignment, and word probability that matches the leftmost substrings starting at a given position in the input sentence.",
+        "In the forward search, to handle unknown words, word hypotheses are generated at every position in addition to the ones generated by the function leftmost-substrings, which are the words found in the dictionary.",
+        "Iiowever, in our system, we limited the number of word hypotheses generated at each position to 10, for efficiency reasons.",
+        "hA noun that can be used as a verb when it is followed by a formal verb \"sure."
+      ]
+    },
+    {
+      "heading": "5 Evaluation Measures",
+      "text": [
+        "We applied the performance measures for English parsers [1] to Japanese morphological analyzers.",
+        "The basic idea is that morphological analysis for a sentence can be thought of as a set of labeled brackets, where a bracket corresponds to word segmentation and its label corresponds to part of speech.",
+        "We then compare the brackets contained in the system's output to the brackets contained in the standard analysis.",
+        "For the N-best candidate, we will make the union of the brackets contained in each candidate, and compare them to the brackets in the standard.",
+        "For comparison, we count the number of brackets in the standard data (Std), the number of brackets in the system output (Sys), and the number of inatch-ing brackets (M).",
+        "We then calculate the measures of recall (= M/Std) and precision (= M/Sys).",
+        "We also count the number of crossings, which is the number of cases where a bracketed sequence from the standard data overlaps a bracketed sequence from the system output, but neither sequence is completely contained in the other.",
+        "We defined two equality criteria of brackets for counting the number of matching brackets.",
+        "Two brackets are unlabeled-bracket-equal if the boundaries of the two brackets are the same.",
+        "Two brackets are labeled-bracket-equal if the labels of the brackets are the same in addition to unlabeled-bracket-equal.",
+        "In comparing the consistency of the word segmentations of two brack-dings, which we call structure-consistency, we count the measures (recall, precision, crossings) by unlabeled-bracket-equal.",
+        "In comparing the consistency of part of speech assignment in addition to word segmentation, which we call label-consistency, we count them by labeled-bracket-equal.",
+        "For example, Figure 4 shows a sample of N-best analysis hypotheses, where the first candidate is the correct analysis6, For the second candidate, since there are 9 brackets in the correct data (Std=9), 11 brackets in the second candidate (Sys-11), and 8 matching brackets (M:----8), the recall and precision with respect to label consistency are 8/9 and 8/11, respectively.",
+        "For the top °Probabilities ttre in natural log base e, two candidates, since there are 12 distinct brackets in the systems output and 9 matching brackets, the recall and precision with respect to label consistency are 9/9 and 9/12, respectively.",
+        "For the third candidate, since the correct data and the third candidate differ in just one part, of speech tag, the recall and precision with respect to structure consistency are 9/9 and 9/9, respectively."
+      ]
+    },
+    {
+      "heading": "6 Experiment",
+      "text": [
+        "We used the Ant Dialogue Database[5] to train and test the proposed morphological analysis method.",
+        "It is a corpus of approximately 800,000 words whose word segmentation and part of speech tag assignment were laboriously performed by hand.",
+        "In this experiment, we only used one fourth of the Ant Corpus, a portion of the keyboard dialogues in the conference registration domain.",
+        "First, we selected 1,000 test sentences for an open test, and used the others for training.",
+        "The corpus was divided into 90% for training and 10% for testing.",
+        "We then selected 1,000 sentences from the training set and used them for a closed test.",
+        "The number of sentences, words, and characters for each test set and training texts are shown in Table 2.",
+        "The training texts contained 6580 word types and 6945 tag trigram types.",
+        "There were 247 unknown word types and 213 unknown tag trigram types in the open test sentences.",
+        "Thus, both part of speech trigram probabilities and word output probabilities mast he smoothed to handle open texts.",
+        "First, as a preliminary experiment, we compared the performances of part of speech higram and trigram.",
+        "Table 3 shows the percentages of words correctly segmented and tagged, tested on the closed test sentences.",
+        "The trigram model achieved 97.5% recall and 97.8% precision for the top candidate, while the higram model achieved 96.2% recall and 96.6% precision.",
+        "Although both tagging models show very high performance, the",
+        "trigram model outperformed the bigram model in every metric.",
+        "We then tested the proposed system, which uses smoothed part of speech trigram with word model, on the open test sentences.",
+        "Table 4 shows the percentages of words correctly segmented and tagged.",
+        "In Table 4, label consistency 2 represents the accuracy of segmentation and tagging ignoring the difference in conjugation form.",
+        "For open texts, the morphological analyzer achieved 95.1% recall and 94.6% precision for the top candidate, and 97.8% recall and 73.2% precision for the 5 best candidates.",
+        "This performance is very encouraging, and is comparable to the state-of-the-art stochastic tagger for English [2-4,10, 11].",
+        "Since the segmentation accuracy of the proposed system is relatively high (97.7% recall and 97.2% precision for the top candidate) compared to the morphological analysis accuracy, it is likely that we can improve the part of speech assignment accuracy by refining the statistically-based tagging model.",
+        "We find a fair number of tagging errors happened in conjugation forms.",
+        "We assume that this is caused by the fact that the Japanese tag set used in the ATR Corpus is not detailed enough to capture the complicated Japanese verb morphology.",
+        "Figure 5 shows the percentage of sentences (not, words) correctly segmented and tagged.",
+        "For open texts, the sentence accuracy of the raw part of speech trigram without word model is 62.7% for the top candidate and 70.4% for the top-5, while that of smoothed trigram with word model is 66.9% for the top and 80.3% for the top-5.",
+        "We can see that, by smoothing the part of speech trigram and by adding word model to handle unknown words, the accuracy and robustness of the morphological analyzer is significantly improved.",
+        "However, the sentence accuracy for closed texts is still significantly better that that for open texts.",
+        "It is clear that more research has to be done on the smoothing problem."
+      ]
+    },
+    {
+      "heading": "7 Discussion",
+      "text": [
+        "Morphological analysis is an important practical problem with potential application in many areas including kena-to-kanji conversion, speech recognition, character recognition, speech synthesis, text revision support, information retrieval, and machine translation.",
+        "Most conventional Japanese morphological analyzers use rule-based heuristic searches.",
+        "They usually use a connectivity matrix (part-of-speech-pair grammar) as the language model.",
+        "To rank the morphological analysis hypotheses, they usually use heuristics such as Longest Match Method or Least Bunselsn's Number Method [16].",
+        "There are some statistically-based approaches to Japanese morphological analysis.",
+        "The tagging models previously used are either part of speech bigram [9, 14] or Character-based IIMM [12].",
+        "Both heuristic-based and statistically-based approaches use the Minimum Connective-Cost Method [7], which is a linear time dynamic programming algorithm that finds the morphological hypothesis that has the minimal connective cost (i.e. bigram-based cost) as derived by certain criteria.",
+        "To handle unknown words, most Japanese morphological analyzers use character type heuristics [17], which is \"a string of the same character type is likely to constitute a word\".",
+        "There is one stochastic approach that uses bigram of word formation unit [13].",
+        "However, it does not learn probabilities from training texts, but learns them from machine readable dictionaries, and the model is not incorporated in working morphological analyzers, as far as the author knows.",
+        "The unique features of the proposed Japanese morphological analyzer is that it can find the exact N most likely hypotheses using part of speech trigram, and it can handle unknown words using character trigram.",
+        "The algorithm can naturally be extended to handle any higher order Markov models.",
+        "Moreover, it can naturally be extended to handle lattice-style input that is often used as the output of speech recognition and character recognition systems, by extending the function (leftmost-substrings) so as to return a list of words in the dictionary that matches the substrings in the input lattice starting at the specified position.",
+        "For future work, we have to study the most effective way of generating word hypotheses that can handle unknown words.",
+        "Currently, we are limiting the number of word hypotheses to reduce ambiguity at the cost of accuracy.",
+        "We have also to study the word model for open categories that have conjugation, because the training A' a nu to - k atiji conversion is a popular Japanese input method on computer using ASCII keyboard.",
+        "Phonetic transcription by Roman (ASCII) characters are input and converted first to the Japanese syllabary hiragana which is then converted to orthographic transcription including Chinese character kanji.",
+        "data gets too small to make trigrarns if we divide it by tags.",
+        "We will probably have to tie some parameters to solve the insufficient data problem.",
+        "Moreover, we have to study the method to adapt the system to a new domain.",
+        "To develop an unsupervised learning method, like the forward-backward algorithm for IIMM, is an urgent goal, since we can't always expect the availability of manually segmented and tagged data.",
+        "We can think of an EM algorithm by replacing maximization with summation in the extended Viterbi algorithm, but we don't know how to handle unknown words in this algorithm."
+      ]
+    },
+    {
+      "heading": "8 Conclusion",
+      "text": [
+        "We have developed a stochastic Japanese morphological analyzer.",
+        "It uses a statistical tagging model and an efficient two-pass search algorithm to find the N best morphological analysis hypotheses for the input sentence.",
+        "Its word segmentation and tagging accuracy is approximately 95%, which is comparable to the state-of-the-art stochastic tagger for English."
+      ]
+    }
+  ]
+}

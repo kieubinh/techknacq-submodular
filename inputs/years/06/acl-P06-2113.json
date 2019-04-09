@@ -1,0 +1,282 @@
+{
+  "info": {
+    "authors": [
+      "Ye-Yi Wang",
+      "Alex Acero",
+      "Milind Mahajan",
+      "John Lee"
+    ],
+    "book": "International Conference on Computational Linguistics and Annual Meeting of the Association for Computational Linguistics – Poster Sessions",
+    "id": "acl-P06-2113",
+    "title": "Combining Statistical and Knowledge-Based Spoken Language Understanding in Conditional Models",
+    "url": "https://aclweb.org/anthology/P06-2113",
+    "year": 2006
+  },
+  "references": [
+    "acl-H90-1020",
+    "acl-W02-1001"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Spoken Language Understanding (SLU) addresses the problem of extracting semantic meaning conveyed in an utterance.",
+        "The traditional knowledge-based approach to this problem is very expensive -- it requires joint expertise in natural language processing and speech recognition, and best practices in language engineering for every new domain.",
+        "On the other hand, a statistical learning approach needs a large amount of annotated data for model training, which is seldom available in practical applications outside of large research labs.",
+        "A generative HMM/CFG composite model, which integrates easy-to-obtain domain knowledge into a data-driven statistical learning framework, has previously been introduced to reduce data requirement.",
+        "The major contribution of this paper is the investigation of integrating prior knowledge and statistical learning in a conditional model framework.",
+        "We also study and compare conditional random fields (CRFs) with perceptron learning for SLU.",
+        "Experimental results show that the conditional models achieve more than 20% relative reduction in slot error rate over the HMM/CFG model, which had already achieved an SLU accuracy at the same level as the best results reported on the ATIS data."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Spoken Language Understanding (SLU) addresses the problem of extracting meaning conveyed in an utterance.",
+        "Traditionally, the problem is solved with a knowledge-based approach, which requires joint expertise in natural language processing and speech recognition, and best practices in language engineering for every new domain.",
+        "In the past decade many statistical learning approaches have been proposed, most of which exploit generative models, as surveyed in (Wang, Deng et al., 2005).",
+        "While the data-driven approach addresses the difficulties in knowledge engineering, it requires a large amount of labeled data for model training, which is seldom available in practical applications outside of large research labs.",
+        "To alleviate the problem, a generative HMM/CFG composite model has previously been introduced (Wang, Deng et al., 2005).",
+        "It integrates a knowledge-based approach into a statistical learning framework, utilizing prior knowledge to compensate for the dearth of training data.",
+        "In the ATIS evaluation (Price, 1990), this model achieves the same level of understanding accuracy (5.3% error rate on standard ATIS evaluation) as the best system (5.5% error rate), which is a semantic parsing system based on a manually developed grammar.",
+        "Discriminative training has been widely used for acoustic modeling in speech recognition (Bahl, Brown et al., 1986; Juang, Chou et al., 1997; Povey and Woodland, 2002).",
+        "Most of the methods use the same generative model framework, exploit the same features, and apply discriminative training for parameter optimization.",
+        "Along the same lines, we have recently exploited conditional models by directly porting the HMM/CFG model to Hidden Conditional Random Fields (HCRFs) (Gunawardana, Mahajan et al., 2005), but failed to obtain any improvement.",
+        "This is mainly due to the vast parameter space, with the parameters settling at local optima.",
+        "We then simplified the original model structure by removing the hidden variables, and introduced a number of important overlapping and non-homogeneous features.",
+        "The resulting Conditional Random Fields (CRFs) (Lafferty, McCallum et al., 2001) yielded a 21% relative improvement in SLU accuracy.",
+        "We also applied a much simpler perceptron learning algorithm on the conditional model and observed improved SLU accuracy as well.",
+        "In this paper, we will first introduce the generative HMM/CFG composite model, then discuss the problem of directly porting the model to HCRFs, and finally introduce the CRFs and",
+        "the features that obtain the best SLU result on ATIS test data.",
+        "We compare the CRF and perceptron training performances on the task."
+      ]
+    },
+    {
+      "heading": "2 Generative Models",
+      "text": [
+        "The HMM/CFG composite model (Wang, Deng et al., 2005) adopts a pattern recognition approach to SLU.",
+        "Given a word sequence W, an SLU component needs to find the semantic representation of the meaning M that has the maximum a posteriori probability Pr (M |W) :",
+        "The composite model integrates domain knowledge by setting the topology of the prior model, Pr(M), according to the domain semantics; and by using PCFG rules as part of the lexicalization model Pr(W |M) .",
+        "The domain semantics define an application’s semantic structure with semantic frames.",
+        "Figure 1 shows a simplified example of three semantic frames in the ATIS domain.",
+        "The two frames with the “toplevel” attribute are also known as commands.",
+        "The “filler” attribute of a slot specifies the semantic object that can fill it.",
+        "Each slot may be associated with a CFG rule, and the filler semantic object must be instantiated by a word string that is covered by that rule.",
+        "For example, the string “Seattle” is covered by the “City” rule in a CFG.",
+        "It can therefore fill the ACity (ArrivalCity) or the DCity (DepartureCity) slot, and instantiate a Flight frame.",
+        "This frame can then fill the Flight slot of a ShowFlight frame.",
+        "Figure 2 shows a semantic representation according to these frames.",
+        "The semantic prior model comprises the HMM topology and state transition probabilities.",
+        "The topology is determined by the domain semantics, and the transition probabilities can be estimated from training data.",
+        "Figure 3 shows the topology of the underlying states in the statistical model for the semantic frames in Figure 1.",
+        "On top is the transition network for the two top-level commands.",
+        "At the bottom is a zoomed-in view for the “Flight” sub-network.",
+        "State 1 and state 4 are called precommands.",
+        "State 3 and state 6 are called postcommands.",
+        "States 2, 5, 8 and 9 represent slots.",
+        "A slot is actually a three-state sequence – the slot state is preceded by a preamble state and followed by a postamble state, both represented by black circles.",
+        "They provide contextual clues for the slot’s identity.",
+        "< ShowFlight > < Flight > < DCity filler=“City” > Seattle < /DCity > < ACity filler=“City” > Boston < /ACity > < /Flight > < /ShowFlight >",
+        "The lexicalization model, Pr( W |M) , depicts the process of sentence generation from the topology by estimating the distribution of words emitted by a state.",
+        "It uses state-dependent n-grams to model the precommands, postcommands, preambles and postambles, and uses knowledge-based CFG rules to model the slot fillers.",
+        "These rules help compensate for the dearth of domain-specific data.",
+        "In the remainder of this paper we will say a string is “covered by a CFG non-terminal (NT)”, or equivalently, is “CFG-covered for s” if the string can be parsed by the CFG rule corresponding to the slot s. Given the semantic representation in Figure 2, the state sequence through the model topology in",
+        "p Figure 3 is deterministic, as shown in Figure 4.",
+        "However, the words are not aligned to the states in the shaded boxes.",
+        "The parameters in their corresponding n-gram models can be estimated with an EM algorithm that treats the alignments as hidden variables.",
+        "The HMM/CFG composite model was evaluated in the ATIS domain (Price, 1990).",
+        "The model was trained with ATIS3 category A training data (~1700 annotated sentences) and tested with the 1993 ATIS3 category A test sentences (470 sentences with 1702 reference slots).",
+        "The slot insertion-deletion-substitution error rate (SER) of the test set is 5.0%, leading to a 5.3% semantic error rate in the standard end-to-end ATIS evaluation, which is slightly better than the best manually developed system (5.5%).",
+        "Moreover, a steep drop in the error rate is observed after training with only the first two hundred sentences.",
+        "This demonstrates that the inclusion of prior knowledge in the statistical model helps alleviate the data sparseness problem."
+      ]
+    },
+    {
+      "heading": "3 Conditional Models",
+      "text": [
+        "We investigated the application of conditional models to SLU.",
+        "The problem is formulated as assigning a label l to each element in an observation o.",
+        "Here, o consists of a word sequence oτ1 and a list of CFG non-terminals (NT) that cover its subsequences, as illustrated in Figure 5.",
+        "The task is to label “two” as the “Num-of-tickets” slot of the “ShowFlight” command, and “Washington D.C.” as the ArrivalCity slot for the same command.",
+        "To do so, the model must be able to resolve several kinds of ambiguities:",
+        "1.",
+        "Filler/non-filler ambiguity, e.g., “two” can either fill a Num-of-tickets slot, or its homonym “to” can form part of the preamble of an ArrivalCity slot.",
+        "2.",
+        "CFG ambiguity, e.g., “Washington” can be CFG-covered as either City or State.",
+        "3.",
+        "Segmentation ambiguity, e.g., [Washington] [D.C.] vs. [Washington D.C.].",
+        "4.",
+        "Semantic label ambiguity, e.g., “Washington D.C.” can fill either an ArrivalCity or DepartureCity slot."
+      ]
+    },
+    {
+      "heading": "3.1 CRFs and HCRFs",
+      "text": [
+        "Conditional Random Fields (CRFs) (Lafferty, McCallum et al., 2001) are undirected conditional graphical models that assign the conditional probability of a state (label) sequence sτ1 with respect to a vector of features f (sτ1, oτ1) .",
+        "They are of the following form:",
+        "p(s i |o;λ) 1 = z(o; λ) ⎜∑λk∑ .fk (s(t−1),s(t), o, t) ⎝ k t=1",
+        "Here the distributionoverall possible state sequences.",
+        "Theparametervector λ is trained conditionally (discriminatively).",
+        "If we assume that sτ1 is a Markov chain given o and the feature functions only depend on two adjacent states, then In some cases, itmaybe natural to exploit features onvariables thatarenotdirectly observed.",
+        "Forexample, afeature forthe Flight preamble may be definedinterms ofan observed word and an unobserved state in the shaded region in Figure 4:"
+      ]
+    },
+    {
+      "heading": "3.2 Conditional Model Training",
+      "text": [
+        "We train CRFs and HCRFs with gradient-based optimization algorithms that maximize the log posterior.",
+        "The gradient of the objective function is",
+        "which is the difference between the conditional expectation of the feature vector given the observation sequence and label sequence, and the conditional expectation given the observation sequence alone.",
+        "With the Markov assumption in Eq.",
+        "(2), these expectations can be computed using a forward-backward-like dynamic programming algorithm.",
+        "For CRFs, whose features do not depend on hidden state sequences, the first expectation is simply the feature counts given the observation and label sequences.",
+        "In this work, we applied stochastic gradient descent (SGD) (Kushner and Yin, 1997) for parameter optimization.",
+        "In our experiments on several different tasks, it is faster than L-BFGS (Nocedal and Wright, 1999), a quasi-Newton optimization algorithm."
+      ]
+    },
+    {
+      "heading": "3.3 CRFs and Perceptron Learning",
+      "text": [
+        "Perceptron training for conditional models (Collins, 2002) is an approximation to the SGD algorithm, using feature counts from the Viterbi label sequence in lieu of expected feature counts.",
+        "It eliminates the need of a forward-backward algorithm to collect the expected counts, hence greatly speeds up model training.",
+        "This algorithm can be viewed as using the minimum margin of a training example (i.e., the difference in the log conditional probability of the reference label sequence and the Viterbi label sequence) as the objective function instead of the conditional probability:",
+        "Here again, o is the observation and l is its reference label sequence.",
+        "In perceptron training, the parameter updating stops when the Viterbi label sequence is the same as the reference label sequence.",
+        "In contrast, the optimization based on the log posterior probability objective function keeps pulling probability mass from all incorrect label sequences to the reference label sequence until convergence.",
+        "In both perceptron and CRF training, we average the parameters over training iterations (Collins, 2002)."
+      ]
+    },
+    {
+      "heading": "4 Porting HMM/CFG Model to HCRFs",
+      "text": [
+        "In our first experiment, we would like to exploit the discriminative training capability of a conditional model without changing the HMM/CFG model’s topology and feature set.",
+        "Since the state sequence is only partially labeled, an HCRF is used to model the conditional distribution of the labels."
+      ]
+    },
+    {
+      "heading": "4.1 Features",
+      "text": [
+        "We used the same state topology and features as those in the HMM/CFG composite model.",
+        "The following indicator features are included: Command prior features capture the a priori likelihood of different top-level commands:",
+        "Here C(s) stands for the name of the command that corresponds to the transition network containing state s. State Transition features capture the likelihood of transition from one state to another:",
+        "⎩ 0 otherwise , where s1 _> s2 is a legal transition according to the state topology.",
+        "Unigram and Bigram features capture the likelihoods of words emitted by a state:",
+        "The condition isFiller(s1) restricts s1 to be a slot state and not a pre or postamble state."
+      ]
+    },
+    {
+      "heading": "4.2 Experiments",
+      "text": [
+        "The model is trained with SGD with the parameters initialized in two ways.",
+        "The flat start initialization sets all parameters to 0.",
+        "The generative model initialization uses the parameters trained by the HMM/CFG model.",
+        "Figure 6 shows the test set slot error rates (SER) at different training iterations.",
+        "With the flat start initialization (top curve), the error rate never comes close to the 5% baseline error rate of the HMM/CFG model.",
+        "With the generative model initialization, the error rate is reduced to 4.8% at the second iteration, but the model quickly gets over-trained afterwards.",
+        "The failure of the direct porting of the generative model to the conditional model can be attributed to the following reasons: • The conditional log-likelihood function is no longer a convex function due to the summation over hidden variables.",
+        "This makes the model highly likely to settle on a local optimum.",
+        "The fact that the flat start initialization failed to achieve the accuracy of the generative model initialization is a clear indication of the problem.",
+        "• In order to account for words in the test",
+        "data, the n-grams in the generative model are properly smoothed with back-offs to the uniform distribution over the vocabulary.",
+        "This results in a huge number of parameters, many of which cannot be estimated reliably in the conditional model, given that model regularization is not as well studied as in n-grams.",
+        "• The hidden variables make parameter estimation less reliable, given only a small amount of training data."
+      ]
+    },
+    {
+      "heading": "5 CRFs for SLU",
+      "text": [
+        "An important lesson we have learned from the previous experiment is that we should not think generatively when applying conditional models.",
+        "While it is important to find cues that help identify the slots, there is no need to exhaustively model the generation of every word in a sentence.",
+        "Hence, the distinctions between pre-and postcommands, and pre and postambles are no longer necessary.",
+        "Every word that appears between two slots is labeled as the preamble state of the second slot, as illustrated in Figure 7.",
+        "This labeling scheme effectively removes the hidden variables and simplifies the model to a CRF.",
+        "It not only expedites model training, but also prevents parameters from settling at a local optimum, because the log conditional probability is now a convex function.",
+        "The command prior and state transition features (with fewer states) are the same as in the HCRF model.",
+        "For unigrams and bigrams, only those that occur in front of a CFG-covered string are considered.",
+        "If the string is CFG-covered for slot s, then the unigram and bigram features for the preamble state of s are included.",
+        "Suppose the words “that departs” occur at positions t −1 and t in front of the word “Seattle,” which is CFG-covered by the non-terminal City.",
+        "Since City can fill a DepartureCity or ArrivalCity slot, the four following features are introduced:",
+        "fUG , (s(t−1) s(t) oτ1, t) = fUG (s (t-1) s(t) oτ t) =1 PDC,that , PAC,that , , 1, And previous slot is ArrivalCity, so the state transition features are not helpful for disambiguation.",
+        "The identity of the time slot depends not on the ArrivalCity slot, but on its preamble.",
+        "Our second feature set, previous-slot context, introduces this dependency to the model:",
+        "appears in front of sequence that is CFG-covered for s."
+      ]
+    },
+    {
+      "heading": "5.1 Additional Features",
+      "text": [
+        "One advantage of CRFs over generative models is the ease with which overlapping features can be incorporated.",
+        "In this section, we describe three additional feature sets.",
+        "The first set addresses a side effect of not modeling the generation of every word in a sentence.",
+        "Suppose a preamble state has never occurred in a position that is confusable with a slot state s, and a word that is CFG-covered for s has never occurred as part of the preamble state in the training data.",
+        "Then, the unigram feature of the word for that preamble state has weight 0, and there is thus no penalty for mislabeling the word as the preamble.",
+        "This is one of the most common errors observed in the development set.",
+        "The chunk coverage for preamble words feature introduced to model the likelihood of a CFG-covered word being labeled as a preamble:",
+        "where isPre(s) indicates that s is a preamble state.",
+        "Often, the identity of a slot depends on the preambles of the previous slot.",
+        "For example, “at two PM” is a DepartureTime in “flight from Seattle to Boston at two PM”, but it is an ArrivalTime in “flight departing from Seattle arriving in Boston at two PM.” In both cases, the",
+        "⎪⎩ 0 otherwise Here Slot(s) stands for the slot associated with the state s, which can be a filler state or a preamble state, as shown in Figure 7.",
+        "Θ(s1,o,t−1) is the set of k words (where k is an adjustable window size) in front of the longest sequence that ends at position t −1 and that is CFG-covered by Slot(s1) .",
+        "The third feature set is intended to penalize erroneous segmentation, such as segmenting “Washington D.C.” into two separate City slots.",
+        "The chunk coverage for slot boundary feature is activated when a slot boundary is covered by a CFG non-terminal NT, i.e., when words in two consecutive slots (“Washington” and “D.C.”) can also be covered by one single slot:",
+        "This feature set shares its weights with the chunk coverage features for preamble words, and does not introduce any new parameters."
+      ]
+    },
+    {
+      "heading": "5.2 Experiments",
+      "text": [
+        "Since the objective function is convex, the optimization algorithm does not make any significant difference on SLU accuracy.",
+        "We",
+        "trained the model with SGD.",
+        "Other optimization algorithm like Stochastic Meta-Decent (Vishwanathan, Schraudolph et al., 2006) can be used to speed up the convergence.",
+        "The training stopping criterion is cross-validated with the development set.",
+        "Table 1 shows the number of new parameters and the slot error rate (SER) on the test data, after each new feature set is introduced.",
+        "The new features improve the prediction of slot identities and reduce the SER by 21 %, relative to the generative HMM/CFG composite model.",
+        "The figures below show in detail the impact of the n-gram, previous-slot context and chunk coverage features.",
+        "The chunk coverage feature has three settings: 0 stands for no chunk coverage features; 1 for chunk coverage features for preamble words only; and 2 for both words and slot boundaries.",
+        "Figure 8 shows the impact of the order of n-gram features.",
+        "Zero-order means no lexical features for preamble states are included.",
+        "As the figure illustrates, the inclusion of CFG rules for slot filler states and domain-specific knowledge about command priors and slot transitions have already produced a reasonable SER under 15%.",
+        "Unigram features for preamble states cut the error by more than 50%, while the impact of bigram features is not consistent -- it yields a small positive or negative difference depending on other experimental parameter settings.",
+        "Figure 10 shows the impact of the window size for the previous-slot context feature.",
+        "Here, 0 means that the previous-slot context feature is not used.",
+        "When the window size is k, the k words in front of the longest previous CFG-covered word sequence are included as the previous-slot unigram context features.",
+        "As the figure illustrates, this feature significantly reduces SER, while the window size does not make any significant difference.",
+        "It is important to note that overlapping features like f CC, fSB and f PC could not be easily incorporated into a generative model."
+      ]
+    },
+    {
+      "heading": "5.3 CRFs vs. Perceptrons",
+      "text": [
+        "Table 2 compares the perceptron and CRF training algorithms, using chunk coverage features for both preamble words and slot boundaries, with which the best accuracy results",
+        "are achieved.",
+        "Both improve upon the 5% baseline SER from the generative HMM/CFG model.",
+        "CRF training outperforms the perceptron in most settings, except for the one with unigram features for preamble states and with window size 1 -- the model with the fewest parameters.",
+        "One possible explanation is as follows.",
+        "The objective function in CRFs is a convex function, and so SGD can find the single global optimum for it.",
+        "In contrast, the objective function for the perceptron, which is the difference between two convex functions, is not convex.",
+        "The gradient ascent approach in perceptron training is hence more likely to settle on a local optimum as the model becomes more complicated.",
+        "and slot boundaries.",
+        "PSWSize stands for the window size of the previous-slot context feature.",
+        "N is the order of the n-gram features.",
+        "The biggest advantage of perceptron learning is its speed.",
+        "It directly counts the occurrence of features given an observation and its reference label sequence and Viterbi label sequence, with no need to collect expected feature counts with a forward-backward-like algorithm.",
+        "Not only is each iteration faster, but fewer iterations are required, when using SLU accuracy on a cross-validation set as the stopping criterion.",
+        "Overall, perceptron training is 5 to 8 times faster than CRF training."
+      ]
+    },
+    {
+      "heading": "6 Conclusions",
+      "text": [
+        "This paper has introduced a conditional model framework that integrates statistical learning with a knowledge-based approach to SLU.",
+        "We have shown that a conditional model reduces SLU slot error rate by more than 20% over the generative HMM/CFG composite model.",
+        "The improvement was mostly due to the introduction of new overlapping features into the model.",
+        "We have also discussed our experience in directly porting a generative model to a conditional model, and demonstrated that it may not be beneficial at all if we still think generatively in conditional modeling; more specifically, replicating the feature set of a generative model in a conditional model may not help much.",
+        "The key benefit of conditional models is the ease with which they can incorporate overlapping and non-homogeneous features.",
+        "This is consistent with the finding in the application of conditional models for POS tagging (Lafferty, McCallum et al., 2001).",
+        "The paper also compares different training algorithms for conditional models.",
+        "In most cases, CRF training is more accurate, however, perceptron training is much faster."
+      ]
+    }
+  ]
+}

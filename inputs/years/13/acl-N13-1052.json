@@ -1,0 +1,412 @@
+{
+  "info": {
+    "authors": [
+      "Shay B. Cohen",
+      "Giorgio Satta",
+      "Michael Collins"
+    ],
+    "book": "NAACL",
+    "id": "acl-N13-1052",
+    "title": "Approximate PCFG Parsing Using Tensor Decomposition",
+    "url": "https://aclweb.org/anthology/N13-1052",
+    "year": 2013
+  },
+  "references": [
+    "acl-H91-1060",
+    "acl-J00-1003",
+    "acl-J93-2004",
+    "acl-N06-1022",
+    "acl-P03-1054",
+    "acl-P04-3032",
+    "acl-P05-1010",
+    "acl-P12-1024",
+    "acl-P96-1024",
+    "acl-W05-1504"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We provide an approximation algorithm for PCFG parsing, which asymptotically improves time complexity with respect to the input grammar size, and prove upper bounds on the approximation quality.",
+        "We test our algorithm on two treebanks, and get significant improvements in parsing speed."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "The problem of speeding-up parsing algorithms based on probabilistic context-free grammars (PCFGs) has received considerable attention in recent years.",
+        "Several strategies have been proposed, including beam-search, best-first and A?.",
+        "In this paper we focus on the standard approach of approximating the source PCFG in such a way that parsing accuracy is traded for efficiency.",
+        "Nederhof (2000) gives a thorough presentation of old and novel ideas for approximating non-probabilistic CFGs by means of finite automata, on the basis of specialized preprocessing of self-embedding structures.",
+        "In the probabilistic domain, approximation by means of regular grammars is also exploited by Eisner and Smith (2005), who filter long-distance dependencies on-the-fly.",
+        "Beyond finite automata approximation, Charniak et al. (2006) propose a coarse-to-fine approach in which an approximated (not necessarily regular) PCFG is used to construct a parse forest for the input sentence.",
+        "Some statistical parameters are then computed on such a structure, and exploited to filter parsing with the non-approximated grammar.",
+        "The approach can also be iterated at several levels.",
+        "In the non-probabilistic setting, a similar filtering approach was also proposed by Boullier (2003), called ?guided parsing.?",
+        "In this paper we rely on an algebraic formulation of the inside-outside algorithm for PCFGs, based on a tensor formulation developed for latent-variable PCFGs in Cohen et al. (2012).",
+        "We combine the method with known techniques for tensor decomposition to approximate the source PCFG, and develop a novel algorithm for approximate PCFG parsing.",
+        "We obtain improved time upper bounds with respect to the input grammar size for PCFG parsing, and provide error upper bounds on the PCFG approximation, in contrast with existing heuristic methods."
+      ]
+    },
+    {
+      "heading": "2 Preliminaries",
+      "text": [
+        "This section introduces the special representation for probabilistic context-free grammars that we adopt in this paper, along with the decoding algorithm that we investigate.",
+        "For an integer i ?",
+        "1, we let [i] = {1, 2, .",
+        ".",
+        ".",
+        ", i}."
+      ]
+    },
+    {
+      "heading": "2.1 Probabilistic Context-Free Grammars",
+      "text": [
+        "We consider context-free grammars (CFGs) in Chomsky normal form, and denote them as (N ,L,R) where: ?",
+        "N is the finite set of nonterminal symbols, with m = |N |, and L is the finite set of words (lexical tokens), with L?N = ?",
+        "and with n = |L|.",
+        "?",
+        "R is a set of rules having the form a?",
+        "b c, a, b, c ?",
+        "N , or the form a?",
+        "x, a ?",
+        "N and x ?",
+        "L. A probabilistic CFG (PCFG) is a CFG associated with a set of parameters defined as follows: ?",
+        "For each (a?",
+        "b c) ?",
+        "R, we have a parameter p(a?",
+        "b c |a).",
+        "?",
+        "For each (a?",
+        "x) ?",
+        "R, we have a parameter p(a?",
+        "x |a).",
+        "?",
+        "For each a ?",
+        "N , we have a parameter pia, which is the probability of a being the root symbol of a derivation.",
+        "The parameters above satisfy the following normalization conditions:",
+        "for each a ?",
+        "N , and ?",
+        "a?N pia = 1.",
+        "The probability of a tree ?",
+        "deriving a sentence in the language, written p(?",
+        "), is calculated as the product of the probabilities of all rule occurrences in ?",
+        ", times the parameter pia where a is the symbol at the root of ?",
+        "."
+      ]
+    },
+    {
+      "heading": "2.2 Tensor Form of PCFGs",
+      "text": [
+        "A three-dimensional tensor C ?",
+        "R(m?m?m) is a set of m3 parameters Ci,j,k for i, j, k ?",
+        "[m].",
+        "In what follows, we associate with each tensor three functions, each mapping a pair of vectors in Rm into a vector in Rm.",
+        "Definition 1 Let C ?",
+        "R(m?m?m) be a tensor.",
+        "Given two vectors y1, y2 ?",
+        "Rm, we let C(y1, y2) be them-dimensional row vector with components:",
+        "For two vectors x, y ?",
+        "Rm we denote by x y ?",
+        "Rm the Hadamard product of x and y, i.e., [x y]i = xiyi.",
+        "Finally, for vectors x, y, z ?",
+        "Rm, xy>z> is the tensor D ?",
+        "Rm?m?m where Di,j,k = xiyjzk (this is analogous to the outer product: [xy>]i,j = xiyj).",
+        "We extend the parameter set of our PCFG such that p(a?",
+        "b c |a) = 0 for all a?",
+        "b c not in R, and p(a?",
+        "x |a) = 0 for all a?",
+        "x not in R. We also represent each a ?",
+        "N by a unique index in [m], and we represent each x ?",
+        "L by a unique index in [n]: it will always be clear from the context whether these indices refer to a nonterminal inN or else to a word in L. In this paper we assume a tensor representation for the parameters p(a?",
+        "b c |a), and we denote by T ?",
+        "Rm?m?m a tensor such that: Ta,b,c , p(a?",
+        "b c |a).",
+        "Similarly, we denote by Q ?",
+        "Rm?n a matrix such that: Qa,x , p(a?",
+        "x |a).",
+        "The root probabilities are denoted using a vector pi ?",
+        "Rm?1 such that pia is defined as before."
+      ]
+    },
+    {
+      "heading": "2.3 Minimum Bayes-Risk Decoding",
+      "text": [
+        "Let z = x1 ?",
+        "?",
+        "?xN be some input sentence; we write T (z) to denote the set of all possible trees for z.",
+        "It is often the case that parsing aims to find the highest scoring tree ??",
+        "for z according to the underlying PCFG, also called the ?Viterbi parse:?",
+        "Goodman (1996) noted that Viterbi parsers do not optimize the same metric that is usually used for parsing evaluation (Black et al., 1991).",
+        "He suggested an alternative algorithm, which he called the ?Labelled Recall Algorithm,?",
+        "which aims to fix this issue.",
+        "Goodman's algorithm has two phases.",
+        "In the first phase it computes, for each a ?",
+        "N and for each sub-string xi ?",
+        "?",
+        "?xj of z, the marginal ?",
+        "(a, i, j) defined as:",
+        "p(?).",
+        "Here we write (a, i, j) ?",
+        "?",
+        "if nonterminal a spans words xi ?",
+        "?",
+        "?xj in the parse tree ?",
+        ".",
+        "(1996).",
+        "The algorithm in this figure finds the highest score for a tree which maximizes labelled recall.",
+        "The actual parsing algorithm would use backtrack pointers in the score computation to return a tree.",
+        "These are omitted for simplicity.",
+        "The second phase includes a dynamic programming algorithm which finds the tree ??",
+        "that maximizes the sum over marginals in that tree:",
+        "?",
+        "(a, i, j).",
+        "Goodman's algorithm is described in Figure 1.",
+        "As Goodman notes, the complexity of the second phase (?Maximize Labelled Recall,?",
+        "which is also referred to as ?minimum Bayes risk decoding?)",
+        "is O(N3 +mN2).",
+        "There are two nested outer loops, each of order N , and inside these, there are two separate loops, one of order m and one of order N , yielding this computational complexity.",
+        "The reason for the linear dependence on the number of nonter-minals is the lack of dependence on the actual grammar rules, once the marginals are computed.",
+        "In its original form, Goodman's algorithm does not enforce that the output parse trees are included in the tree language of the PCFG, that is, certain combinations of children and parent nonterminals may violate the rules in the grammar.",
+        "In our experiments we departed from this, and changed Goodman's algorithm by incorporating the grammar into the dynamic programming algorithm in Figure 1.",
+        "The reason this is important for our experiments is that we binarize the grammar prior to parsing, and we need to enforce the links between the split nonterminals (in the binarized grammar) that refer to the same syntactic category.",
+        "See Matsuzaki et al. (2005) for more details about the binarization scheme we used.",
+        "This step changes the dynamic programming equation of Goodman to be linear in the size of the grammar (figure 1).",
+        "However, empirically, it is the inside-outside algorithm which takes most of the time to compute with Goodman's algorithm.",
+        "In this paper we aim to asymptotically reduce the time complexity of the calculation of the inside-outside probabilities using an approximation algorithm."
+      ]
+    },
+    {
+      "heading": "3 Tensor Formulation of the",
+      "text": []
+    },
+    {
+      "heading": "Inside-Outside Algorithm",
+      "text": [
+        "At the core of our approach lies the observation that there is a (multi)linear algebraic formulation of the inside-outside algorithm.",
+        "It can be represented as a series of tensor, matrix and vector products.",
+        "A similar observation has been made for latent-variable PCFGs (Cohen et al., 2012) and hidden Markov models, where only matrix multiplication is required (Jaeger, 2000).",
+        "Cohen and Collins (2012) use this observation together with tensor decomposition to improve the speed of latent-variable PCFG parsing.",
+        "The representation of the inside-outside algorithm in tensor form is given in Figure 2.",
+        "For example, if we consider the recursive equation for the inside probabilities (where ?i,j is a vector varying over the nonterminals in the grammar, describing the inside probability for each nonterminal spanning words i to j):",
+        "for calculation of marginal terms ?",
+        "(a, i, j).",
+        "and then apply the tensor product from Definition 1 to this equation, we get that coordinate a in ?i,j is defined recursively as follows:",
+        "which is exactly the recursive definition of the inside algorithm.",
+        "The correctness of the outside recursive equations follows very similarly.",
+        "The time complexity of the algorithm in this case is O(m3N3).",
+        "To see this, observe that each tensor application takes timeO(m3).",
+        "Furthermore, the tensor T is applied O(N) times in the computation of each vector ?i,j and ?i,j .",
+        "Finally, we need to compute a total ofO(N2) inside and outside vectors, one for each substring of the input sentence."
+      ]
+    },
+    {
+      "heading": "4 Tensor Decomposition for the",
+      "text": []
+    },
+    {
+      "heading": "Inside-Outside Algorithm",
+      "text": [
+        "In this section, we detail our approach to approximate parsing using tensor decomposition."
+      ]
+    },
+    {
+      "heading": "4.1 Tensor Decomposition",
+      "text": [
+        "In the formulation of the inside-outside algorithm based on tensor T , each vector ?i,j and ?i,j consists of m elements, where computation of each element requires timeO(m2).",
+        "Therefore, the algorithm has a O(m3) multiplicative factor in its time complexity, which we aim to reduce by means of an approximate algorithm.",
+        "Our approximate method relies on a simple observation.",
+        "Given an integer r ?",
+        "1, assume that the tensor T has the following special form, called ?Kruskal form:?",
+        "In words, T is the sum of r tensors, where each tensor is obtained as the product of three vectors ui, viand wi, together with a scalar ?i.",
+        "Exact Kruskal decomposition of a tensor is not necessarily unique.",
+        "See Kolda and Bader (2009) for discussion of uniqueness of tensor decomposition.",
+        "Consider now two vectors y1, y2 ?",
+        "Rm, associated with the inside probabilities for the left (y1) and right child (y2) of a given node in a parse tree.",
+        "Let us introduce auxiliary arrays U, V,W ?",
+        "Rr?m, with the i-throw being ui, viand wi, respectively.",
+        "Let",
+        "The total complexity of the computation in Eq.",
+        "(2) is nowO(rm).",
+        "It is well-known that an exact tensor decomposition for T can be achieved with r = m2 (Kruskal, 1989).",
+        "In this case, there is no computational gain in using Eq.",
+        "(2) for the inside calculation.",
+        "The minimal r required for an exact tensor decomposition can be smaller than m2.",
+        "However, identifying that minimal r is NP-hard (H?astad, 1990).",
+        "In this section we focused on the computation of the inside probabilities through vectors T (?i,k, ?k+1,j).",
+        "Nonetheless, the steps above can be easily adapted for the computation of the outside probabilities through vectors T(1,2)(?k,j , ?k,i?1) and T(1,3)(?i,k, ?j+1,k)."
+      ]
+    },
+    {
+      "heading": "4.2 Approximate Tensor Decomposition",
+      "text": [
+        "The PCFG tensor T will not necessarily have the exact decomposed form in Eq.",
+        "(1).",
+        "We suggest to approximate the tensor T by finding the closest tensor according to some norm over Rm?m?m.",
+        "An example of such an approximate decomposition is the canonical polyadic decomposition (CPD), also known as CANDECOMP/PARAFAC decomposition (Carroll and Chang, 1970; Harsh-man, 1970; Kolda and Bader, 2009).",
+        "Given an integer r, least squares CPD aims to find the nearest tensor in Kruskal form, minimizing squared error.",
+        "More formally, for a given tensor D ?",
+        "Rm?m?m,",
+        "i,j,k.",
+        "Let the set of tensors in Kruskal form Cr be:",
+        "The least squares CPD of C is a tensor C?",
+        "such that C?",
+        "?",
+        "argminC?",
+        "?Cr ||C ?",
+        "C?||F .",
+        "Here, we treat the argmin as a set because there could be multiple solutions which achieve the same accuracy.",
+        "There are various algorithms to perform CPD, such as alternating least squares, direct linear decomposition, alternating trilinear decomposition and pseudo alternating least squares (Faber et al., 2003) and even algorithms designed for sparse tensors (Chi and Kolda, 2011).",
+        "Most of these algorithms treat the problem of identifying the approximate tensor as an optimization problem.",
+        "Generally speaking, these optimization problems are hard to solve, but they work quite well in practice."
+      ]
+    },
+    {
+      "heading": "4.3 Parsing with Decomposed Tensors",
+      "text": [
+        "Equipped with the notion of tensor decomposition, we can now proceed with approximate tensor parsing in two steps.",
+        "The first is approximating the tensor using a CPD algorithm, and the second is applying the algorithms in Figure 1 and Figure 2 to do parsing, while substituting all tensor product computations with the approximate O(rm) operation of tensor product.",
+        "This is not sufficient to get a significant speed-up in parsing time.",
+        "Re-visiting Eq.",
+        "(2) shows that there are additional ways to speed-up the tensor application T in the context of the inside-outside algorithm.",
+        "The first thing to note is that the projections V y1 and Wy2 in Eq.",
+        "(2) can be cached, and do not have to be recalculated every time the tensor is applied.",
+        "Here, y1 and y2 will always refer to an outside or an inside probability vector over the nonterminals in the grammar.",
+        "Caching these projections means that after each computation of an inside or outside probability, we can immediately project it to the necessary r-dimensional space, and then reuse this computation in subsequent application of the tensor.",
+        "The second thing to note is that the U projection in T can be delayed, because of rule of distributivity.",
+        "For example, the step in Figure 2 that computes",
+        "the inside probability ?i,j can be reformulated as follows (assuming an exact decomposition of T ):",
+        "This means that projection through U can be done outside of the loop over splitting points in the sentence.",
+        "Similar reliance on distributivity can be used to speed-up the outside calculations as well.",
+        "The caching speed-up and the delayed projection speed-up make the approximate inside-outside computation asymptotically faster.",
+        "While na?",
+        "?ve application of the tensor yields an inside algorithm which runs in time O(rmN3), the improved algorithm runs in time O(rN3 + rmN2).",
+        "5 Quality of Approximate Tensor Parsing In this section, we give the main approximation result, that shows that the probability distribution induced by the approximate tensor is close to the original probability distribution, if the distance between the approximate tensor and the rule probabilities is not too large.",
+        "Denote by T (N) the set of trees in the tree language of the PCFG with N words (any nonterminal can be the root of the tree).",
+        "Let T (N) be the set of pairs of trees ?",
+        "= (?1, ?2) such that the total number of binary rules combined in ?1 and ?2 is N ?",
+        "2 (this means that the total number of words combined is N ).",
+        "Let T?",
+        "be the approximate tensor for T .",
+        "Denote the probability distribution induced by T?",
+        "by p?.1 Define the vector ?(?)",
+        "such that",
+        "1Here, p?",
+        "does not have to be a distribution, because T?",
+        "could have negative values, in principle, and its slices do not have to normalize to 1.",
+        "However, we just treat p?",
+        "as a function that maps trees to products of values according to T?",
+        ".",
+        "defined as above (this is the induction hypothesis), it can be shown that the lemma holds.",
+        "Lemma 2 The following holds for any N :",
+        "Lemma 1 and the fact that Z(a,N) ?",
+        "1, it follows that:",
+        "Then, the following is a result that explains how accuracy changes as a function of the quality of the tensor approximation: Theorem 1 For anyN , and < 1/4, it holds that if",
+        "We note that Theorem 1 also implicitly bounds the difference between a marginal ?",
+        "(a, i, j) and its approximate version.",
+        "A marginal corresponds to a sum over a subset of summands in Eq.",
+        "(1).",
+        "A question that remains at this point is to decide whether for a given grammar, the optimal ?",
+        "that can be achieved is large or small.",
+        "We define:",
+        "The following theorem gives an upper bound on the value of ?",
+        "?r based on intrinsic property of the grammar, or more specifically T .",
+        "It relies on the fact that for three-dimensional tensors, where each dimension is of length m, there exists an exact decomposition of T using m2 components.",
+        "Proof: Let T?",
+        "be a tensor that achieves the minimum in Eq.",
+        "(4).",
+        "Define:",
+        "Then, noting that ?",
+        "?r is a minimizer of the norm difference between T and T?",
+        "and then applying the triangle inequality and then Cauchy-Schwartz inequality leads to the following chain of inequalities:",
+        "as required."
+      ]
+    },
+    {
+      "heading": "6 Experiments",
+      "text": [
+        "In this section, we describe experiments that demonstrate the trade-off between the accuracy of the tensor approximation (and as a consequence, the accuracy of the approximate parsing algorithm) and parsing time.",
+        "Experimental Setting We compare the tensor approximation parsing algorithm versus the vanilla Goodman algorithm.",
+        "Both algorithms were implemented in Java, and the code for both is almost identical, except for the set of instructions which computes the dynamic programming equation for propagating the beliefs up in the tree.",
+        "This makes the clocktime comparison reliable for drawing conclusions about the speed of the algorithms.",
+        "Our implementation of the vanilla parsing algorithm is linear in the size of the grammar (and not cubic in the number of nonterminals, which would give a worse running time).",
+        "In our experiments, we use the method described in Chi and Kolda (2011) for tensor decomposition.2 This method is fast, even for large tensors, as long as they are sparse.",
+        "Such is the case with the tensors for our grammars.",
+        "We use two treebanks for our comparison: the Penn treebank (Marcus et al., 1993) and the Arabic treebank (Maamouri et al., 2004).",
+        "With the Penn treebank, we use sections 2?21 for training a maximum likelihood model and section 22 for parsing, while for the Arabic treebank we divide the data into two sets, of size 80% and 20%, one is used for training a maximum likelihood model and the other is used for parsing.",
+        "The number of binary rules in the treebank grammar is 7,240.",
+        "The number of nonterminals is 112 and the number of preterminals is 2593Unary rules are removed by collapsing non-terminal chains.",
+        "This increased the number of preterminals.",
+        "The number of binary rules in the Arabic treebank is significantly smaller and consists of 232 rules.",
+        "We run all parsing experiments on sentences of length ?",
+        "40.",
+        "The number of nonterminals is 48 and the number of preter",
+        "position.",
+        "Speed is given in seconds per sentence.",
+        "minals is 81.",
+        "Results Table 1 describes the results of comparing the tensor decomposition algorithm to the vanilla PCFG parsing algorithm.",
+        "The first thing to note is that the running time of the parsing algorithm is linear in r. This indeed validates the asymptotic complexity of the inside-outside component in Goodman's algorithm with the approximate tensors.",
+        "It also shows that most of the time during parsing is spent on the inside-outside algorithm, and not on the dynamic programming algorithm which follows it.",
+        "In addition, compared to the baseline which uses a vanilla CKY algorithm (linear in the number of rules), we get a speed up of a factor of 4.75 for Arabic (r = 140) and 6.5 for English (r = 260) while retaining similar performance.",
+        "Perhaps more surprising is that using the tensor approximation actually improves performance in several cases.",
+        "We hypothesize that the cause of this is that the tensor decomposition requires less parameters to express the rule probabilities in the grammar, and therefore leads to better generalization than a vanilla maximum likelihood estimate.",
+        "We include results for a more complex model for Arabic, which uses horizontal Markovization of order 1 and vertical Markovization of order 2 (Klein and Manning, 2003).",
+        "This grammar includes 2,188 binary rules.",
+        "Parsing exhaustively using this grammar takes 1.30 seconds per sentence (on average) with an F1 measure of 64.43.",
+        "Parsing with tensor decomposition for r = 280 takes 0.62 seconds per sentence (on average) with an F1 measure of 64.05."
+      ]
+    },
+    {
+      "heading": "7 Discussion",
+      "text": [
+        "In this section, we briefly touch on several other topics related to tensor approximation."
+      ]
+    },
+    {
+      "heading": "7.1 Approximating the Probability of a String",
+      "text": [
+        "The probability of a sentence z under a PCFG is defined as p(z) = ?",
+        "?",
+        "?T (z) p(?",
+        "), and can be approximated using the algorithm in Section 4.3, running in time O(rN3 + rmN2).",
+        "Of theoretical interest, we discuss here a time O(rN3 + r2N2) algorithm, which is more convenient when r < m. Observe that in Eq.",
+        "(3) vector ?i,j always appears within one of the two terms V ?i,j and W?i,j in Rr?1, whose dimensions are independent of m. We can therefore use Eq.",
+        "(3) to compute V ?i,j as",
+        "where V U> is a Rr?r matrix that can be computed off-line, i.e., independently of z.",
+        "A symmetrical relation can be used to compute W?i,j .",
+        "Finally, we can write",
+        "where pi>U is a R1?r vector that can again be computed off-line.",
+        "This algorithm then runs in time O(rN3 + r2N2)."
+      ]
+    },
+    {
+      "heading": "7.2 Applications to Dynamic Programming",
+      "text": [
+        "The approximation method presented in this paper is not limited to PCFG parsing.",
+        "A similar approximation method has been used for latent-variable PCFGs (Cohen and Collins, 2012), and in general, tensor approximation can be used to speed-up inside-outside algorithms for general dynamic programming algorithms or weighted logic programs (Eisner et al., 2004; Cohen et al., 2011).",
+        "In the general case, the dimension of the tensors will not be necessarily just three (corresponding to binary rules), but can be of a higher dimension, and therefore the speed gain can be even greater.",
+        "In addition, tensor approximation can be used for computing marginals of latent variables in graphical models.",
+        "For example, the complexity of the forward",
+        "backward algorithm for HMMs can be reduced to be linear in the number of states (as opposed to quadratic) and linear in the rank used in an approximate singular-value decomposition (instead of tensor decomposition) of the transition and emission matrices."
+      ]
+    },
+    {
+      "heading": "7.3 Tighter (but Slower) Approximation Using Singular Value Decomposition",
+      "text": [
+        "The accuracy of the algorithm depends on the ability of the tensor decomposition algorithm to decompose the tensor with a small reconstruction error.",
+        "The decomposition algorithm is performed on the tensor T which includes all rules in the grammar.",
+        "Instead, one can approach the approximation by doing a decomposition for each slice of T separately using singular value decomposition.",
+        "This will lead to a more accurate approximation, but will also lead to an extra factor of m during parsing.",
+        "This factor is added because now there is not a single U , V and W , but instead there are such matrices for each nonterminal in the grammar."
+      ]
+    },
+    {
+      "heading": "8 Conclusion",
+      "text": [
+        "We described an approximation algorithm for probabilistic context-free parsing.",
+        "The approximation algorithm is based on tensor decomposition performed on the underlying rule table of the CFG grammar.",
+        "The approximation algorithm leads to significant speed-up in PCFG parsing, with minimal loss in performance."
+      ]
+    }
+  ]
+}

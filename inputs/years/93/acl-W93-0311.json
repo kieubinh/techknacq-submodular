@@ -1,0 +1,311 @@
+{
+  "info": {
+    "authors": [
+      "Chao-Huang Chang"
+    ],
+    "book": "Workshop on Very Large Corpora: Academic and Industrial Perspectives",
+    "id": "acl-W93-0311",
+    "title": "Corpus-Based Adaptation Mechanisms for Chinese Homophone Disambiguation",
+    "url": "https://aclweb.org/anthology/W93-0311",
+    "year": 1993
+  },
+  "references": [],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Based on the concepts of bidirectional conversion and automatic evaluation, we propose two user-adaptation mechanzsms, character-preference learning and pseudo-word learning, for resolving Chinese homophone ambiguities in syllable-to-character conversion.",
+        "The 1991 United Daily corpus of approximately 10 million Chinese characters ts used for extraction of 10 reporter-specific article databases and for computation of word frequencies and character bigrams.",
+        "Experiments show that 20.5 percent (testing sets) to 71.8 percent (training sets) of conversion errors can be eliminated through the proposed mechanisms.",
+        "These concepts are thus very useful in applications such as Chinese input methods and speech recognition systems."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Corpus-based Chinese NLP research has been very active in the recent years as more and more computer readable Chinese corpora are available.",
+        "Reported corpus-based NLP applications [10] include machine translation, word segmentation, character recognition, text classification, lexicography, and spelling checker.",
+        "In this paper, we will describe our work on adaptive Chinese homophone disambiguation (also known as phonetic-input-to-character conversion or phonetic decoding) using pan of the 1991 United Daily (UD) corpus of approximately 10 million Chinese characters (Hanzi).",
+        "It requires a coding method, structural or phonetic, to input Chinese characters into a computer, since there are more than 10,009 of them in common use In the literature [3,7], there are several hundred different coding methods for this purpose.",
+        "For most users, phonetic coding (Pinyin or Bopomofo) is the choice.",
+        "To input a Chinese character, the user simply keys in its corresponding phonetic code.",
+        "It is easy to learn, but suffers from the homophone problem, i.e., a phonetic code corresponding to several different characters.",
+        "Therefore, the user needs to choose the desired character from a (usually long) list of candidate characters.",
+        "It is inefficient and annoying.",
+        "So, automatic homophone disambiguation is highly desirable.",
+        "Several disambiguation approaches have been reported in the literature [3,7].",
+        "Some of them have even been realized in commercial input methods, e.g., Hanin, WangXing, Going.",
+        "However, the accuracies of these disambiguators are not satisfactory.",
+        "In this paper, we propose a corpus-based adaptation method for improving the accuracy of homophone disambiguation.",
+        "For homophone disambiguation, what we need as input is syllable (phonetic code) corpora instead of text corpora.",
+        "For adaptation, what we need is personal corpora instead of general corpora (such as the UD carpus).",
+        "Thus, we first design a selection procedure to extract articles by individual reporters.",
+        "Ten personal corpora were set up in this way.",
+        "An additional domain-specific corpus, translated AP news, was built up similarly.",
+        "Then, we design a highly-reliable (99.7% correct) character-to-syllable converter [1] to transfer the text corpora into syllable corpora.",
+        "Our baseline disambiguator is rather conventional, composed of a word-lattice searching module, a path scorer, and a lexicon-driven word hypothesizer.",
+        "Using the original text corpora and the corresponding syllable corpora, we propose a user-adaptation method, applying the concept of bidirectional conversion [1] and automatic evaluation [2].",
+        "The adaptation method includes two parts: character-preference learning and pseudo word learning.",
+        "Given a personal corpus (i.e., sample text), the adaptation procedure is able to produce a user-specific character-preference model and a pseudo word lexicon automatically.",
+        "Then the system can use the user-specific parameters in the two models for improving the conversion accuracy.",
+        "Extensive experiments have been conducted for (1) ten sets of local-news articles (one set per reporter) and (2) translated international news from AP News.",
+        "Each set is divided into two subsets: one for training, the other for testing.",
+        "The character accuracy of the baseline version is 93.46% on average.",
+        "With the proposed adaptation method, the augmented version increases the accuracy to 98.16% for the training sets and to 94.80% for the test sets.",
+        "In other words, 71.8% and 20.5% of the errors have been eliminated, respectively.",
+        "The results are encouraging for us to further pursue corpus-based adaptive learning methods for Chinese phonetic input and language modeling for speech recognition."
+      ]
+    },
+    {
+      "heading": "2 Homophone Disambiguation",
+      "text": [
+        "Mandarin Chinese has approximately 1300 syllables, 13,051 commonly used characters, and more than 100,000 words.",
+        "Each character is pronounced as a syllable.",
+        "Thus, it.",
+        "is clear that there are many syllables are shared by numbers of characters.",
+        "Actually, some syllables correspond to more than 100 characters, e.g.. the syllable [y14] corresponds to 125 characters, E, gE, ?).",
+        ";, A, etc.",
+        "Thus, homophone (character) disambiguation is difficult but important in Chinese phonetic input methods and speech recognition systems.",
+        "The problem of homophone disambiguation can be defined as how to convert a sequence of syllables S = si,s2, s,t (usually a sentence or a clause) into a corresponding sequence of characters C = correctly.",
+        "Here, each s, stands for one of the 1300 Chinese syllables and each c, one of the 13,051 characters Fortunately, when the characters are grouped into words (the smallest meaningful unit), the homophone problem is lessened.",
+        "The number of homophone polysyllables is much less than that of homophone characters.",
+        "(A Chinese word is usually composed of 1 to 4 characters.)",
+        "For the disambiguation, longer words are usually correct and preferred.",
+        "Thus, the homophone disambiguation problem is usually formulated as a word-lattice optimal path finding problem.",
+        "(Note that there is the problem of unknown words, especially personal names, compound words, and acronyms, which are not registered in the lexicon.)",
+        "For example, a sequence of three syllables sl, s2, s3 involves six possible subsequences sl, s2, s3, sl-s2, s2-s3, sl-s2-s3, which can correspond to some words.",
+        "Each subsequence could correspond to more than one word, especially in the case of monosyllables.",
+        "Accordingly, a word lattice is formed by the words with one of the six subsequences as pronunciation.",
+        "See Figure I for a sample word lattice.",
+        "Note that syllables are chosen as input units instead of word-sized units used in systems like Tiankla.",
+        "The major reason is Chinese is a monosyllabic language; characters/syllables are the most natural units, while \"words\" are not well-defined in Chinese.",
+        "It is difficult for people to segment the words correctly and consistently, especially according to the dictionary provided by the system.",
+        "This is also the reason why newer intelligent Chinese input methods in Taiwan like Hanin, WangXing, and Going, all use syllables (for a sentence) as input units.",
+        "In addition, our target system is an isolated-syllables speech recognition system."
+      ]
+    },
+    {
+      "heading": "3 The Baseline System",
+      "text": [
+        "The proposed system (Figure 2) is composed of a baseline system plus two new features: character-preference learning (CPL) and pseudo word learning (PWL).",
+        "The baseline syllable-to-character converter consists of three components: (1) a word hypothesizer, (2) a word-lattice search algorithm, and (3) a score function.",
+        "The basic model used in our system is: (-1) a Viterbi search algorithm, (2) a lexicon-based word hypothesizer, and (3) a score function considering word length and word frequency.",
+        "The word hypothesixer matches the current input syllable candidates with the lexical entries in the lexicon (7,953 1-character words, 25,567 2-character, 12,216 3-character, 12,419 9-character, 55,155 words totally).",
+        "All matched words are proposed as word hypotheses forming the word lattice.",
+        "Currently, we consider only those words with at most four syllables (only less than 0.1% or words contain five or more syllables).",
+        "In addition, Determinative-Measure (DM)",
+        "compounds are proposed dynamically, i.e., not stored in the lexicon.",
+        "Viterbi search is a well-known algorithm for optimal path-finding problems.",
+        "The word lattice for a whole clause (delimited by a punctuation) is searched using the dynamic-programming-style Viterbi algorithm.",
+        "The score function is defined as follows: If a path P is composed of n words Lei, w„ and two assumed clause delimiters tea and w,+i, the path score for P is the sum of word scores for the n words and inter-word link scores for the n+1 word links (n-1 between-word links and 2 boundary links).",
+        "Homophone disambiguation can be considered as a process of syllable-to-character (S2C) conversion.",
+        "Its reverse process, character-to-syllable (C2S) conversion, is also nontrivial.",
+        "There are more than 1000 characters, so-called Poyinzi (homographs), with multiple pronunciations.",
+        "However, a high-accuracy C2S converter is achievable.",
+        "Using an n-gram lookahead scheme, we have designed such a converter with 99.71% accuracy.",
+        "Because of the high accuracy, the C2S converter can be used to convert a text corpus to a syllable corpus automatically.",
+        "The two processes together form a bidirectional conversion model.",
+        "The point is: If we ignore the 0.29% error (could be reduced if a better C2S system is used), many applications of the model appear.",
+        "The word score of a word is based on the word frequency statistics computed by counting the number of occurrences the word appears in the 10-million-character UD corpus.",
+        "The word frequency is mapped into an integral score by taking its logarithm value and truncating the value to an integer.",
+        "Lee el a/.",
+        "'11] recently presented a novel idea called word-lattice-based Chinese character bigrani for Chinese language modeling.",
+        "Basically, they approximate the effect of word bigrams by applying character bigranns to the boundary characters of adjacent words.",
+        "The approach is simple (easy to implement) and very effective.",
+        "Following the idea, we built a Chinese character bigram based on the UD corpus and used it to compute inter-word link scores.",
+        "For two adjacent words, the last character of the first word and the first character of the second word are used to consult the character bigram which recorded the number of occurrences in the UD corpus.",
+        "Inter-word link scores are then computed similarly to word scores."
+      ]
+    },
+    {
+      "heading": "4 Bidirectional Conversion",
+      "text": []
+    },
+    {
+      "heading": "and Automatic Evaluation",
+      "text": [
+        "Here, we will only briefly review the concepts of bidirectional conversion and automatic evaluation [1,2].",
+        "For more details, see the cited papers."
+      ]
+    },
+    {
+      "heading": "5 Corpus-based Adaptation Mechanisms",
+      "text": [
+        "In the following, we describe how to apply the model to user-adaptation of homophone disambiguator."
+      ]
+    },
+    {
+      "heading": "5.1 Character-Preference Learning",
+      "text": [
+        "Everyone has his own preference for characters and words.",
+        "A chemist might use the special characters for chemical elements frequently.",
+        "Different people uses a different set of proper names that are usually not stored in the lexicon.",
+        "In this section, we propose an adaptation method based on the bidirectional conversion model.",
+        "From a sample text given by the user, the system first converts it to a sequence of syllables.",
+        "Then, the baseline system is used to convert them back to Chinese characters.",
+        "After that, we can compare them with the input to obtain the error records.",
+        "From the comparison report, we will derive three indices for each character in the character set (say, 13,051 characters in the Big-5 coding used in Taiwan): A-count, B-count, and C-count.",
+        "A-count is dazed as",
+        "the number of times that the character is misrecog-nized.",
+        "B-count the number of times it is wrongly used.",
+        "while C-count the number of times it is correctly recognized.",
+        "For example, if the user wants to input the string AA and keys in the corresponding syllables t113][zhenl][zhen11 while the output is the indices would be: A()=0, C(T)=1, A(A )=2, B(X)=C1, C(A)=0, A()=0, BM-Y=2, C( )=O.",
+        "From these indices, we propose a character-preference learning procedure: I.",
+        "Convert the given sample text I, into a syllable file I, using the character-to-syllable converter.",
+        "Let the baseline version hifr Run If° with 1, to obtain an output 00.",
+        "From 1, and 00, compute the initial accuracy au.",
+        "2.",
+        "Initialize the 13051-entry character-preference table CPT° to zeroes.",
+        "Set n to 1.",
+        "3.",
+        "From I, and 0' .",
+        "compute the A.",
+        "B.",
+        "C indices for each character.",
+        "4.",
+        "For each character c, add to the corresponding entry in CPT\"' a preference score (according to a preference adjustment function pf of A(c), B(c), (2(c)) to form CPT' 5.",
+        "Form a new version V\" of the syllable-to-character converter by considering CPT\".",
+        "Run V\" with I, to obtain a new output On 6.",
+        "From 1, and 0\", compute the new accuracy rate a\".",
+        "7.",
+        "If a\" > a' it to n + I and repeat steps 3 6.",
+        "Otherwise, stop and let CPT' be the final CPT for the user."
+      ]
+    },
+    {
+      "heading": "Adjustment Functions",
+      "text": [
+        "In step 4. the adjustment function pf is a function of A(t), B(c), C(c).",
+        "Several versions have been tried in our experiments.",
+        "Three of them are.",
+        "training since it only considers error cases.",
+        "To avoid the problem, we devise a new pf (2) taking the correct cases into account.",
+        "After trying several combinations of A, B, C for pf, we observe that positive learning (3) is most effective, i.e., achieving the highest accuracy.",
+        "Therefore, in the current implementation, pf (3) is used."
+      ]
+    },
+    {
+      "heading": "5.2 Pseudo Word Learning",
+      "text": [
+        "The second adaptation mechanism is to treat error N-grains as new words (called pseudo words).",
+        "An error N-gram is defined as a sequence of N characters in which at least (N - 1) characters are wrongly converted (from syllables) by the system.",
+        "(In practice, 2 < N < 4.)",
+        "For example, if jfan4llzhen4llhe21 (to input maul) is converted to EOM three pseudo words are produced: Fala, MU, and MERL There are two modes for generating pseudo words: corpus training and interactive correction.",
+        "In the former, the user-specific text corpus (or simply a sample text) is used for generating the pseudo word lexicon (PW lexicon), applying the concept of bidirectional conversion.",
+        "In the latter, pseudo words are produced through user corrections in an interactive input process.",
+        "Both modes can be used at the same time.",
+        "In the following, we will describe how to build, maintain, and use the user-specific PW lexicon.",
+        "The PW lexicon stores the 114 (lexicon size) pseudo words that are produced or referenced in the most recent period.",
+        "It is structurally exactly the same as the general lexicon, containing Hanzi, phonetic code, and word frequency.",
+        "The word frequency of a new PW is set to fc, (3 in the implementation) and incremented by one when referenced.",
+        "Once the word frequency exceeds an upper bound F, the PW would be considered as a real word and no longer liable to replacement.",
+        "(1) The procedure is: 1.",
+        "Segment the sample text into clauses (separated by punctuations).",
+        "For each clause I, do steps 2-4.",
+        "(2) 2.",
+        "Convert the clause into syllable sequence I, us",
+        "ing C2S, then convert I, back to a character se",
+        "quence 0, using baseline S2C.",
+        "For each character Cr, in Or.",
+        "do steps 3-4.",
+        "3.",
+        "Compare C. with the corresponding input character.",
+        "Set the error flag if different.",
+        "4.",
+        "If a pseudo word ending with C. is found (according to error flags) then (1) increment the word frequency if it is already in the PW lexicon, and check the upper bound F; (2) replace the old entry and set frequency to Je if the lexicon has a homophone P1,1'; (3) add a new entry if the lexicon has vacancies; (4) otherwise, remove one of the entries that have the least word frequency and add the new PW.",
+        "5.",
+        "We have a new PW lexicon after the above steps are done.",
+        "We observe that 3-character pseudo words are very useful for dealing with the unregistered proper name problem, which is a significant source of conversion errors.",
+        "The reasons are: (1) A large part of unknown words in news articles are proper names, especially three-character personal names; (2) it is not practical to store all the proper names beforehand; (3) The proper names usually contain uncommon characters which are difficult to convert from syllables.",
+        "Therefore, the user (or author) can have a personalized PW lexicon which contains unregistered proper names he will use, simply by providing a sample text.",
+        "The parameters for both CPL and PWL can be trained by the bidirectional learning procedure.",
+        "The only input the user needs to provide is a sample text sinilar to the texts lie wants to input by the phonetic-input-to-character converter.",
+        "The phonetic input file will be automatically generated by the character-to-syllable converter."
+      ]
+    },
+    {
+      "heading": "6 Experimental Results",
+      "text": []
+    },
+    {
+      "heading": "6.1 The Corpora",
+      "text": [
+        "Eleven sets of newspaper articles are extracted from the 1991 United Daily News Corpus (kindly provided by United Informatics.",
+        "Inc., Taiwan) Ten of them are by specific reporters, i.e., one set per reporter.",
+        "The other is translated AP News.",
+        "These corpora are used to validate the proposed adaptation techniques.",
+        "We design an extraction procedure to select articles written by a specific reporter from the corpus with more than 10 million characters.",
+        "First, collect character-trigrams after the word gEt-(ji4zhe3,`reporter') and sort them according to the number of occurrences.",
+        "Most of these trigrams happen to be names of reporter.",
+        "We use the top-10 names as the basis for selecting articles, Then, search the names in the corpus in order to built the article databases for the 10 reporters.",
+        "The Al' News corpus is built in a similar way (searching for the word X 10?-± mei3lian2she4) Table 1 lists some statistics for the article databases.",
+        "The first column lists the set names, the second column the numbers of articles in the set, the third column the numbers of characters, and the fourth column the numbers of pronounceable characters.",
+        "Each corpus is then divided into two parts according to publication date: a training set and a testing set.",
+        "For example, the corpus 3.siy is divided into ivy-1 and lny-2.",
+        "In the following, we show the experimental results for training sets and testing sets, respectively."
+      ]
+    },
+    {
+      "heading": "6.2 Training Sets",
+      "text": [
+        "Table 2 shows the adaptation results for the training sets.",
+        "The RI column lists the accuracy rates for the baseline system, while the R2 column lists those for the adapted (or personalized) system.",
+        "To avoid the problem of over-training, we train the the system only by two iterations in practice.",
+        "More iterations can improve the performance for training sets but hurt the performance for testing sets.",
+        "The average character accuracy rate is improved by 4.68% (from 93.98% to 98.16%).",
+        "That is, 71.8 percent of errors are eliminated."
+      ]
+    },
+    {
+      "heading": "6.3 Testing Sets",
+      "text": [
+        "Table 3 shows the results for the testing sets.",
+        "The average accuracy is improved hy 1.34% (from 93.46% to 99.80%).",
+        "That is, 20.5 percent of errors are eliminated."
+      ]
+    },
+    {
+      "heading": "7 Related Work",
+      "text": [
+        "The study of phonetic-input-to-character conversion has been quite active in the recent years.",
+        "There are two different approaches for the problem: dictionary-based and statistics-based.",
+        "Matsushita (Taipei) developed a Chinese word-string input system.",
+        "Hanin, as a new input method (Chen 19]) in which phonetic symbols are continuously converted to Chinese characters through dictionary lookup.",
+        "Commercial systems TianMa and WangXing (ETen Corp.) also belong to this type.",
+        "In the mainland, there have been several groups involving in similar projects [19,15] although most of them are pinyin-based and word-based.",
+        "In the statistics-based school are relaxation techniques (Fan and Tsai [6] ), character bigrarns with dynamic programming (Sproat [12]), constraint satisfaction approaches (JS Chang [3]), and zero-order or first-order Markov models (Gu el al.",
+        "[7]).",
+        "Ni [91 mentioned a so-called self-learning capability for his Chinese PC called LX-PC.",
+        "However, the method is (1) let the user define new words during the input process (2) dynamically adjust the word frequency of used words.",
+        "Chen [4] also proposed a learning function that uses a learning file to store user-selected characters and words and the character before them.",
+        "The entries in the learning file are favored over those in the regular dictionary.",
+        "Lua and Can [8] describe a simple error-correcting mechanism: increase the usage frequency of the desired word by I unit when the user corrects the system's output.",
+        "These methods are either manual adaptation or simple word frequency counting.",
+        "Recently, Suet al.",
+        "[5,13] proposed a discrimination oriented adaptive learning procedure for various problems, e.g., speech recognition, part-of-speech tagging, and word segmentation.",
+        "The basic idea is: When an error is made, i.e., the first candidate is not correct, adjust.",
+        "the parameters in the score function based on subspace projection.",
+        "The parameters for the correct candidate are increased, while those for the first candidate are decreased, both in an amount decided by the difference between the scores of the two candidates.",
+        "This process continues until the correct candidate becomes the new first candidate; that is, the score of the correct candidate is greater than that of the old first one.",
+        "Our learning procedure is different from theirs because (I) ours is increment-based while theirs is projection-based, (2) ours is not discrimination oriented, (3) ours is coarse-grained learning while theirs is fine-grained, and (4) the application domain is different."
+      ]
+    },
+    {
+      "heading": "8 Concluding Remarks",
+      "text": [
+        "We have presented two corpus-based adaptation mechanisms for Chinese homophone disambiguation: character-preference learning and pseudo-word learning.",
+        "Experimental results show that the error rates have been reduced significantly.",
+        "This proves yet another success of corpus-based NLP research Future works include (1) more experiments using various texts, (2) stud.",
+        "), on more effective adjustment functions for CPL, (3) study on weighting of different lengths of pseudo words, (4) adaptation based on other parameters, e.g., parts-of-speech, semantic categories, and (5) application to linguistic decoding for speech recognition."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "The author is grateful to the Chinese Lexicon group (CC1.11TRI) for the 90,000-word lexicon.",
+        "This paper is a partial result of the project no.",
+        "37112100 conducted by t he IT R I 11ftclor vonsorship of the Minister of Economic Affairs, R.O.C."
+      ]
+    }
+  ]
+}

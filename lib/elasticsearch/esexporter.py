@@ -83,9 +83,8 @@ class ElasticsearchExporter:
         sim_doc = {}
         res_from = 0
         res_size = 1000
-        MAXSIZE = 23000
 
-        while res_from < MAXSIZE:
+        while res_from < ConstantValues.MAXSIZE:
             response = self.es.search(
                 index=self.index,
                 body={
@@ -111,6 +110,8 @@ class ElasticsearchExporter:
                 # print(hit['_id']+" "+str(hit.get('_score', 0.0)))
                 sim_doc[hit['_id']] = hit.get('_score', 0.0)
             res_from += res_size
+            if res_from >= response['hits']['total']:
+                break
 
         # request = Search().query(MoreLikeThis(like={'_id': id, '_index': self.index, '_type': self.doc_type},
         #                         fields=['info.title', 'sections']))
@@ -329,9 +330,8 @@ class ElasticsearchExporter:
         selectedDocs = {}
         res_from = 0
         res_size = 1000
-        MAXSIZE = 10000
 
-        while (res_from < budget) & (res_from < MAXSIZE):
+        while (res_from < budget) & (res_from < ConstantValues.MAXSIZE):
             if res_size + res_from > budget:
                 res_size = budget - res_from
             response = self.es.search(
@@ -363,6 +363,8 @@ class ElasticsearchExporter:
                 # if hit['_id'] not in selectedDocs.keys():
                 selectedDocs[hit['_id']] = hit['_score']
             res_from += res_size
+            if res_from >= response['hits']['total']:
+                break
 
             # print(len(selectedDocs.items()))
 

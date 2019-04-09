@@ -1,0 +1,249 @@
+{
+  "info": {
+    "authors": [
+      "Lluís Formiga",
+      "Meritxell Gonzàlez",
+      "Alberto Barrón-Cedeño",
+      "José A. R. Fonollosa",
+      "Lluis Marquez"
+    ],
+    "book": "Workshop on Statistical Machine Translation",
+    "id": "acl-W13-2244",
+    "title": "The TALP-UPC Approach to System Selection: Asiya Features and Pairwise Classification Using Random Forests",
+    "url": "https://aclweb.org/anthology/W13-2244",
+    "year": 2013
+  },
+  "references": [
+    "acl-N03-2021",
+    "acl-P04-1077",
+    "acl-P10-1063",
+    "acl-P12-3024",
+    "acl-W05-0635"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper describes the TALP-UPC participation in the WMT?13 Shared Task on Quality Estimation (QE).",
+        "Our participation is reduced to task 1.2 on System Selection.",
+        "We used a broad set of features (86 for German-to-English and 97 for English-to-Spanish) ranging from standard QE features to features based on pseudo-references and semantic similarity.",
+        "We approached system selection by means of pairwise ranking decisions.",
+        "For that, we learned Random Forest classifiers especially tailored for the problem.",
+        "Evaluation at development time showed considerably good results in a cross-validation experiment, with Kendall's ?",
+        "values around 0.30.",
+        "The results on the test set dropped significantly, raising different discussions to be taken into account."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "In this paper we discuss the TALP-UPC1 participation in the WMT?13 Shared Task on Quality Estimation (QE).",
+        "Our participation is circumscribed to task 1.2, which deals with System Selection.",
+        "Concretely, we were required to rank up to five alternative translations for the same source sentence produced by multiple MT systems, in the absence of any reference translation.",
+        "We used a broad set of features; mainly available through the last version of the ASIYA toolkit for MT evaluation2 (Gime?nez and Ma`rquez, 2010).",
+        "Concretely, we derived 86 features for the German-to-English subtask and 97 features for English-to-Spanish.",
+        "These features cover different approaches and include standard Quality Estimation features, as provided by the above mentioned"
+      ]
+    },
+    {
+      "heading": "ASIYA toolkit and Quest (Specia et al., 2010),",
+      "text": [
+        "but also a variety of features based on pseudo-references (Soricut and Echihabi, 2010), explicit semantic analysis (Gabrilovich and Markovitch, 2007) and specialized language models.",
+        "See section 3 for details.",
+        "In order to model the ranking problem associated to the system selection task, we adapted it to a classification task of pairwise decisions.",
+        "We trained Random Forest classifiers (and compared them to SVM classifiers), expanding the work of Formiga et al. (2013), from which a full ranking can be derived and the best system per sentence identified.",
+        "Evaluation at development time, using cross-validation, showed considerably good and stable results for both language pairs, with correlation values around 0.30 (Kendall ?",
+        "coefficient) classification accuracies around 52% (pairwise classification) and 41% (best translation identification).",
+        "Unfortunately, the results on the test set were significantly lower.",
+        "Current research is devoted to explain the behavior of the system at testing time.",
+        "On the one hand, it seems clear that more research regarding the assignment of ties is needed in order to have a robust model.",
+        "On the other hand, the release of the gold standard annotations for the test set will facilitate a deeper analysis and understanding of the current results.",
+        "The rest of the paper is organized as follows.",
+        "Section 2 describes the ranking models studied for the system selection problem.",
+        "Section 3 describes the features used for learning.",
+        "Section 4 presents the setting for parameter optimization and feature selection and the results obtained.",
+        "Finally, Section 5 summarizes the lessons learned so far and outlines some lines for further research."
+      ]
+    },
+    {
+      "heading": "2 Ranking Model",
+      "text": [
+        "We considered two learning strategies to obtain the best translation ranking model: SVM and Random",
+        "Forests.",
+        "Both strategies were based on predicting pairwise quality ranking decisions by means of supervised learning.",
+        "These decision was motivated from our previous work (Formiga et al., 2013) were we learned that they were more consistent to select the best system (according to human and automatic metrics) compared to absolute regression approaches.",
+        "In that work we used only the subset of features 1, 2, 3 and 8 described in Section 3.",
+        "For this shared task we have introduced additional similarity measures (subsets 4 to 7) that feature semantic analysis and automatic alignments between the source and the translations.",
+        "The rationale for transforming a ranking problem to a pairwise classification problem has been described previously in several work (Joachims, 2002; Burges et al., 2005).",
+        "The main idea is to ensemble the features of both individuals and assign a class {-1,1} which tries to predict the pairwise relation among them.",
+        "For linear based approach this adaptation is as simple to compute the difference between features between all the pairs of the training data.",
+        "We used two different learners to perform that task.",
+        "First, we trained a Support Vector Machine ranker by means of pairwise comparison using the SVMlight toolkit (Joachims, 1999), but with the ?-z p?",
+        "parameter, which can provide system rankings for all the members of different groups.",
+        "The learner algorithm was run according to the following parameters: RBF-kernel, expanding the working set by 9 variables at each iteration, for a maximum of 50,000 iterations and with a cache size of 100 for kernel evaluations.",
+        "The trade-off parameter was empirically set to 0.001.",
+        "This implementation ignores the ties for the training step as it only focuses in better than/ worse than relations.",
+        "Secondly, we used Random Forests (Breiman, 2001), the rationale was the same as ranking-to-pairwise implementation from SVMlight.",
+        "However, SVMlight considers two different data preprocessing methods depending on the kernel of the classifier: LINEAR and RBF-Kernel.",
+        "We used the same data-preprocessing algorithm from SVMlight in order to train a Random Forest classifier with ties (three classes: {0,-1,1}) based upon the pairwise relations.",
+        "We used the Random Forests implementation of scikit-learn toolkit (Pe-dregosa et al., 2011) with 50 estimators.",
+        "Once the classes are given by the Random Forest, we build a graph by means of the adjacency matrix of the pairwise decision.",
+        "Once the adjacency matrix has been built, we assign the final ranking through a dominance scheme similar to Pighin et al. (2012).",
+        "In that case, however, there are not topological problems as the pairwise relations are complete across all the edges."
+      ]
+    },
+    {
+      "heading": "3 Features Sets",
+      "text": [
+        "We considered a broad set of features: 97 and 86 features for English-to-Spanish (en-es) and German-to-English (de-en), respectively.",
+        "We grouped them into the following categories: baseline QE metrics, comparison against pseudo-references, source-translation, and adapted language models.",
+        "We describe them below.",
+        "Unless noted otherwise, the features apply to both language pairs."
+      ]
+    },
+    {
+      "heading": "3.1 Baseline Features",
+      "text": [
+        "The baseline features are composed of well-known quality estimation metrics:",
+        "1.",
+        "Quest Baseline (QQE) Seventeen baseline features from Specia et al.",
+        "(2010).",
+        "This set includes token counts",
+        "(and their ratio), LM probabilities for source and target sentences, percentage of n-grams in different quartiles of a reference corpus, number of punctuation marks, and fertility ratios.",
+        "We used these features in the en-es partition only.",
+        "2.",
+        "ASIYA's QE-based features (AQE) Twenty-six QE features provided by ASIYA (Gonza`lez et al., 2012), comprising bilingual dictionary ambiguity and overlap; ratios concerning chunks, named-entities and PoS; source and candidate LM perplexities and inverse perplexities over lexical forms, chunks and PoS; and out-of-vocabulary word indicators."
+      ]
+    },
+    {
+      "heading": "3.2 Pseudo-Reference-based Features",
+      "text": [
+        "Soricut and Echihabi (2010) introduced the concept of pseudo-reference-based features (PR) for translation ranking estimation.",
+        "The principle is that, in the lack of human-produced references, automatic ones are still good for differentiating good from bad translations.",
+        "One or more secondary MT systems are required to generate translations starting from the same input, which are",
+        "taken as pseudo-references.",
+        "The similarity towards the pseudo-references can be calculated with any evaluation measure or text similarity function, which gives us all feature variants in this group.",
+        "We consider the following PR-based features:",
+        "3.",
+        "Derived from ASIYA's metrics (APR) Twenty-three PR features, including GTM-l (l?",
+        "{1,2,3}) to reward different length matching (Melamed et al., 2003), four variants of ROUGE (-L, -S*, -SU* and -W) (Lin and Och, 2004), WER (Nie?en et al., 2000), PER (Tillmann et al., 1997), TER, and TERbase (i.e., without stemming, synonymy look-up, nor paraphrase support) (Snover et al., 2009), and all the shallow and full parsing measures (i.e., constituency and dependency parsing, PoS, chunking and lemmas) that ASIYA provides either for Spanish or English as target languages.",
+        "4.",
+        "Lexical similarity (NGM) Cosine and Jaccard coefficient similarity measures for both token and character n-grams considering n ?",
+        "[2, 5] (i.e., sixteen",
+        "features).",
+        "Additionally, one Jaccard-based similarity measure for ?pseudo-prefixes?",
+        "(considering only up to four initial characters for every token).",
+        "5.",
+        "Based on semantic information (SEM) Twelve features calculated with named entity-and semantic role-based evaluation measures (again, provided by ASIYA).",
+        "Sentences are automatically annotated using SwiRL (Surdeanu and Turmo, 2005) and BIOS (Surdeanu et al., 2005).",
+        "We used these features in the de-en subtask only."
+      ]
+    },
+    {
+      "heading": "6. Explicit semantic analysis (ESA)",
+      "text": [
+        "Two versions of explicit semantic analysis (Gabrilovich and Markovitch, 2007), a semantic similarity measure, built on top of Wikipedia (we used the opening paragraphs of 100k Wikipedia articles as in 2010)."
+      ]
+    },
+    {
+      "heading": "3.3 Source-Translation Extra Features",
+      "text": [
+        "Source-translation features include explicit comparisons between the source sentence and its translation.",
+        "They are meant to measure how adequate the translation is, that is, to what extent the translation expresses the same meaning as the source.",
+        "Note that a considerable amount of the features described in the baseline group (QQE and AQE) fall in this category.",
+        "In this subsection we include some extra features we devised to capture source?",
+        "translation dependencies.",
+        "7.",
+        "Alignment-based features (ALG / ALGPR) One measure calculated over the aligned words between a candidate translation and the source (ALG); and two measures based on the comparison between these alignments for two different translations (e.g., candidate and pseudo-reference) and the source (ALGPR).3 8.",
+        "Length model (LeM) A measure to estimate the quality likelihood of a candidate sentence by considering the ?expected length?",
+        "of a proper translation from the source.",
+        "The measure was introduced by (Pouliquen et al., 2003) to identify document translations.",
+        "We estimated its parameters over standard MT corpora, including Europarl, Newswire, Newscommentary and UN."
+      ]
+    },
+    {
+      "heading": "3.4 Adapted Language-Model Features",
+      "text": [
+        "We interpolated different language models comprising the WMT?12 Monolingual corpora (EPPS, News, UN and Gigafrench for English).",
+        "The interpolation weights were computed as to minimize the perplexity according to the WMT Translation Task test data (2008-2010)4.",
+        "The features are as follow:"
+      ]
+    },
+    {
+      "heading": "9. Language Model Features (LM)",
+      "text": [
+        "Two log-probabilities of the translation candidate with respect to the above described interpolated language models over word forms and PoS labels."
+      ]
+    },
+    {
+      "heading": "4 Experiments and Results",
+      "text": [
+        "In this section we describe the experiments carried out to select the best feature set, learner, and learner configuration.",
+        "Additionally, we present the final performance within the task.",
+        "The set-up experiments were addressed doing two separate",
+        "penalization for the ties, accuracy in determining the pairwise relationship between candidate translations, and global accuracy in selecting the best candidate for each source sentence.",
+        "First, we compared our SVM learner against Random Forests with the two variants of data preprocessing (LINEAR and RBF).",
+        "In terms of Kendall's ?",
+        ", we found that the Random Forests (RF) were clearly better compared to SVM implementation.",
+        "Concretely, depending on the final feature set, we found that RF achieved a ?",
+        "between 0.23 and 0.29 while SVM achieved a ?",
+        "between 0.23 and 0.25.",
+        "With respect to the accuracy measures we did not find noticeable differences between methods as their results moved from 49% to 52%.",
+        "However, considering the accuracy in terms of selecting only the best system there was a difference of two points (42.2% vs. 40.0%) between methods, being RF again the best system.",
+        "Regarding the pairwise preprocessing the results between RBF and LINEAR based preprocessing were comparable, being RBF slightly better than LINEAR.",
+        "Hence, we selected Random Forests with RBF pairwise preprocessing as our final learner.",
+        "de-en ?",
+        "with ties AccuracyIgnored Penalized All Best",
+        "For the feature selection process, we considered the most relevant combinations of feature groups.",
+        "Table 1 shows the set-up results for the de-en subtask and Table 2 shows the results for the en-es subtask.",
+        "In terms of ?",
+        "we observed similar results between the two language pairs.",
+        "However accuracies for the de-en subtask were one point above the ones for en-es.",
+        "Regarding the features used, we found that the best feature combination to use was composed of: i) a baseline QE feature set (Asiya or Quest) but not both of them, ii) Length Model, iii) Pseudo-reference aligned based features and the use of iv) adapted language models.",
+        "However, within the de-en subtask, we found that substituting Length Model and Aligned Pseudo-references by the features based on Semantic Roles (SEM) could bring marginally better accuracy.",
+        "We also noticed that the learner was sensitive to the features used so selecting the appropriate set of features was crucial to achieve a good performance.",
+        "en-es ?",
+        "with ties AccuracyIgnored Penalized All Best",
+        "penalized) In Tables 3, 4, 5 and 6 we present the official results for the WMT?13 Quality Estimation Task, in all evaluation variants.",
+        "In each table we compare to the best/worst performing systems and also to the official baseline.",
+        "We can observe that in general the results on the test sets drop significantly, compared to our",
+        "ignored) set-up experiments.",
+        "Restricting to the evaluation setting in which ties are not penalized (i.e., corresponding to our setting during system and parameter tuning), we can see that the results corresponding to de-en (Table 5) are comparable to our set-up results and close to the best performing system.",
+        "However, in the en-es language pair the final results are comparatively much lower (Table 6).",
+        "We find this behavior strange.",
+        "In this respect, we analyzed the inter-annotator agreement within the gold standard.",
+        "Concretely we computed the Cohen's ?",
+        "for all overlapping annotations concerning at least 4 systems for both language pairs.",
+        "The results of our analysis are presented in Table 7 and therefore it confirms our hypothesis that en-es annotations had more noise providing an explanation for the accuracy decrease of our QE models and setting the subtask into a more challenging scenario.",
+        "However, further research will be needed to analyze other factors such as oracles and improvement on automatic metrics prediction and reliability compared to linguistic expert annotators.",
+        "Another remaining issue for our research concerns investigating better ways to deal with ties, as their penalization lowered our results dramatically.",
+        "In this direction we plan to work further on",
+        "ficients measured by Cohen's ?",
+        "the adjacency matrix reconstruction heuristics and presenting the features to the learner in a structured form."
+      ]
+    },
+    {
+      "heading": "5 Conclusions",
+      "text": [
+        "This paper described the TALP-UPC participation in the WMT?13 Shared Task.",
+        "We approached the Quality Estimation task based on system selection, where different systems have to be ranked according to their quality.",
+        "We derive a full ranking and identify the best system per sentence on the basis of Random Forest classifiers.",
+        "After the model set-up, we observed considerably good and robust results for both translation directions, German-to-English and English-to-Spanish: Kendall's ?",
+        "around 0.30 as well as accuracies around 52% on pairwise classification and 41% on best translation identification.",
+        "However, the results over the official test set were significantly lower.",
+        "We have found that the low inter-annotator agreement between users on that set might provide an explanation to the poor performance of our QE models.",
+        "Our current efforts are centered on explaining the behavior of our QE models when facing the official test sets.",
+        "We are following two directions: i) studying the ties?",
+        "impact to come out with a more robust model and ii) revise the English-to-Spanish gold standard annotations in terms of correlation with automatic metrics to facilitate a deeper understanding of the results."
+      ]
+    },
+    {
+      "heading": "Acknowledgments Acknowledgements",
+      "text": [
+        "This work has been partially funded by the Spanish Ministerio de Econom?",
+        "?a y Competitivi-dad, under contracts TEC2012-38939-C03-02 and TIN2009-14675-C03, as well as from the European Regional Development Fund (ERDF/FEDER) and the European Community's FP7 (2007-2013) program under the following grants: 247762 (FAUST, FP7-ICT2009-4-247762) and 246016 (ERCIM ?Alain Bensoussan?",
+        "Fellowship)."
+      ]
+    }
+  ]
+}

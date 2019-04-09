@@ -1,0 +1,304 @@
+{
+  "info": {
+    "authors": [
+      "Walter Kasper",
+      "Hans-Ulrich Krieger"
+    ],
+    "book": "International Conference on Computational Linguistics",
+    "id": "acl-C96-2106",
+    "title": "Modularizing Codescriptive Grammars for Efficient Parsing",
+    "url": "https://aclweb.org/anthology/C96-2106",
+    "year": 1996
+  },
+  "references": [
+    "acl-C94-2144",
+    "acl-J93-4001",
+    "acl-P85-1018"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Unification-based theories of grammar allow to integrate different levels of linguistic descriptions in the common framework of typed feature structures.",
+        "Dependencies among the levels are expressed by corefer-ences.",
+        "Though highly attractive theoretically, using such codescriptions for analysis creates problems of efficiency.",
+        "We present an approach to a modular use of codescrip-tions on the syntactic and semantic level.",
+        "Grammatical analysis is performed by tightly coupled parsers running in tandem, each using only designated parts of the grammatical description.",
+        "In the paper we describe the partitioning of grammatical information for the parsers and present results about the performance."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Unification-based theories of grammar allow for an integration of different levels of linguistic descriptions in a common framework of typed feature structures.",
+        "In HPSG this assumption is embodied in the fundamental concept of a sign (Pollard and Sag, 1987; Pollard and Sag, 1994).",
+        "A sign is a structure incorporating information from all levels of linguistic analysis, such as phonology, syntax, and semantics.",
+        "This structure specifies interactions between these levels by means of coreferences, indicating the sharing of information.",
+        "It also describes how the levels constrain each other mutually.",
+        "Such a concept of linguistic description is attractive for several reasons:",
+        "1. it supports the use of common formalisms and data structures on all linguistic levels, 2. it provides declarative and reversible interface specifications between these levels, 3. all information is simultaneously available, and 4. no procedural interaction between linguistic modules needs to be set up.",
+        "*This work was funded by the German Federal Ministry of Education, Science, Research and Technology (BMBF) in the framework of the Verbmobil Project under Grant 01 IV 101 K//.",
+        "The responsibility for the content of this study lies with the authors.",
+        "Similar approaches, especially for the syntax-semantics interface, have been suggested for all major kinds of unification-based theories, such as LPG or CUG.",
+        "(Halvorsen and Kaplan, 1988) call such approaches codescriptive in contrast to the approach of description by analysis which is closely related to sequential architectures where linguistic levels correspond to components, operating on the basis of the (complete) analysis results of lower levels.",
+        "In a codescriptive grammar semantic descriptions are expressed by additional constraints.",
+        "Though theoretically very attractive, codescription has its price: (i) the grammar is difficult to modularize due to the fact that the levels constrain each other mutually and (ii) there is a computational overhead when parsers use the complete descriptions.",
+        "Problems of these kinds which were already noted by (Shieber, 1985) motivated the research described here.",
+        "The goal was to develop more flexible ways of using codescriptive grammars than having them applied by a parser with full informational power.",
+        "The underlying observation is that constraints in such grammars can play different roles:",
+        "• Genuine constraints which relate directly to the grammaticality (wellformedness) of the input.",
+        "Typically, these are the syntactic constraints.",
+        "• Spurious constraints which basically build representational structures.",
+        "These are less concerned with wellformedness of the input but rather with output for other components in the overall system.",
+        "Much of semantic descriptions are of this kind.",
+        "If a parser treats all constraints on a par, it cannot distinguish between the structure-building and the filtering constraints.",
+        "Since unification-based formalisms are monotonic, large structures are built up and have to undergo all the steps of unification, copying, and undoing in the processor.",
+        "The costs of these operations (in time and space) increase exponentially with the size of the structures.",
+        "In the VERBMOBIL project, the parser is used within a speech translation system (Wahlster, 1993; Kay, Gawron, and Norvig, 1994).",
+        "The pars",
+        "er input consists of word lattices of hypotheses from speech recognition.",
+        "The parser has to identify those paths in the lattice which represent a grammatically acceptable utterance.",
+        "Parser and recognizer are incremental and interactively running in parallel.",
+        "Even for short utterances, the lattices can contain several hundreds of word hypotheses, most of which do not combine to grammatical utterances.",
+        "Parsing these lattices is much more complex than parsing written text.",
+        "The basic idea presented here is to distribute the labour of evaluating the constraints in the grammar on several processors (i.e., parsers).",
+        "Important considerations in the design of the system were",
+        "1. increasing the performance, 2. achieving incremental and interactive behaviour, 3. minimizing the overhead in communication between the processors.",
+        "We used a mid-size HPSG-kind German grammar written in the TD.0 formalism (Krieger and Schafer, 1994).",
+        "The grammar cospecifies syntax and semantics in the attributes SYN and SEM.",
+        "A simplified example is shown in the lexical entry for the verb come.",
+        "in Fig. 1.",
+        "In the following section, we start with a top-down view of the architecture.",
+        "After that we will describe the communication protocol between the parsing processes.",
+        "Then several options for creating subgrammars from the complete grammar will be discussed.",
+        "The subgrammars represent the distribution of information across the parsers.",
+        "Finally, some experimental results will be reported."
+      ]
+    },
+    {
+      "heading": "2 The Architecture",
+      "text": [
+        "The most important aspect for the distribution of analysis tasks and for defining modes of interaction is that one of the processes must work as a filter on the input word lattices, reducing the search space.",
+        "The other component then works only with successful analysis results of the previous one.",
+        "This means, that one parser is in control over the other, whereas the latter one is not directly exposed to the input.",
+        "For reasons winch will become obvious below, we will call the first of these parsers the SYN-parser, the second one controlled by the svN-parser, the SEM-parser.",
+        "Another consideration to be taken into account; is that the analysis should be incremental and time synchronous.",
+        "This implies that the SYN-parser should not send its results only when it is completely finished, thus forcing the sEm-parser to wait.'",
+        "interactivity is another aspect we had to consider.",
+        "The suM-parser must be able to report back to the sYN-parser at least when its hypotheses failed.",
+        "Tins would not be possible when the slim-parser has to wait till the SYN-parser is finished.",
+        "This requirement also constrains the exchange of messages.",
+        "Incrementality and interactivity imply a steady exchange of messages between the parsers.",
+        "An important consideration then is that the overhead for this communication should not outweigh the gains of distributed processing.",
+        "This rules out that the parsers should communicate by exchanging their analysis results in terms of resulting feature structures, since it would imply that on each communication event the parsers would have to analyze the structures to detect changes, whether a structure is part of other already known structures, etc.",
+        "It is hard to see how this kind of communication can be interleaved with normal parsing activity in efficient, ways.",
+        "In contrast to this, our approach allows to exploit the fact that the grammars employed by the parsers are derived from the same grammar and thereby \"similar\" in structure.",
+        "This makes it possible to restrict the communication between the parsers to information about what rules were successfully or unsuccessfully applied.",
+        "Each parser then can reconstruct on its side the state the other parser is in how its chart; or analysis tree looks like.",
+        "Both parsers try to maintain or arrive at lAnother problem in incremental processing is that it is not known in advance when an utterance is finished or a new utterance starts.",
+        "To deal with this, prosodic information is taken into account; see (Kasper and Krieger, 1996) for more details.",
+        "isomorphic charts.",
+        "The approach allows that the parsers never need to exchange analysis results in terms of structures as the parsers should always be able to reconstruct these if necessary.",
+        "On the other hand, this reconstructibility poses constraints on how the codescriptive grammar can be split up in subgrammars.",
+        "The requirements of incrementality, interactivity and efficient communication show that our approach does not emulate the \"description by anal-ysis\" methodology in syntax-semantics interfaces on the basis of codescriptive grammars."
+      ]
+    },
+    {
+      "heading": "3 The Parsers and the Protocol",
+      "text": [
+        "The SYN-parser and the SEM-parser are agenda-driven chart parsers.",
+        "For speech parsing, the nodes represent points of times and edges represent word hypotheses/paths in the word lattice.",
+        "The parsers communicate by exchanging hypotheses, bottom-up hypotheses from syntax to semantics and top-down hypotheses from semantics to syntax; see (Kasper, Krieger, Spilker, and Weber, 1996) for an in-depth description of the current setup.",
+        "• Bottom-up hypotheses are emitted by the SYN-parser and sent to the sEm-parser.",
+        "They undergo verification at the semantic level.",
+        "A bottom-up • hypothesis describes a passive edge (complete subtree) constructed by the syntax parser and consists of the identifier of the rule instantiation that represents the edge and the completion history of the constructed passive edge.",
+        "Having passive status is a necessary but not sufficient condition for an edge to be sent as hypothesis.",
+        "Whether a hypothesis is sent also depends on other criteria, such as its score.",
+        "• Top-Down hypotheses result from activities of the sEm-parser, trying to verify bottom-up-hypotheses.",
+        "To keep the communication efforts low, only failures are reported back to the svN-parser by sending simply the hypothesis' identifier.",
+        "This narrows the space of successful hypotheses on the sYN-parser's side (see remarks in Section 4.3.1).",
+        "The central data structure by which synchronization and communication between the parsers is achieved is that of a completion history, containing a record on how a subtree was completed.",
+        "Basically it tells us for each edge in the chart which other edges are spanned.",
+        "The nodes in the chart correspond to points in time and edges to time intervals spanned.",
+        "Completion histories are described by the following EBNF: {11<rule-id><edge-id><start><end>fE<edge-id>r!",
+        "L<lex-id><edge-id><start><end>}1<rule-id>, <lex-id>, <edge-id>, <start>, and <end> are integers.",
+        "R<rule-id> and L<lex-id> denote rules and lexicon entries, resp.",
+        "<edge-id> uniquely identifies a chart edge.",
+        "Finally, <start> and <end> specify the start/end point of a spanning edge.",
+        "This protocol allows the parsers to efficiently exchange information about the structure of their chart without having to deal with explicit analysis results as feature structures.",
+        "Since the sEm-parser does not directly work on linguistic input, there are two possible parsing modes:",
+        "• Non-autonomous parsing.",
+        "The parsing process mainly consists of constructing the tree described by the completion history, using the semantic counterparts of the rules which led to a syntactic hypothesis.",
+        "If this fails, it is reported back to the sYN-parser.",
+        "• Quasi-autonomous parsing.",
+        "The parser extends the chart on its own through prediction and completion steps.",
+        "Obviously, this is only possible after some initial information by the SYN-parser, since the sEm-parser is not directly connected to the input word lattice."
+      ]
+    },
+    {
+      "heading": "4 Compilation of Subgrammars",
+      "text": [
+        "In the following, we discuss possible options and problems for the distribution of information in a cospecifying grammar.",
+        "Our approach raises the question which of the parsers uses what information.",
+        "This set of information is what we call a subgrammar.",
+        "These subgrammars are generated from a common source grammar."
+      ]
+    },
+    {
+      "heading": "4.1 Reducing the Representational Overhead by Separating Syntax and Semantics",
+      "text": [
+        "An obvious choice for splitting up the grammar was to separate the linguistic levels (strata), such as syntax and semantics.",
+        "This choice was also motivated by the observation that typically the most important constraints on grammaticality of the input are in the syntactic part, while most of the semantics is purely representational.'",
+        "A straightforward way to achieve this is by manipulating grammar rules and lexicon entries – for the svN-parser, we recursively delete the information under the SEM attributes and similarly clear the SYN attributes to obtain the subgrammar for the SEM-parser.",
+        "We abbreviate these subgrammars by Gsyn and G. and the original grammar by G. This methodology reduces the size of the structures for the sYN-parser to about 30% of the corn-2 This must be taken CUM grano salis as it depends on how a specific grammar draws the line between syntax and semantics: selectional constraints, e.g., for verb arguments, are typically part of semantics and are \"true\" constraints.",
+        "Also, semantic constraints would have a much larger impact if, for instance, agreement constraints are considered as semantic, too, as (Pollard and.",
+        "Sag, 1994) suggest.",
+        "plete structure.",
+        "One disadvantage of this simple approach is that coreferences between syntax and semantics disappear (we call the collection of these common reentrancies the coref skeleton).",
+        "Tins might lead to several problems winch we address in Section 4.2.",
+        "Section 4.3 then discusses possible solutions.",
+        "Another, more sophisticated way to keep the structures small is due to the type expansion mechanism in TIIC (Krieger and Schiffer, 1995).",
+        "instead of destructively modifying the feature structures beforehand, we can employ type expansion to let SYN or SEM unexpanded.",
+        "This has the desired effect that we do not lose the coreference constraints and furthermore are free to expand parts of the feature structure afterwards.",
+        "We will discuss this feature in Section 4.4."
+      ]
+    },
+    {
+      "heading": "4.2 Problems",
+      "text": [
+        "Obviously, the major advantage of our method is that unification and copying become faster during processing, due to smaller structures.",
+        "We can even estimate the speedup in the best case, viz., quasilinear w.r.t.",
+        "input structure if only conjunctive structures are used.",
+        "Clearly, if many disjunctions are involved, the speedup might even he exponential.",
+        "However, the most important disadvantage of the compilation method is that it no longer guarantees soundness, that is, the suligrammar(s) might accept utterances which are ruled out by the full grammar.",
+        "This is clue to the simple fact that certain constraints have been eliminated in the subgrammars.",
+        "If at least one such constraint is a filtering constraint, we automatically enlarge the language accepted by this subgrammar w.r.t.",
+        "the original grammar.",
+        "Clearly, completeness is not affected, since we do not add further constraints to the subgrammars.",
+        "At this point, let us focus on the estimation above, since it is only a best-case forecast.",
+        "Clearly, the structures become smaller; however, clue to the possible decrease of filter constraints, we must expect an increase of hypotheses in the parser.",
+        "In fact, the experimental results in Section 5 show that our approach has a different impact on the SYN-parser and the SuM-parser (see Figure 2).",
+        "Our hope here, however, is that the increase of non-determinism inside the parser is compensated by the processing of smaller structures; see (Maxwell HI and Kaplan, 1991) for more arguments on this theme.",
+        "In general, even the intersection of the languages accepted by G„„ and G,,,„ does not yield the language accepted by only the weaker relation E(G) c E(G 81) n E,(G„,„) holds.",
+        "This behaviour is all outcome of our, compilation schema, namely, cutting reentrancy points.",
+        "Thus, even if an utterance is accepted by G with analysis fs encoded as a feature structure, it might be the case that the unification of the corresponding results for G syn.",
+        "and G„,,,, will truly subsume fs: issyn A Let, us mention further problems.",
+        "Firstly, termination might change in case of the subgrammars.",
+        "Consider a subgrammar which contains empty productions or unary (coercion) rules.",
+        "Assume that such rules were previously \"controlled\" by constraints which are no longer present.",
+        "Obviously, if a parser is not restricted through additional (meta-)constraints, the iterated application of these rules could lead to an infinite computation, i.e., a loop.",
+        "This was sometimes the case during our experiments.",
+        "Secondly, recursive rules could introduce infinitely many solutions for a given utterance.",
+        "Theoretically, tins might not pose a problem, since the intersection of two infinite sets of parse trees might be finite.",
+        ".However in practice, tins problem might occur."
+      ]
+    },
+    {
+      "heading": "4.3 Solutions",
+      "text": [
+        "In tins section, we will discuss three solution to the problems mentioned before."
+      ]
+    },
+    {
+      "heading": "4.3.1 Feedback Loop",
+      "text": [
+        "Although semantics construction is driven by the speech parser, the use of different subgrammars suggest that the speech parser should also be guided by the SEM-parser.",
+        "This is achieved by sending back falsified hypotheses.",
+        "Because hypotheses are uniquely identified in our framework, we must only send the integer that identifies the falsified chart edge.",
+        "In the SYN-parser, this information might either lead to a true chart revision process or be employed as a filter to narrow the set of emitted bottom-up hypotheses."
+      ]
+    },
+    {
+      "heading": "4.3.2 Cora Skeleton",
+      "text": [
+        "In order to guarantee correctness of the analysis, we might unify the results of both parsers with the corresponding coref skeletons at the end of an analysis.",
+        "We did not pursue this strategy since it introduces an additional processing step during parsing.",
+        "Instead, as explained above, it is preferable to employ type expansion here, letting SYN or SEM unexpanded, so that coreferences are preserved.",
+        "This treatment will be investigated in Section 4.4."
+      ]
+    },
+    {
+      "heading": "4.3.3 Full-Size Grammar",
+      "text": [
+        "The most straightforward way to guarantee soundness is simply by employing the full-size grammar in one of the two parsers.",
+        "Tins might sound strange, but if one processor basically only verifies hypotheses from the other and does not generate additional hypotheses, the overhead is neglectable.",
+        "We have used this scheme in that the SuM-parser operates on the full-size grammar, whereas the speech parser directly communicates with the word recognizer.",
+        "This makes sense since",
+        "the word lattice parser processes an order of magnitude more hypotheses than the sEM-parser; see (Kasper, Krieger, Spilker, and Weber, 1996) for more details.",
+        "Because the SEM-parser passes its semantic representation to other components, it makes further sense to guarantee total correctness here."
+      ]
+    },
+    {
+      "heading": "4.4 Improvements",
+      "text": [
+        "This section investigates several improvements of our compilation approach, solving the problems mentioned before."
+      ]
+    },
+    {
+      "heading": "4.4.1 Identifying Functional Strata Manually",
+      "text": [
+        "Normally, the grammarian \"knows\" which information needs to be made explicit.",
+        "Hence, instead of differentiating between the linguistic strata SYN and SEM, we let the linguist identify which constraints filter and which only serve as a means for representation; see also (Shieber, 1985).",
+        "In contrast to the separation along linguistic levels, this approach adopts a functional view, cutting across linguistic strata.",
+        "On this view, the syntactic constraints together with, e.g., semantic selection constraints would constitute a subgrammar."
+      ]
+    },
+    {
+      "heading": "4.4.2 Bookkeeping Unifications",
+      "text": [
+        "In case that the grammarian is unaware of these constraints, it is at least possible to determine them relatively to a training corpus, simply by counting unifications.",
+        "Features that occur only once on top of the input feature structures do not specialize the information in the resulting structure (actually the values of these features).",
+        "Furthermore, unrestricted features (value T) do not constrain the result.",
+        "For instance, indicates that only the path A needs to be made explicit, since its value is more specific than the corresponding input values: sAv s and sAv v.",
+        "Partial evaluation, as known from functional/logic programming, is a method of carrying out parts of computation at compile tune that would otherwise be done at run time, hence improving run time performance of programs; see, e.g., (Jones, Gomard,, and Stestoft, 1993).",
+        "Analogous to partial evaluation of definite clauses, we can partially evaluate annotated grammar rules, since they drive the derivation.",
+        "Partial evaluation means here to substitute type symbols by their expanded definitions.",
+        "Because a grammar contains finitely many rules of the above form and because the daughters (the right hand side of the rule) are type symbols (and there are only finitely many of them), a great deal of this partial evaluation process can be performed offline.",
+        "In contrast to a pure CF grammar with finitely many terminal/nonterminals, the evaluation process must not terminate, due to coreference constraints within feature structures.",
+        "However, meta-constraints such as offline parsability or lazy type expansion (see next section) help us to determine those features which actively participate in unification during partial evaluation.",
+        "In contrast to the previous method, partial evaluation is corpus-independent.",
+        "We have indicated earlier that type expansion can be fruitfully employed to preserve the coref skeleton.",
+        "Type expansion can also be chosen to expand parts of a feature structure on the fly at run time.",
+        "The general idea is as follows.",
+        "Guaranteeing that the lexicon entries and the rules are consistent, we let everything unexpanded unless we are enforced to make structure explicit.",
+        "As was the' case for the previous two strategies, this is only necessary if a path is introduced in the resulting structure whose value is more specific than the value(s) in the input structure(s).",
+        "The biggest advantage of this approach is obvious – only those constraints must be touched which are involved in restricting the set of possible solutions.",
+        "Clearly, such a test should be clone every time the chart is extended.",
+        "The cost of such tests and the on-line type expansions need further investigation."
+      ]
+    },
+    {
+      "heading": "5 Experimental Results",
+      "text": [
+        "This section presents experimental results of our compilation method, indicating that the simple SYN/SEM separation does not match the distinction between true and spurious constraints, mostly due to semantic selectional constraints (see Fig. 2).",
+        "The measurements have been obtained w.r.t.",
+        "a corpus of 56 sentences/turns from 4 dialogs do the VERBMOBIL corpus.",
+        "The column Syn shows that parsing with syntax only takes 50% of the time of parsing with the complete grammar (SynSem).",
+        "The number of readings, hypotheses, and chart edges only slightly increase here.",
+        "The column SemNA shows the results for operating the sEM-parser in non-autonomous mode, that is, simply verifying/falsifying hypotheses from the svN-parser.",
+        "The parsing time of the coupled system is slightly higher than that for sYN-parser alone, clue to the fact that the SEM-parser can only terminate after the svN-parser has sent its last hypothesis.",
+        "Nevertheless, the overall time is still only 50% of the system With the complete grammar (a sequential coupling only improves the overall run time for SemNA only by 5-10%).",
+        "This illustrates that",
+        "in non-autonomous mode, SemQA the results for slim-parser as quasi-autonomous semantic parser.",
+        "The percentage values are relative to SynSem.",
+        "the efficiency of the parallel running system mainly depends on that of the sYN-parser.",
+        "The column SemQA shows the results for the slim-parser in quasi-autonomous mode.",
+        "Since no syntactic constraints are involved in filtering, we expect a considerable increase in processing time and number of hypotheses.",
+        "In fact, our measurements indicate that syntax (in our grammar) provides most of the genuine constraints.",
+        "These results show that the modularization of the grammar and the distribution of its information lead to a considerable increase in parsing efficiency, thus improving the computational applicability of codescriptive grammars."
+      ]
+    },
+    {
+      "heading": "6 Conclusions",
+      "text": [
+        "Linguistic theories like HPSG provide an integrated view on linguistic objects by providing a uniform framework for all levels of linguistic analysis.",
+        "Though attractive from a theoretical point of view, their implementation raises questions of computational tractability.",
+        "We subscribe to that integrated view on the level of linguistic descriptions and specifications.",
+        "However, from a computational view, we think that for special tasks not all that information is useful or required, at least not all at the same time.",
+        "In this paper we described attempts to make a more flexible use of integrated linguistic descriptions by splitting them up into subpackages that are handled by special processors.",
+        "We also devised an efficient protocol for communication between such processors and addressed a number of problems and solutions, some of which need further empirical investigation.",
+        "The results obtained so far indicate that our approach is very promising for making efficient use of codescriptive grammars in natural language analysis."
+      ]
+    }
+  ]
+}

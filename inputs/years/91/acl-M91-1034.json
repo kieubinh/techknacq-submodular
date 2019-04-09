@@ -1,0 +1,188 @@
+{
+  "info": {
+    "authors": [
+      "Jitender S. Deogun",
+      "Vijay V. Raghavan"
+    ],
+    "book": "Message Understanding Conference",
+    "id": "acl-M91-1034",
+    "title": "Description of the UNL/USL System Used for MUC-3",
+    "url": "https://aclweb.org/anthology/M91-1034",
+    "year": 1991
+  },
+  "references": [],
+  "sections": [
+    {
+      "heading": "BACKGROUND",
+      "text": [
+        "The muc-3 task consists of generating a database of filled templates with respect to messages that belong to a general topical domain.",
+        "In particular, for the current phase, the message collection belongs to the domain of terrorist activities.",
+        "On the one hand, a decision as to the relevance of a message to a specified class of terrorist events should be made.",
+        "If relevant, a predefined set of facts are to be extracted and placed as fills for appropriate slots of the template(s) created for this message.",
+        "If not relevant, a template having a '*1 as the fill in all but one slot, is created (see Appendix A for details).",
+        "Some aspects of the muc-3 task are amenable to be solved by techniques typically employed in information retrieval (IR).",
+        "These techniques are especially designed to be applicable to any domain.",
+        "In contrast, there are other aspects of the problem that may require a great deal of language understanding, thus needing natural language processing (NLP) techniques.",
+        "For the most part, NLP techniques may be considered domain dependent.",
+        "The primary thrust of our effort has been to design and implement a system that employs techniques typically found in IR literature, augmented by basic search techniques available in file management systems.",
+        "An important goal (for the time being) is to ensure that the system is domain independent to the greatest extent possible.",
+        "Consequently, certain slots which are not suitable ,to be handled by the chosen techniques are not filled.",
+        "In the context of the muc-3 task, slots fall into one of four categories depending on the type of fill that are applicable to them.",
+        "Our system is designed to handle slots whose values are from a set-list.",
+        "More specifically we process TYPE OF INCIDENT, CATEGORY OF INCIDENT, PERPETRATOR: CONFIDENCE, PHYSICAL TARGET TYPE, HUMAN TARGET TYPE, INSTRUMENT: TYPE(S), EFFECT ON PHYSICAL TARGET(S) and EFFECT ON HUMAN TARGET(S).",
+        "In addition, two slots whose fills are of string type are a so processed.",
+        "These are PERPETRATOR: ID OF oRG(s) and LOCATION OF INCIDENT.",
+        "As will be explained later, the system consists of an Indexing Module, a Learning Module, a Filtering Module, and a Template Filler Module.",
+        "We had developed and experimentally validated indexing and learning techniques for use in the context of information retrieval and classification.",
+        "These techniques were adapted to develop the indexing and learning modules for muc-3 in addition",
+        "to the development and implementation of other modules.",
+        "This site did not participate in either muc-1 or muc-2."
+      ]
+    },
+    {
+      "heading": "OVERVIEW OF THE SYSTEM",
+      "text": [
+        "A popular strategy in IR 15 to formulate the problem of identifying items relevant to a subject area as one of conceptual categorization.",
+        "The subject area(s) of interest is imagined as a concept or a class.",
+        "Example items relevant to a certain concept are assumed to be given.",
+        "Based on this information and using techniques for learning from examples, a concept characterization rule, that is optimal in a certain precise sense, is derived.",
+        "In other words, retrieval of relevant items is actually viewed as a \"recognition\" problem.",
+        "Our system employs the above idea by mapping possible fill values of set-list type slots to concepts of interest.",
+        "For example, in the context of the TYPE OF INCIDENT slot, fin values such as ARSON, MURDER, BOMBING, etc.",
+        "are the concepts to be learned.",
+        "Note that the question of whether concept ARSON is applicable to a message is equivalent to deciding whether a message belongs to the message class identified by the label ARSON.",
+        "Thus, the template filling task and the decision of whether a message is relevant to muc-3 task are investigated as problems requiring conceptual categorization.",
+        "For each concept that is considered by the system to be applicable to a message, the system also keeps track of the extent to which each of the paragraphs in the message contributed to this decision.",
+        "Judicious use of this information enables various important activities such as the resolution of the \"best\" fill for a slot from among alternatives, the linking of the fills to templates when more than one template must be generated for the same message, and the filling of the two string type slots.",
+        "The general architecture of the system is presented in Figure 1.",
+        "There are four major subsystems: Indexing Module, Learning Module, Filtering Module, and Template Filler Module.",
+        "Each of these systems are outlined next."
+      ]
+    },
+    {
+      "heading": "Indexing Module",
+      "text": [
+        "The function of the Indexing Module is to generate a representation for each message.",
+        "A message is represented by a vector of weights.",
+        "Each weight value either indicates the presence or absence of a term in the message or the importance of a term to the message.",
+        "A term is either a single-order term or a high-order term (i.e., single terms or word combinations representing phrases).",
+        "For the assignment of single terms to messages, the indexing module from the SMART Retrieval System [1] is used.",
+        "This module utilizes a stop list to filter out the common words and the \"nostemming\" option is chosen.",
+        "All terms that are assigned a weight larger than a threshold by this module are retained in the message representation vector.",
+        "For the purpose of phrase extraction, a modified version of the INDEX software, developed and implemented by Jones, et al.",
+        "[2,3], is used.",
+        "INDEX is used mainly to extract all possible substrings that are within certain minimum and maximum length specifications and are not substrings of other previously selected substrings.",
+        "Several strategies for filtering these to identify \"good\" phrases are provided as a part of the software developed for the muc-3 project.",
+        "Thus, each element of the vector representing a message corresponds to either a single term or a phrase.",
+        "The phrase identification is expected to be important as a precision improving device.",
+        "This module also generates the system vocabulary, which consists of all the distinct single terms and phrases used in representing the messages."
+      ]
+    },
+    {
+      "heading": "Learning Module",
+      "text": [
+        "The function of the learning module is to derive the concept categorization rules for the various concepts of interest.",
+        "Each rule is a vector of numeric weights, where the elements correspond to the terms in the system vocabulary.",
+        "This module also involves components for selecting a training set from the development set, identifying the concepts for which the training set has at least a minimum number of positive examples (i.e., the learnable concepts) and preparing the grid file, which shows for each message in the training set which of the learnable concepts are applicable.",
+        "The source for this information is the set of key-templates manually generated for the 1300 messages in the development set.",
+        "The concept rule vectors are derived by employing the perceptron learning algorithm [4].",
+        "The algorithm is simple and efficient.",
+        "The procedure is incremental in that the rule can be updated as new examples become available.",
+        "As long as a decision boundary exists, this algorithm is guaranteed to find one and terminate.",
+        "Usually, the decision boundary constructed is a hyperplane.",
+        "However, since the system vocabulary includes phrases, and phrases incorporate dependency information between single terms, our result is equivalent to constructing a non-linear boundary.",
+        "In the terminology of the connectionist networks, we employ a single-layer, high-order perceptron.",
+        "The single-layer option facilitates fast learning time, while the higher-order option enables the use of more powerful separation boundaries.",
+        "Furthermore, the concept rule vectors are connectionist, rather than symbolic in nature.",
+        "Such rules are more attractive when a large number of features are involved and when robustness against noisyness in features is crucial.",
+        "In addition to concepts associated with slot fills, another concept known as \"optimal-query\" is also derived.",
+        "This rule vector distinguishes messages that are not relevant to muc-3 task from those that generate at least one template.",
+        "The system is set up in such a way that the training set of messages for deriving this optimal-query vector can be different from that used for the other concepts."
+      ]
+    },
+    {
+      "heading": "Filtering module",
+      "text": [
+        "The Filtering Module is responsible for identifying concepts applicable to a set of test messages and deciding whether a message is relevant to the muc-3 task.",
+        "The major subsystems of this module are concerned with test message indexing, assessment of concept relevance and the evaluation of a rule base by means of an inference engine.",
+        "The test message indexing involves the determination of which of the single terms and phrases in the system vocabulary are contained in the message.",
+        "This process generates a message vector that is matched against each of the concept rule vectors to determine the corresponding activation values.",
+        "The distribution of the activation values for the test set of messages relative to each concept is analyzed to determine a threshold.",
+        "A concept is considered relevant to a message if the corresponding activation value exceeds the threshold chosen for that concept.",
+        "Depending on the concepts applicable to a message, the inference engine activates appropriate rules of the rule base, whose terminal symbols correspond to the various concepts acquired.",
+        "The rule base expresses the requirements in terms of concept combinations that, when present in a message, imply that the message is relevant to muc-3 task.",
+        "The module also identifies for each message, the extent to which its paragraphs contributed to the activation values relative to the different concepts.",
+        "This result is referred to as the concept vs. paragraph relevance vector.",
+        "For slots of string fill type, a database of possible fill values, grouped by slot name, is provided as input to this module.",
+        "For each string in the database for which at least one match is found in the message, the paragraphs in which a match is found and the frequency of its occurrence in each paragraph is determined."
+      ]
+    },
+    {
+      "heading": "Template Filler Module",
+      "text": [
+        "This module is responsible for generating one or more templates for each message determined to be relevant by the Filtering Module and filling the slots on the basis of concepts and string filled that are activated.",
+        "For each relevant message either the optimal-query concept is activated or one or more incident types are recognized along with a desired combination of concepts (or both).",
+        "In the case exactly one incident type is recognized, for each of the other slots the following is performed.",
+        "If several concepts",
+        "are activated for this slot and only one value is permitted, the one with highest activation value is chosen; otherwise, all values are filled.",
+        "In the case more than one incident type is activated, the system must decide, for each activated concept, to which incident type it is the closest.",
+        "For this purpose, the concept versus paragraph relevance vector is used.",
+        "This vector contains the contribution of the various paragraphs in a message to the activation value of the slot fill relative to this message.",
+        "The paragraph relevance vector of an activated slot fill, say CIVILIAN (from HUMAN TARGET TYPE), is compared to the vector associated with each of the activated incident types, say KIDNAPPING and MURDER.",
+        "The strength of this match is then used to decide whether the fill CIVILIAN will be used in the KIDNAPPING or the MURDER template.",
+        "If a message becomes relevant only due to optimal-query, then it enables other slots having activated fills to be filled even though no TYPE OF INCIDENT may have been activated."
+      ]
+    },
+    {
+      "heading": "SYSTEM WALKTHROUGH",
+      "text": [
+        "The system walkthrough explains how the message TsT1-muc3-0099 is processed.",
+        "The result obtained corresponds to the parameter settings used in our Option 4 (see report on UNL/USL: MUC-3 Test Results and Analysis).",
+        "In this option, Training Set 2 is used for determining the rule vector for optimal-query and Training Set 3 is used for the other concepts.",
+        "The threshold used for deciding whether a concept is activated is based on an analysis of the distribution of the activation values of this concept relative to the test set messages (threshold setting Ti).",
+        "Table 1 shows a list of all set-list type fills and those that are actually learnable on the basis of training set 3.",
+        "The concept rule vectors for each of these fills are constructed by using the indexing and the learning module.",
+        "The test message is indexed and the dot product of its representation vector with each of the concept rule vectors is computed.",
+        "The activation values so obtained are compared to the corresponding threshold values.",
+        "Table 2 shows that, for the current message, the following five concepts are activated: BOMBING, TERRORIST ACT, TRANSPORT VEHICLE, SOME DAMAGE, and the optimal-query.",
+        "These concepts activate the appropriate leaf nodes of the AND/OR tree associated with the rulebase shown in Table 4.",
+        "This results in the root node getting the value \"true\" and therefore, this message is termed relevant.",
+        "For the current testing, the rule base is defined with all the concept weights being either 0 or 1.",
+        "The inference engine is, however, capable of handling any numeric weights between 0 and 1.",
+        "The vector representation for each of the paragraphs in the message are also multiplied by the concept rule vectors to obtain the paragraph vs concept relevance vector (Table 3).",
+        "This paragraph information is not useful in this case since neither several fills are activated for a slot for which only one fill is permitted nor is there an indication, in terms of INCIDENT TYPE activations, that multiple templates should be created.",
+        "For the two string fill slots the matching strings along with their occurrence frequency in the various paragraphs is shown in Table 5.",
+        "The paragraph vector for BOMBING is found to match the paragraph vector of \"POLICE\" better (wrong decision!).",
+        "All 3 incident locations have a positive activation value with BOMBING.",
+        "Since the location slot permits multiple fills, all three may be retained.",
+        "However, since \"PRC\" is not one of the South American countries, it is discarded.",
+        "The filled template for this message is shown in Table 6.",
+        "This template most closely matches key-template that is numbered 2 (see Appendix H).",
+        "The paragraph relevance vector matching technique needs to be refined as evidenced by the choice of \"POLICE\" as the perpetrator organization.",
+        "Furthermore, template filler module should be refined to automatically determine and incorporate in the filling process various dependencies between template fills.",
+        "For example, \"POLICE\" is inconsistent with CATEGORY OF INCIDENT being TERRORIST ACT.",
+        "By proper modification of the stop list used during phrase extraction, phrases such as NO INJURY could be extracted.",
+        "The optimal-query vector identifies relevant passages fairly accurately.",
+        "Careful detailed analysis of individual instances should lead to many ideas for improvement."
+      ]
+    },
+    {
+      "heading": "0. MESSAGE ID TST1-MUC3-0099 1. TEMPLATE ID 2. DATE OF INCIDENT 3. TYPE OF INCIDENT BOMBING 4. CATEGORY OF INCIDENT TERRORIST ACT 8. PERPETRATOR: ID OF INDIV(S) 6. PERPETRATOR: ID OF ORG(S) \"POLICE\" 7. PERPETRATOR: CONFIDENCE 8. PHYSICAL TARGET: ID(S) 9. PHYSICAL TARGET: TOTAL NUM",
+      "text": []
+    },
+    {
+      "heading": "REFERENCES",
+      "text": []
+    },
+    {
+      "heading": "PART IV: OTHER CONTRIBUTED PAPERS",
+      "text": [
+        "The papers in this section provide two general perspectives on MUC-3 that came out of the evaluation task.",
+        "The first paper describes an experimental system based on a statistical text categorization technique.",
+        "The results of testing that system on the MUC-3 task help in assessing the difficulty of the task and the appropriateness of text categorization as an element of a complete information extraction system.",
+        "The second one is a joint paper prepared by representatives of seven of the participating sites on the subject of discourse analysis as it pertains to MUC-3.",
+        "The desire to offer this paper arose from the common perception of the discourse handling demands placed on the systems by the MUC-3 corpus and task."
+      ]
+    }
+  ]
+}

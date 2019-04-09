@@ -1,0 +1,243 @@
+{
+  "info": {
+    "authors": [
+      "Alexander Koller",
+      "Joachim Niehren"
+    ],
+    "book": "International Conference on Computational Linguistics",
+    "id": "acl-C00-1067",
+    "title": "On Underspecified Processing of Dynamic Semantics",
+    "url": "https://aclweb.org/anthology/C00-1067",
+    "year": 2000
+  },
+  "references": [
+    "acl-P00-1047",
+    "acl-P83-1020",
+    "acl-P94-1023",
+    "acl-P95-1021",
+    "acl-P98-1058"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We propose a new inference system which operates on underspecified semantic representations of scope and anaphora.",
+        "This system exploits anaphoric accessibility conditions from dynamic semantics to disambiguate scope ambiguities if possible.",
+        "The main feature of the system is that it deals with underspecified descriptions directly, i.e. without enumerating readings."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "A particularly appealing aspect of underspecification (van Deciliter and Peters, 1996; R,eyle, 1993; Muskens, 1995; Pinkal, 1996; Bos, 1996) is that it can in principle deal very efficiently with local ambiguities – ambiguities which are only due to lack of information at an intermediate stage of processing and go away by the end of the analysis.",
+        "An example for this effect is (1): The scope ambiguity that is perceived after processing the first sentence is no longer present after the second one.",
+        "This effect can be explained in a framework of dynamic semantics (Groenendijk and Stokhof, 1991; Kamp and Reyle, 1993) by the fact that a wide-scope universal quantifier would make the indefinite inaccessible for anaphoric reference from the second sentence.",
+        "(1) Every man loves a woman.",
+        "Her name is Mary.",
+        "In this paper, we show how this particular type of local ambiguity can be processed efficiently.",
+        "The approach we propose employs deterministic inference rules that can exclude the readings which violate anaphoric accessibility conditions without enumerating them.",
+        "These rules operate directly on underspecified descriptions and fully maintain underspecifiedness.",
+        "We also show how this behaviour can be captured by constraint propagation in an existing implementation of tree descriptions using finite set constraints (Duchier and Niehren, 2000; Koller and Niehren, 2000; Duchier and Gardent, 1999).",
+        "More specifically, we introduce DPL structures, extended tree structures that encode formulas of dynamic predicate logic (DPL) in much the same way as Egg et al.",
+        "'s (1998) lambda structures encode A-terms.",
+        "Then we define a constraint language for the description of DPL structures, called CL(DPL), in analogy to Egg et al.",
+        "'s constraint langague for lambda structures (CLLS).",
+        "We characterize those DPL structures in which all restrictions on anaphoric accessibility are obeyed by talking directly about the syntactic structure of a DPL formula.",
+        "This is in contrast to the standard procedure in dynamic semantics, where the dynamic behaviour is produced by the semantics of the logic; we do not need to (awl do not) talk about interpretation of DPL structures and model accessibility by purely \"static\" means.",
+        "The paper is structured as follows.",
+        "In Section 2, we introduce DPL structures and tree descriptions in the language CL(DPL).",
+        "In Section 3, we add syntactic restrictions on admissible variable bindings to DPL structures and present; axioms that characterize these restrictions.",
+        "In Section 4, we turn these axioms into deterministic inference rules and combine them with deterministic inference rules known from an existing inference algorithm for dominance constraints.",
+        "We obtain a procedure that can do the kind of underspecified reasoning described above without enumerating readings.",
+        "In Section 5, we sketch an implementation of our inference system based on finite set constraint programming.",
+        "This implementation can be obtained by adapting an existing implementation of a solver for dominance constraints.",
+        "Finally, we conclude and point to further work in Section 6."
+      ]
+    },
+    {
+      "heading": "2 Tree Descriptions",
+      "text": [
+        "In this section, we define the Constraint Language for DPL structures, CL(DPL), a language of tree descriptions which conservatively extends dominance constraints (Marcus et al., 1983; Rainbow et al., 1995; Koller et al., 2000) by variable binding constraints.",
+        "CL(DPL) is a close relative of the Constraint Language for",
+        "Lambda Structures (CLLS), presented in (Egg et al., 1998).",
+        "It is interpreted over DPL structures -- trees extended by a variable binding function which can be used to encode formulas of dynamic (or static) predicate logic.",
+        "We will define DPL structures in two steps and then the language to talk about them."
+      ]
+    },
+    {
+      "heading": "2.1 Tree Structures",
+      "text": [
+        "For the definitions below, we assume a signature = 012, vario,Vii, Al2 of node labels, each of which is equipped with a fixed arity n > 0.",
+        "The labels A, V, ... are the first-order connectives.",
+        "Node labels are ranged over by f, g, a, b, and the arity of a label f is denoted by ar(f); i.e. if fin E E then ar(f) = Let N be the set of natural numbers 7), > 1.",
+        "As usual, we write IT for the set of words over N, c for the empty word, and 717r1 for the concatenation of two words 71, 7TI E .",
+        "A word 7r is a prefix of 7TI (written 7C < 71 if there is a word 71.\" such that 7T7T\" = 711.",
+        "A node of a tree is the word 71 E N* which addresses the node.",
+        "The empty word c E N* is called the mot node.",
+        "A tree domain A is a nonempty, prefixed-closed subset of N* which is closed under the left; sibling relation.",
+        "Definition 2.1 A tree structure is a tuple (A, a) consisting ().f a finite tree domain A and a total labeling function a : A E such that for all 71 E A and e N:",
+        "We say that the nodes 7f, 71-1, , 7T„ are in the labeling relationship 71-:f (7it, 710 iff a(7r) = f and for each 1 < i < n, 71i = 7ri.",
+        "Similarly, we say that a node 7C properly dominates a node 7r' and write 7r<-1-71-' iff 7r is a proper prefix of .",
+        "We take 7r and 7/1 to be disjoint (7r 17r') if they are different and neither node dominates the other.",
+        "So any two nodes in a tree structure are in one of the four relations = (equality), <-1-, D+ (the inverse of <+), or .",
+        "We shall also be interested the combinations of these relations by set operators: intersection, complementation, union, and inversion.",
+        "For instance, the dominance relation -‹* is defined as the union of node equality and proper dominance = U<+.",
+        "Finally, we define the ternary non-intervention relation –,(7r<*7r1<*7r\") to hold iff it is not the case that both 71- < 711 and 711 < 7r\"."
+      ]
+    },
+    {
+      "heading": "2.2 DPL structures",
+      "text": [
+        "Now we extend tree structures by variable binding and obtain DPL structures.",
+        "To this end, we partition E into three sets: connec-lives con = {V, A, predicate symbols ›-ipred {man, likes, ...}, and term symbols Eterm {var, peter, mother_of, which subsume the variable symbol var and function symbols.",
+        "and a partial variable binding function A : A A which satisfies for all IT, C A: 1, 0-(70 C 21;c0„ then O(Tri) C Yicon U >pred .for",
+        "all .tri C A; 2.",
+        "0-(70 C >pred U Etenn then 0-(7ri) E Eterm fin' all 7ri E A; 3.",
+        "(70 = 7T1 then 470 = var and (TM",
+        "{V, ]}.",
+        "DPL structures can be used to represent formulas of first-order predicate logic.",
+        "For instance, the DPL structure in Fig. 1 represents the (unique) meaning of (1).",
+        "So far, however, variables bound by a quantifier do not need to be in any special position in a DPL structure: in particular, not in its scope.",
+        "To enforce scoping as in static predicate logic, we could simpy add the condition 71f <I*7C in condition 3 of Definition 2.2.",
+        "We will define an appropriate counterpart for DPL in Section 3 (properness).",
+        "Modeling variable binding with an explicit binding function instead of variable names was first proposed in (Egg et al., 1998).",
+        "There, binding functions help to avoid a capturing problem in the context of scope underspecification which becomes most apparent in the presence of ellipsis.",
+        "Here the binding function mainly gives us a different perspective on variable binding which",
+        "is useful for defining properness of DPL structures."
+      ]
+    },
+    {
+      "heading": "2.3 The Constraint Language CL(DPL)",
+      "text": [
+        "The syntax of CL(DPL) is defined in Figure 2.",
+        "It provides constraints for all the relations discussed above.",
+        "There are labeling constraints X:f Xn), expressive combinations XRY of dominance constraints with set operators (Duchier and Nickell, 2000; Cornell, 1994), non-intervention constraints –,(X‹* -i*Z), and binding constraints CL(DPL) is interpreted over DPL structures.",
+        "A variable assignment into a DPL structure ./14 is a total function from the set of variables of a constraint to the domain of ./V1.",
+        "A pair (M, a) of a DPI, structure M and a variable assignment a into M satisfies a constraint (0 iff it satisfies all of its atomic constraints; that is, if the relation with the same symbol holds of the nodes assigned to their arguments.",
+        "We also call the pan (M, a) a solution and M a model of cp.",
+        "Only some of the atomic constraints in CL(DPL) are used in underspecified descriptions – in particular, labeling, dominance, and binding constraints; the other constraints are helpful in processing the others.",
+        "These three types of constraints can be transparently displayed in constraint graphs.",
+        "For instance, the constraint graph in Fig. 3 represents a constraint describing the readings of example (1) including the scope ambiguity.",
+        "The nodes of the graph stand for variables in the constraint; labels and solid edges represent labeling constraints, dotted edges, dominance constraints, and dashed arrows, binding constraints.",
+        "In addition, the constraint graph represents an inequality constraint X--,=-Y between each two variables whose nodes carry a label.",
+        "A constraint with the latter property is called overlap-free.",
+        "The intuition is that the solid-edge tree fragments in the constraint graph must never overlap properly in a solution."
+      ]
+    },
+    {
+      "heading": "3 Dynamic Semantics in CL(DPL)",
+      "text": [
+        "The semantics of DPL is built in a way that allows quantifiers to bind only variables in certain positions: inside their scopes and, if it is an existential quantifier, from the left-hand sides of conjunctions and implications into the right-hand sides.",
+        "In CL(DPL), we model this as a purely syntactic restriction on the accessibility of binders which we define as a structural property of DPL structures.",
+        "DPL structures which have this property will be called proper.",
+        "A useful auxiliary concept for the definition is that of an infimum, of two nodes with respect; to the dominance relation <*, which constitutes a lower semilattice because of the underlying freeness of DPL structures.",
+        "Furthermore, we will use the standard DPL notions of internally dynamic connectives 2 cii {A, and externally static connectives E';'',toa„t = --I, V, The semantics definition of DPL gives these two groups special relevance for variable binding.",
+        "Now we can define proper DPL structures as follows.",
+        "proper if for each node 7T of .A4 on which A is defined, one of the following cases holds true where p, is the infimum of 7T and A(70.",
+        "is labeled with an internally dynamic connective, and no node between pi and A(7r), inclusively, is labeled with an externally static connective.",
+        "Intuitively, the first branch of the definition corresponds to usual binding of variables inside the scope of a quantifier.",
+        "In the second branch, the positions of the variable and the (existential) quantifier in the DPL structure are disjoint, and the quantifier is dominated by the left child of the infimum.",
+        "Then the infimum must be labeled with an internally dynamic connective, and there must be no externally static connective between this node and the quantifier.",
+        "This restriction is what we are going to exploit",
+        "to capture the influence on scope.",
+        "There is no such restriction for the path between the infimum and the variable.",
+        "Solutions of a constraint that violate the dynamic; accessibility conditions are now excluded simply by restricting the class of admissible solutions to proper ones.",
+        "As expected from the linguistic intuition, only one solution of the running example (1) is proper: the one where \"a woman\" is assigned wide scope (Fig.",
+        "1).",
+        "The other solution is not proper because the path from the infimum (denoted by Z0 in Fig. 3) to the antecedent contains a universal quantifier.",
+        "Properness of a DPI, structure can he axiomatized syntactically: A DPI, structure is proper ill the CL(DPL) axioms (I )ynt) to (Dyn4) in Fig. 4 are valid over it.",
+        "The rule (Dynl) forces universal quantifiers to bind only variables in their scopes, and the rules (Dyn2) to (Dyn4) enforce properness of binding when a variable is not in the scope of its binder."
+      ]
+    },
+    {
+      "heading": "4 Underspecifiecl Reasoning",
+      "text": [
+        "We next present a procedure for underspeci-lied reasoning with dynamic semantics.",
+        "The goal is to narrow an underspecified description such that improper DPL-structures are removed from the solution set.",
+        "Narrowing should apply as soon as possible, so underspecifiedness can be maintained and readings need not he enumerated.",
+        "We present an inference procedure that can do this and go through two examples."
+      ]
+    },
+    {
+      "heading": "4.1 Inference Procedure",
+      "text": [
+        "This inference procedure saturates a constraint according to the rules in Figures 4 and 5; that is, whenever a constraint; contains the left-hand side of a rule, it adds its right-hand side, until no new conjuncts can he added.",
+        "Fig.",
+        "4 contains simply the properness axioms from the previous sections, turned into deterministic proof rules.",
+        "The rules in Fig. 5 are propagation rules from Algorithm DO in (Duchier and Niehren, 2000), plus new rules for non-intervention constraints.",
+        "Algorithm DO contains some additional rules, in particular distribution rules that perform case distinctions, because DO is a complete solver for dominance constraints with set operators, which improves on (Duchier and Gardent, 1999; Koller et al., 1998).",
+        "We have omitted the distribution rules here because we do not want to perform case distinctions; by adding them again, we could enumerate all proper solutions, as Schiehlen (1997) does for UDRT.",
+        "The new rules (Nontl) and (NonI2) allow to derive dominance information from nonintervention constraints.",
+        "As we will see, the most interesting rule in Fig. 4 is (Dyn2), which derives explicit non-intervention information from the structural properties of dynamic binding.",
+        "Note that while flue rules in Fig. 5 are sound over any DPL structure, those in Fig. 4 are only sound over proper DPL structures.",
+        "This is intended: Application of a properness rule is supposed to exclude (improper) solutions."
+      ]
+    },
+    {
+      "heading": "4.2 Examples",
+      "text": [
+        "The inference rules go a long way towards making the effect of dynamic semantics on scope explicit.",
+        "Let us consider the running example in Figure 3 to see how this works; we show how to derive y,ex, which specifies the relative quantifier scope.",
+        "First of all, we need to make flue information",
+        "Z2<*Z3 explicit by application of (Lab.Dom) and (Inter).",
+        "In this instance, (Inter) is used as a rule of weakening.",
+        "Now we can apply the rule (Dyn2) to the variable binding constraint A(Z3) = Y (drawn in boldface in the graph) and the V labeling constraint to derive a non-intervention constraint.",
+        "All that is left to do is to make the positive dominance information contained in the new non-intervention constraint explicit.",
+        "As the constraint also contains Zo‹* X , we can apply (NonIl) on the new non-intervention constraint and derive X-KeY .",
+        "(NonIl) -,(Zo<*X<*Y) A Zo<*.X.",
+        "X-KrY",
+        "On the other hand, we can derive non-disjointness of X and Y because (Trans), (Lab.Dom), and (Inter) allow the derivation of X-ci*W and Y<*W:",
+        "We can now combine all of our constraints for X and Y with the intersection rule and obtain Y<I*X, which basically determines the order of the two quantifiers:",
+        "(Inter) X-,<*17.",
+        "A X-, I Y Y ‹* X",
+        "By exploiting the fact that the constraint is overlap-free (i.e. contains an inequality constraint for each two labeled variables), we can even derive Y3<*X by repeated application of the rules (Child.down), (Lab.Disj), (NegDisj), and (NegDom).",
+        "This means that we have fully disambiguated the scope ambiguity by saturation with deterministic inference rules.",
+        "Now let us consider a more complicated example.",
+        "Fig.",
+        "6 is the underspecified description of the semantics of (2) Every visitor of a company saw one of its departments.",
+        "The constraint graph has five solutions, three of which are proper.",
+        "Unfortunately, the constraint language is not expressive enough to describe these three solutions in a single constraint: Both X and Z can be either above or below Y, even in a proper solution, but if X is below Y, Z must be too, and if X is above Y, Z must be anywhere below X (but may be above",
+        "Y!).",
+        "In other words, this constraint is an example where the inference procedure is not strong enough to narrow the description.",
+        "In tins case, we must still resort to performing nondeterministic case distinctions; at worst, the rules will apply on solved forms of CL(DPL) constraints.",
+        "5 Processing with Finite Set Constraints This inference procedure fits nicely with an implementation of dominance constraints based on constraint programming (Marriott and Stuckey, 1998; Koller and Niehren, 2000) with finite set constraints (Willer, 1999).",
+        "Constraint programming is a technology for solving combinatoric puzzles efficiently.",
+        "The main idea is to replace \"generate and test\" by \"propagate and distribute\".",
+        "Constraint propagation performs deterministic inferences which prune the search space, whereas distribution performs (nondeterministic) case distinctions.",
+        "Duchier and Niehren (2000) show how to implement a dominance constraint solver by encoding dominance constraints as finite set constraints and disjunctive propagators.",
+        "This solver does not handle non-intervention constraints, but we show here that they can be added very naturally.",
+        "The (Dyn) rules still have to be implemented as saturation rules.",
+        "The idea of this implementation is to encode a solution (M, a) of a dominance constraints by introducing for each variable X in the constraint and each relation symbol R e {<11\", =, 1 } a finite set variable R(X).",
+        "This variable is supposed to denote the set of all variables denoting nodes that are in the relation R to a(X): R(X) = {Y E V(co) (M, a) Y RX} Dominance constraints can now be stated as constraints over these set variables; examples for set constraints are V C V' and V = Vi U V2.",
+        "The new non-intervention constraint (X <1*Y<'' Z) can be encoded as",
+        "The builtin propagation for set constraints automatically implements the rules (Noun) and (NonI2).",
+        "For instance, assume that X <*Y belongs to v); then there will be a set constraint Y <1+ (X), so set constraint propagation will derive Y E 1(Z) U CH-(Z).",
+        "Tins is the immediate encoding of YI U D+Z, winch is equivalent to Y – KI*Z."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "In tins paper, we have shown how a specific type of local ambiguity, which is produced by the interaction of intersentential anaphora and scope ambiguities, call be processed efficiently in the framework of underspecification.",
+        "We have defined DPL structures, which can be used to model formulas of DPL, and proper DPL structures, in which variable binding must obey the accessibility conditions of DPL.",
+        "Finally, we have shown how an underspecified description can be narrowed to a description of its proper solutions, sometimes without even partial enumeration of readings, and integrated tins operation into an implementation of dominance constraints which is based on finite set constraints.",
+        "Seen from the perspective of DPL, our definition of properness is purely syntactic and technically has nothing to do with dynamic semantics.",
+        "We could state such a definition because the explicit variable binding functions gave us a structure-independent handle on variable binding that excluded all forms of capturing.",
+        "This deviates from the standard perspective of indef",
+        "Mites changing the context, but has the advantage of being extremely modular in that the accessibility conditions are factorized out explicitly.",
+        "For instance, it is simple to represent the meaning of \"Bach-Peters sentences\" by relaxing these conditions; it should also be easy to adapt; our formalism to other frameworks of dynamic semantics.",
+        "Of course, the question of how to interpret a DPL structure remains open.",
+        "Another open question is how the approach presented here can be extended to higher-order systems of dynamic semantics (e.g.",
+        "Dynamic Lambda Calculus (Kuschert, 1999)).",
+        "In this context, it could be worthwhile to restore the distinction of variable binding and anaphoric linking from CLLS.",
+        "Finally, it should be interesting to find other classes of local ambiguity that lend themselves to a treatment as presented here.",
+        "So far, there, are not many related examples; one is lexical ambiguity in parsing of dependency grammar, as presented in (Duchier, 1999).",
+        "However, we believe that the work presented here provides further illustration that underspecified processing can go a long way towards efficient processing of local ambiguities.",
+        "Acknowledgments.",
+        "This work was supported by the Deutsche Forschungsgemeinschaft in the SFB 378.",
+        "As always, we thank all members of the SFB 378 project CHORUS at the University of the Saarland.",
+        "We are also grateful to the participants at the Dagstuhl workshop on Dynamic Semantics in February 1999 for comments and discussions on an earlier version of this paper."
+      ]
+    }
+  ]
+}

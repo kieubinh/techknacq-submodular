@@ -1,0 +1,420 @@
+{
+  "info": {
+    "authors": [
+      "Graham J. Russell",
+      "John Carroll",
+      "Afzal Ballim",
+      "Susan Armstrong"
+    ],
+    "book": "Computational Linguistics",
+    "id": "acl-J92-3003",
+    "title": "A Practical Approach to Multiple Default Inheritance for Unification-Based Lexicons",
+    "url": "https://aclweb.org/anthology/J92-3003",
+    "year": 1992
+  },
+  "references": [
+    "acl-C86-1016",
+    "acl-C86-1050",
+    "acl-E89-1008",
+    "acl-E89-1025",
+    "acl-E91-1024",
+    "acl-P84-1008",
+    "acl-P85-1032",
+    "acl-P86-1038",
+    "acl-P90-1021"
+  ],
+  "sections": [
+    {
+      "heading": "Afzal Ballim* ISSCO Susan Warwick-Armstrong* ISSCO",
+      "text": [
+        "This paper describes a unification-based lexicon system for NLP applications that incorporates mechanisms for multiple default inheritance.",
+        "Such systems are intractable in the general case the approach adopted here places a number of restrictions on the inheritance hierarchy in order to remove some of the sources of complexity while retaining more desirable properties.",
+        "Implications of the design choices are discussed, comparisons are drawn with related work in computational linguistics and Al, and illustrative examples from the lexicons of German and English are given."
+      ]
+    },
+    {
+      "heading": "1. Introduction",
+      "text": [
+        "In essence, the primary task of a computational lexicon is to associate character strings representing word forms with various types of information, able to account for their distribution within a sentence and for their contribution to the meaning of a text.",
+        "Economical lexical organization appears to require the ability, on the one hand, to make general statements about classes of words, and, on the other, to express exceptions to such statements affecting both individual words and subclasses of words.",
+        "These considerations have provoked interest in applying to the domain of the lexicon Al knowledge representation techniques involving the notions of inheritance and defaults) Unfortunately, many of the schemes that have been proposed are highly complex; departing from simple tree-form taxonomies dramatically increases the problems of dealing in a systematic fashion with default inheritance.",
+        "Not only are the intuitions underlying the behavior of systems such as those of Touretzky (1986) and Sandewall (1986) unstable (as Touretzky et al.",
+        "[1987] show), Selman and Levesque (1989) demonstrate that certain of them are NP-hard and thus effectively intractable.",
+        "In a well-defined domain such as the lexicon there remains the possibility of mitigating these problems by adopting a principled compromise; it may be advantageous to surrender some of the generality of an inheritance system, if the more restricted version that results retains sufficient expressive power for the domain in question.",
+        "We expand on this below and propose a number of simplifications that are motivated by the particular task that the system is intended to perform.",
+        "The system described here has been implemented as part of the au' unification grammar development environment for research in machine translation, made up of parser, generator, lexicon, and transfer mechanism.",
+        "The user language resembles that of PATR-II (Shieber 1986a), but provides a larger range of data types and more powerful means of stating relations between them.",
+        "Among the requirements imposed by the context within which this system is used are (i) the ability to both analyze and generate complex word forms, (ii) full integration with existing parts of the au environment, and (iii) the ability to accommodate a relatively large number of words.",
+        "In particular, an important objective is to preserve as far as possible the flavor of this type of environment: a specialized programming language for linguistic descriptions, suitable for interpretation by a variety of programs performing tasks such as analysis and generation of sentences and phrases, lexical lookup, etc., which associates with natural language expressions representations defined by the writer of a linguistic description and employs unification as the method of combining information and enforcing constraints.",
+        "The intention is that the au language should be as general as possible, in the sense of imposing minimal restrictions on the form of linguistic analyses and descriptions.",
+        "Unification is an attractive choice as the basic computational mechanism of such a system, for well-known reasons: its algebraic properties permit a declarative, monotonic semantics for the language that is independent of whatever programs interpret it.",
+        "However, it does not always meet the requirements of practical linguistic descriptions.",
+        "The treatment of exceptions is a case in point; negation and conditional statements of the kind excluded by pure unification frequently play a large part in accounts of natural language phenomena, and the best-motivated area for the application of these ideas appears to be the lexicon.",
+        "It is this problem that the current work seeks to address.",
+        "We would hope that the interest of the system presented here extends beyond the particular environment for which it has been developed; as an attempt to reconcile two apparently disparate paradigms, the combination of inheritance and unification may be of interest in quite different contexts.",
+        "The remainder of the paper is organized as follows.",
+        "Section 2 discusses general issues concerning the organization of the system: the basic formalism is introduced, together with the notions of multiple inheritance, default inheritance, and class precedence.",
+        "Section 3 describes the system in greater detail, showing how the form of the inheritance hierarchy determines how information in lexical specifications is combined, and Section 4 provides some comparisons with related work.",
+        "Some more extended linguistic examples appear in Section 5; these serve to illustrate the various mechanisms described earlier and suggest methods that might be adopted in formulating other analyses.",
+        "Finally, in Section 6, the current implementation is discussed.",
+        "Graham Russell et al.A Practical Approach to Multiple Default Inheritance tion by specifying the 'intransitive' class as one of their superclassesit then becomes unnecessary to specify the relevant properties individually for each such verb.",
+        "Similarly, the 'intransitive' class need not express any of the more general properties of the 'verb' class.",
+        "The lexicon may be thought of as a tangled hierarchy of classes linked by inheritance paths, with, at the most specific level, lexical classes and, at the most general, classes for which no superclasses have been defined; these therefore inherit no information from elsewhere.",
+        "Basic lexical entries are themselves classes,' and any information they contain is standardly specific to an individual word; lexical and non lexical classes differ in that analysis and generation take only the former as entry points to the lexicon.",
+        "It is possible to define certain properties of a class as defeasible.",
+        "Such a property will be inherited from a superclass only if it is consistent with all properties contributed by more specific classes; if it is not consistent, then it is ignored.",
+        "Defeasible constraints imposed on a class of words may thus be overridden by information associated with individual members or subclasses of that class; this is the notion of default that underlies the system.",
+        "It is possible, for example, to place in the class expressing general properties of verbs an equation such as '<aux> = no' (i.e. \"typical verbs are not auxiliaries\"), while placing the contradictory specification '<aux> = yes' in a subclass from which only auxiliaries inherit.",
+        "The ability to encode exceptional properties of lexical items is extremely attractive from the linguistic point of view; the lower the position in the hierarchy at which the property appears, the more exceptional it may be considered.",
+        "Like other parts of an au description, a lexicon consists of a set of statements that are compiled into an internal format for use in analysis and generation of linguistic expressions.",
+        "Section 2.6 describes some relevant aspects of the lexical compilation process.",
+        "2.1.1 Class Definition.",
+        "A class definition consists of the compiler directive '#C1 as s' (for a nonlexical class) or '#Word' (for a lexical class),4 followed by: (i) the name of the class (ii) a (possibly empty) list of its direct superclasses (iii) a (possibly empty) 'main' equation set (iv) zero or more (possibly empty) 'variant' equation sets.",
+        "2.1.2 Superclass Declaration.",
+        "The superclass declaration is a list of the names of any direct superclass of the current class.",
+        "This is used in computing the relative precedence of classes in the lexicon for the purpose of default inheritance (see Section 2.5); it may be empty if the class has no superclasses, i.e., if it is one of the most general in the lexicon, and thus inherits no information.",
+        "Precedence of direct superclasses is 3 Thus no distinction is made between classes and 'instances,' as in, e.g., KL-ONE (Schmolze and Lipkis 1983) and much more recent work.",
+        "One reason for this is that instances of the kind appealed to by some KR researchers do not exist within a unification-based linguistic description.",
+        "What would count as an instance in this context is an occurrence of a word in the analysis of some text; in general, information associated with one particular occurrence of a word will originate partly in its lexical specification and partly through unifications with other items.",
+        "A second, related reason for not enforcing a class/instance distinction is that lexical classes may themselves usefully be inherited from; examples of this behavior are discussed in Section 5.2.",
+        "4 Both lexical and nonlexical classes have the same form and interpretation.",
+        "The distinction becomes relevant for lexical access; only lexical classes are taken as entry points to the lexicon.",
+        "Computational LinguisticsVolume 18, Number 3 determined by the order in which they appear in the list--more specific classes appear to the left of more general ones.",
+        "Precedence of nondirect superclasses is derived by topologically sorting the hierarchy in a manner described in Section 2.6."
+      ]
+    },
+    {
+      "heading": "2.2 Other Aspects of the ELU Language",
+      "text": [
+        "We introduce here a variety of notational conventions used in the examples below.",
+        "Graham Russell et al.A Practical Approach to Multiple Default Inheritance 2.2.4 Path Specifications.",
+        "Attribute value paths are notated in the form '<al, an>.'",
+        "2.2.5 Variables.",
+        "Unification variables have an initial uppercase letter; quoted expressions beginning with uppercase letters are interpreted as constants.",
+        "Thus, Var is a variable, and both atom and ' Var ' are atomic FSs."
+      ]
+    },
+    {
+      "heading": "2.3 An Example",
+      "text": [
+        "The following example illustrates the form and interaction of class definitions.",
+        "The lexical class walk is declared as having two direct superclasses, Verb and Intransitive; its main set contains just one equation, which sets the value of the feature <stern> to be walk.",
+        "Intransitive has no direct superclasses, and its main equation set assigns to the value of <subcat> a list with one element, a feature structure in which the value of <cat> is np.",
+        "Neither walk nor Intransitive has any variant equation sets.",
+        "Verb, by contrast, has three, in addition to two main set equations assigning default values for <cat> and <aux>.",
+        "The three variants accounted for by this example are: the past tense verb, in which the value of <f orm> unifies with the result of concatenating the value of <stem> with the string 'ed,' the third person singular form of the present tense, in which the suffix string is 's,' and the form representing other combinations of person and number in the present tense; in the last case, the <f orm> value is simply identical to the <stem> value."
+      ]
+    },
+    {
+      "heading": "2.4 Multiple Inheritance",
+      "text": [
+        "As we have just seen, a class may inherit from more than one direct superclass.",
+        "Instead of a simple, tree-form taxonomic structure, therefore, the lexical hierarchy takes the form of a directed (acyclic) graph.",
+        "In general, multiple inheritance of this kind necessitates more complex methods of searching a hierarchy; in the worst case, the number of paths to be traversed grows exponentially with the depth of the hierarchy.",
+        "Moreover, since it then becomes possible to reach a node by more than one path, the presence of exceptions (via default assignments or negative links) permits incompatible",
+        "Computational LinguisticsVolume 18, Number 3 conclusions to be drawnforks leading to such inconsistencies must be detected and suitable records kept.",
+        "Much of the complexity of inheritance reasoners lies in finding and determining what to do in these cases of ambiguity.'",
+        "Multiple inheritance is not an a priori necessity for lexical specification, so it is worth considering whether any phenomena occur in this domain that might make multiple inheritance preferable to the simpler tree-structured hierarchy.",
+        "If it proved possible to eliminate this source of complexity, the goal of a practical inheritance system would be nearer.",
+        "However, natural language lexicons do appear to require description in terms of 'tangled hierarchies,' at least if certain types of generalization are not to go unexpressed.",
+        "It has often been observed, for example, that syntactic and morphological properties are in many respects disjoint; the subcategorization class of a verb cannot be predicted from its conjugation class, and vice versa.",
+        "A French lexicon will distinguish three basic verb conjugations, exemplified by the transitive aimer ('love'), hair ('hate'), and voir ('see').",
+        "Each of these three classes, not surprisingly, also contains intransitive verbs; in a tree-form hierarchy, nodes must be created for first conjugation transitive and first conjugation intransitive verbs, and similarly for the other cases, with information relevant to transitive verbs in general, or first conjugation verbs in general, repeated at each appropriate node.",
+        "When the many subclasses and special cases of inflectional behavior are taken into account, together with a more adequate analysis of subcategorization patterns, the number of nodes required, and the redundancy of the specifications, increases considerably.",
+        "Multiple inheritance permits the two types of information to be kept separate by isolating them in distinct sub-hierarchies.",
+        "This compartmentalization is implicitly related to the independence of the sub-hierarchies; if constraints relevant to different types of information are always disjoint, then the system as a whole is 'orthogonal' (Touretzky 1986: 73ff).",
+        "The significance of this point lies in the fact that, if superclasses B and C of some class A are independent in this way, no conflict can arise when A inherits from both B and C, and the result of inheriting default information from the superclasses will not vary according to the order in which the defaults apply.",
+        "The organization of a lexicon must reflect two types of relation between classes of words.",
+        "Clearly, certain classes stand in the subset/superset relation'words' in general, 'verbs,' 'present tense verbs,' 'present tense verbs agreeing with a plural subject,' 'present tense verbs agreeing with a second person plural subject,' and so on.",
+        "Equally clearly, within many of these classes there exist disjoint subsets'present tense verbs,' 'past tense verbs,' 'infinitive verbs,' 'verbs agreeing with second person plural subject,' 'verbs agreeing with third person plural subject,' and so on.",
+        "Word classes within the lexicon must encode both types of relation, and, in broad terms, it is the latter that one might wish to represent by means of unordered multiple inheritance.",
+        "The design of such a system presents a three-way choice: (i) to accept ambiguity of inheritance; (ii) to enforce orthogonality in the hierarchy; (iii) to eliminate unordered multiple inheritance.",
+        "The present system takes the third option; ambiguity of inheritance is eliminated by enforcing a total ordering on the superclasses of any given class or word, and by making it clear to users how this ordering is derived so that they may more accurately control and exploit it in the organization of the hierarchy.",
+        "As a substitute for unordered multiple inheritance, the variant set mechanism is introduced; this allows variants to be represented directly within a class rather than by creating alternate, unordered superclasses, and corresponds to a strong element",
+        "Graham Russell et al.A Practical Approach to Multiple Default Inheritance in traditional grammatical description, that such mutually exclusive variant classes should nevertheless be grouped together in a single compound statement or paradigm.",
+        "A concrete version of this may be seen in the inflection tables to be found in reference and pedagogical grammars of foreign languages.",
+        "Users are able to simulate ambiguity judiciously when required, but are responsible for determining when this should occur.",
+        "In effect, we are giving away some of the generality of an inheritance reasoner (that it reasons correctly over arbitrary inheritance networks according to certain \"intuitions\") by making creators of lexicons perform the \"intuitive\" work themselves.",
+        "This is no bad thing, since the creator of the lexicon is then forced to consider the desired relations, rather than relying on the semantics of the inheritance system to produce them."
+      ]
+    },
+    {
+      "heading": "2.5 Default Inheritance",
+      "text": [
+        "The use of default information in a unification-based system raises the question of how the two types of operation are to interact.",
+        "If unification is employed in its conventional form, then combining conflicting information from different classes will produce failure and a null result.",
+        "While this is reasonable behavior elsewhere, it prevents the desired treatment of exceptions to generalizations in word classes.",
+        "One step toward a solution is to define default inheritance of constraints to be such that if A is a FS associated with a class C and B is a default FS associated with a superclass of C, then the result of applying B to A is R = A U B, if R T, and A otherwise.'",
+        "This is not yet sufficient, since a failure of one subpart of B causes all other, possibly compatible, information in B to be discarded.",
+        "What is needed is a scheme in which A unifies with as many as possible of the individual constraints embodied in B.",
+        "We shall see in Section 3.2 how the casual \"as many as possible\" can be made precise."
+      ]
+    },
+    {
+      "heading": "2.6 Class Precedence",
+      "text": [
+        "A system such as the Elm lexicon, which permits the defeasible inheritance of information from more than one superclass, must provide a way of resolving the conflicts that arise when information present in two or more superclasses is mutually incompatible, e.g., when the result obtained when A inherits from one superclass B before inheriting from another, C, differs from that obtained by inheriting first from C and then from B.",
+        "It is in such cases that the notion of \"precedence\" comes into play; if the system is constrained so that information is inherited first from B, we say that B \"has precedence over,\" or \"is more specific than\" C. A familiar example of this type of situation from the AT literature is the so-called 'Nixon diamond' (Touretzky 1986).",
+        "Nixon is both a Quaker and a Republican; Quakers are (typically) pacifists, while Republicans are (typically) not; the question to be answered is whether Nixon is a pacifist.",
+        "In a conventional inheritance network, this problem might be represented by the configuration shown in Figure 1.",
+        "If the links to the 'Pacifist' class are both defeasible, which should take precedence, the positive link from 'Quaker,' or the negative link from 'Republican'?'",
+        "Within the Eix lexicon, a natural way of representing the same information is to dispense with a 'Pacifist' class, and instead to make (non) pacifisthood a defeasible",
+        "Here, the 'lexical class' Nixon has two direct superclasses, Quaker and Republican as we shall see below, the order in which these are declared is significant.",
+        "It also contains the constraint that the value of the <name> attribute must be Nixon.",
+        "Quaker imposes two constraints; the value of <denomination> must be Quaker, and the value of <pacif ist> must be yes, unless that would conflict with a value assigned in some more specific class.",
+        "The constraints embodied in Republican are that the value of <party> must be Republican, while, again unless differently assigned in a more specific class, <pacif ist> has the value no.",
+        "What will be the result of looking up 'Nixon' in this lexicon?",
+        "The attributes <name>, <party>, and <denomination> are unproblematic; the only conflict arises with <pac if ist>.",
+        "As indicated above, its value will depend on which of the two super classes of Nixon is the more specific, i.e., in this simple case, on the order in which they appear in the superclass declaration; the declaration (Quaker Republican) states not only what the direct superclasses of Nixon are, but also that Quaker is to be regarded as more specific than Republican.",
+        "Thus it is Quaker that will provide the value for <pacif ist>.",
+        "If the opposite answer were required, the appropriate declaration would be (Republican Quaker).",
+        "A frequent approach to such matters in the AT community is to arrange for a result where neither of the conflicting properties is inherited, so that, in the case of the present example, the value of <pacifist> is unspecified.",
+        "A trivial implementation of this solution in the au lexicon would be to omit from the class definitions all mention of pacifisthood; the semantics of graph unification is such that an absence of information concerning some attribute is compatible with any possible value.",
+        "If the",
+        "Graham Russell et al.A Practical Approach to Multiple Default Inheritance Figure 2 A partially ordered set of classes.",
+        "intention were to permit either of the values yes and no, but no other, then the value of <paci f i st> could be supplied as a disjunction: 'yes/no.'",
+        "Consider now a situation in which conflicting information occurs in nondirect superclasses, say C and D in the lexicon below.",
+        "No superclass declaration contains both of these, and so the type of local ordering constraint imposed by the declarations in the 'Nixon' example is not available.",
+        "Graham Russell et al.A Practical Approach to Multiple Default Inheritance by P; a later unification may lead to P being added to F. The desired effect can only be achieved by the presence in F of a distinct path-value pair <p, v' >, where v and v' do not unify.",
+        "Conflicting information of this type can be introduced by means of the standard positive inheritance link.",
+        "In comparison with inheritance systems in general, then, the ELU lexicon is rather restrictive.",
+        "Hierarchies are constrained to be acyclic, unipolar, and unambiguous, these limitations reflecting the desire not only to reduce the complexity of the system but also to eliminate from it inessential or redundant aspects.",
+        "Finally, the defaulting behavior of the lexicon as a whole is determined by the CPLs of each lexical class, and these are in turn derived from the superclass declarations within class definitions.",
+        "This imposition of a global organization by a collection of local constraints is attractively consistent with the spirit of unification-based formalisms.",
+        "3.",
+        "Information in the Hierarchical Lexicon Having discussed the form and organization of the lexicon, we continue with an account of the manner in which information distributed among its classes combines to characterize a set of lexical items."
+      ]
+    },
+    {
+      "heading": "3.1 An Informal Account of Lexical Access",
+      "text": [
+        "Lookup of a lexical item with CPL c1,.",
+        "c) proceeds as follows: starting with an empty FS, the system first applies any default equations in cl, then applies any variant sets in c1 to the result.",
+        "The system then repeats this process on each resulting FS, for the classes c,+1 to c, in turn.",
+        "The result of lookup is the set of FSs produced by the most general class c0; this set we term the global extension of the lexical class c1.",
+        "A set of default equations D {d1, dn} applies to a FS F as follows: each d, that does not conflict with some existing information in F is unified with F, subject to the condition that any reentrant substructure of F should be compatible with D, and that any reentrant subset of D should be compatible with F. The purpose of this condition is to preserve declarativeness; a set of equations that satisfy it may be applied without regard to order.11 Any variant sets that exist in the current class are then applied to the resulting FS F'.",
+        "The result of applying variant sets {vi,.. vn } to a FS F is the set of FSs {f1,.",
+        "fm}, where each fi is the result of successfully unifying F with some different vi.",
+        "Unification failure in variant sets produces a null result, so m < n. Variant sets have two effects: they enforce strict constraints that cannot be overridden, and multiple variant sets 'multiply' FSs, e.g., to produce different members of an inflectional paradigm.",
+        "The lexicon below provides a simple nonlinguistic illustration of how defeasible inheritance and nondefeasible inheritance interact in the lexicon.",
+        "The second conflict in class B arises from the single variant set, which permits only the value s for Q: 1.",
+        "This is a strict constraint, and, while (5) satisfies it, (4) does not.",
+        "Only (5), therefore, is considered by class C. As before, the default set of C contains constraints (those involving P: 1 and P :2) that are overridden by existing information; the third default equation succeeds, and yields (6).",
+        "The two variant classes each add a value for Q :2, producing the FSs (7) and (8).",
+        "Intuitively, (7) and (8) represent two alternative sets of information that the lexicon associates with the lexical class A.",
+        "It is useful to have some terminology for the various steps we have just followed.",
+        "We shall refer to the result of applying to some FS F the set of default equations in a class C as the default extension of F with respect to C. (1) above is thus the default extension of I with respect to A, and (5) the default extension of (2) with respect to B, for example.",
+        "Similarly, we refer to the result of applying both default and variant set information in a class C to some FS F as the superclass extension of F with respect to C. The set containing (2) and (3) is then the superclass extension of (1) with respect to A, that consisting of just (5) is the superclass extension of (2) with respect to B, and the set containing (7) and (8) is the superclass extension of (5) with respect to C. Finally, since C is the most general superclass of A, (7) and (8) together comprise the global extension of the lexical class A.",
+        "Figure 4 shows the pattern of inheritance arising from this lexicon; classes are labeled 'A,' 'B,' and 'C,' and within each the default and variant sets are identified as 'd' and 'v,' respectively.",
+        "Arcs are labeled with the names of FSs shown above."
+      ]
+    },
+    {
+      "heading": "3.2 Definitions",
+      "text": [
+        "Following the relatively informal presentation in the previous section, we continue by refining some of the notions introduced there.",
+        "We define the global extension of a lexical class in terms of the auxiliary notions default extension and superclass extension.",
+        "if both R(0) Li Li W T and 0 Li R(11 IF) T, and T otherwise.",
+        "Each of the FSs in that can unify with ch.",
+        "does sothose that cannot, because they conflict with information already present, are ignored.",
+        "This is the basis of the defaulting behavior of the lexicon.",
+        "The condition referring to reentrancy takes account of the potential order-sensitivity of the defaulting operationonly those main sets having this property can be applied without regard to the relative order of the individual constraints within them.",
+        "If the condition is met then the application of defaults always succeeds, producing a feature structure which, if no member of the set is applicable, is unchanged, i.e., identical to 0; otherwise the lookup fails.'"
+      ]
+    },
+    {
+      "heading": "3.3 Variant SetsDiscussion",
+      "text": [
+        "Variant sets may be thought of as representing a restricted form of disjunction over complex FSs.",
+        "Kasper and Rounds (1986) show general disjunctive unification to be intractable, since it involves an exponentially complex step of expansion to disjunctive normal form.",
+        "Note, however, that the alternation embodied in variant sets is guaranteed to be at the 'top level' of FSs only; that is to say, the FSs described by multiple variant sets are already in disjunctive normal form, apart from any atomic disjunctions they may contain.",
+        "For this reason, multiple variant sets impose no mutual constraints; regardless of whether the information they contain is orthogonal, complementary, or conflicting, the crucial factor is the unifiability of each variant set individually with the single candidate FS.",
+        "The variant set mechanism tends to suggest a close connection between strict constraints and multiple realizations of class membership.",
+        "Clearly, a class may have a single variant set, so nondefeasible information does not entail alternation.",
+        "On the other hand, it may at first appear that the system forces a style of analysis in which, for example, all members of an inflectional paradigm have equal status.",
+        "In many cases, this will be undesirable.",
+        "Consider once more the class of regular English verbs; instead of encoding their inflectional behavior by means of class Reg_Verb_Present below, one might well wish to express the generalization that five out of the six present tense forms are identical, and treat the sixth as an exception.",
+        "#Class Verb 0 <form> = <stem> The lexicon will generally be called upon to establish a pairing of morphosyntactic information (tense, case, agreement, etc.)",
+        "and phonological or graphological information (the form taken by the variant of a word that expresses a particular morphosyntactic property).",
+        "The two kinds of information will normally be expressed as the values of distinct attributes, in which case the semantics of default unification set out in Section 3.2 will not enforce the intended pairing.",
+        "The strict unification applying within variant sets causes equations to be interpreted in the conventional way for unification-based linguistic descriptions, i.e., as conjunctive constraints on feature structures.",
+        "In practice, it is tempting to think of the lexicon as operating in a directional manner.",
+        "Looking up a word involves retrieving from the lexicon the collection of morphosyntactic properties expressed by a given word form, and here the natural informal interpretation will be that the existence of that wordform implies the presence of those properties.",
+        "Generating a word, on the other hand, involves retrieving the word form that expresses a given set of morphosyntactic properties, and here the natural informal interpretation will be the reverse.",
+        "Nevertheless, the system retains the nondirectionality of unification, and this informal view of its operation is no more than a convenient approximation to its underlying semantics.",
+        "Since strict constraints are able to filter out unwanted intermediate solutions, computing the global extension of a lexical class will in general involve creation of a larger number of FSs than appear in the result.",
+        "If v(c) is the number of variant sets in the class c, and f is the function in the natural numbers such that f (0) = 1 and f (k) = k if k> 0,15 the maximum number of FSs constructed for a lexical class with the CPL cn) is given by H f (v(ci)).",
+        "This maximum arises when no failures of strict unification occur.",
+        "Finally, while the variant set mechanism provides some of the functionality of the lexical rules proposed by Flickinger et al.",
+        "(1985), Calder (1989), and others, the structure of the EL U lexicon does not admit the full range of capabilities of these more powerful devices; cyclic rule applications cannot be simulated, for example."
+      ]
+    },
+    {
+      "heading": "4. Some Comparisons",
+      "text": [
+        "As we mentioned briefly in Section 1, the idea of applying inheritance to the lexicon, and indeed to linguistic descriptions in general, is not a new one.",
+        "Here we consider a few of the proposals that have appeared in recent years."
+      ]
+    },
+    {
+      "heading": "4.1 Defaults and Reentrancy",
+      "text": [
+        "The notion of 'default extension' employed here resembles the 'priority union' of Kaplan (1987: 180f) and the 'conservative addition' of Shieber (1986b).",
+        "As Bouma (1990) points out, the result of defaulting under this approach may depend on order of application.",
+        "To take Bouma's (p. 166) simple example, default unification of the FSs",
+        "(i) Strict information is preservedi.e., default unification is monotonic (see Section 4.2).",
+        "(ii) Default unification reduces to standard unification if the two FSs involved are consistent.",
+        "(iii) Default unification is finite.",
+        "The fourth property, that skeptical and credulous default unification are both well defined in all cases, is not shared by the present systemas we have seen above, the definition of default extension (Section 3.2) produces no solution for unifications of the type illustrated here."
+      ]
+    },
+    {
+      "heading": "4.2 Monotonicity",
+      "text": [
+        "The 'template' facility of PATR-II (Shieber 1986a: 55ff) allows inheritance within the lexicon.",
+        "Lexical entries may be defined by means of templates that have other templates in their definitions.",
+        "Thus, if the definition of a template T1 mentions the templates T2 and T3, any entry in which T1 appears also receives the contents of T2 and T3.",
+        "This is a form of strict multiple inheritance, since, if T2 and T3 contain conflicting information, unification fails and no corresponding lexical item is created.",
+        "Shieber (1986a: 59ff) also describes a type of default inheritance implemented in terms of a noncommutative 'overwriting' operation, in which constraint equations may be formulated so as to take precedence over existing structures.",
+        "These devices permit the construction of heterogeneous systems like that of au; one difference between the two would be that, in Shieber's scheme, the statements exhibiting default behavior are ones that have the ability to override others over which they have precedence, whereas in the approach described above the default statements are ones that can be overridden by others that have precedence over them.",
+        "In the D-PATR environment presented by Karttunen (1986), all templates engage in defaulting: \"... templates and other specifications that occur [in lexical entries] are processed sequentially from left to right.",
+        "Each item is compiled to a directed graph and superimposed on the graph previously compiled\" (p. 76).",
+        "Here, then, defaulting occurs as standard; any sequence of statements in a lexical entry may be such that a later statement conceals the effect of an earlier one.",
+        "Again, the fact that defaulting is interpreted as the overwriting of one structure by another means that structures may be modified in a nonmonotonic fashion.",
+        "The implementation of defaults in au contrasts with these approaches in that the system ensures the monotonicity of structure-buildinggiven a CPL (ci, ca), any FS F admitted by a class ci subsumes every FS that can be created by applying to F the classes (c,+1, i < m < n.17 This follows directly from the definition of 17 'Apply' here is used in the sense introduced in Section 3.2.",
+        "Computational LinguisticsVolume 18, Number 3 \"default extension\" given in Section 3.2.",
+        "Each individual constraint in a default set contributes information to a FS F if and only if that information is consistent (i.e., unifies) with the existing contents of F. Inconsistent information is ignored, but since it is only inconsistent information that would be capable of destructively modifying F, by removing or replacing some of its content, the consequence is that F subsumes its default extension with respect to any set of constraints; moreover, since the other operations involved in determining superclass extension employ only conventional 'strict' unification, these are equally unable to introduce into the system any element of nonmonotonicity."
+      ]
+    },
+    {
+      "heading": "4.3 Other Issues",
+      "text": [
+        "Inheritance hierarchies are frequently employed in object-oriented programming languages and environments.",
+        "Some work in computational linguistics has been explicitly object-oriented in nature (Daelemans 1990; De Smedt 1984; De Smedt and de Graaf 1990) but, as Gazdar (1990) observes, this has tended to adapt existing general-purpose techniques and languages, rather than attempt to devise specialized linguistic formalisms.",
+        "Daelemans (1990) suggests that inheritance can replace unification as a basic mechanism for linguistic description, but his proposals remain relatively undeveloped.",
+        "In some ways, the use of typed FSs and other data structures in au represents a step toward a rapprochement of unification and object-oriented techniques.",
+        "However, object-oriented programming involves much more than the use of inheritance, and the lack of mechanisms in ELu implementing encapsulation of data or message-passing protocols means that it would be a mistake to classify the work presented here as a variety of object-oriented linguistic description.",
+        "Graham Russell et al.A Practical Approach to Multiple Default Inheritance exist: 'normal,' a conventional shortest-path default method in which a slot is filled by information from the most specific accessible node in the hierarchy, and 'complete,' by which multiple values for a slot are obtained from a number of more general frames.",
+        "Values for the FEATURES slot for the word has thus include (Aux PLUS) inherited from AUXILIARY, (AGREEMENT 3RD-SING) from THIRD-SING, and (CONTROL SSR) from SUBJECT-RAISE.",
+        "The values in this example are compatible; the question of contradictions in complete-mode inheritance is raised, but it is not stated whether any that do occur are resolved, produce inconsistent results, or cause the search to fail.",
+        "Flickinger (1987: 60) refers to constraining the hierarchy \"in such a way that each single-valued attribute of some given class or member [is] assigned a value by at most one of the immediate superclasses, or its parents, so conflicting values [cannot] occur,\" but does not indicate whether this constraint is to be imposed automatically as part of a compilation or consistency checking process, or is simply to take the form of advice to users.",
+        "He considers as an alternative a rule of inheritance \"which for each attribute assigns priority to some one of the parent classes,\" and a convention similar to that of the au lexicon, whereby precedence of direct superclasses is encoded in the order of elements in a list.",
+        "The system described by Padgham (1988) resembles the au lexicon in taking the objects in the hierarchy as being sets of properties, partitioned into strict and defeasible subsets: \"The type core includes those characteristics which we regard as always present in objects of this type ....",
+        "The type default contains the information for typical objects of that type.\" Padgham's types may also be partially specified, and thus bear quite a close resemblance to ELU classes with single variant sets.",
+        "Where this arrangement differs from the ELU lexicon is in permitting inheritance links between types to involve just these substructures; to represent the fact that instances of type T1 are always typical instances of type T2, a link connects the core of T1 and the default of T2, and so on.",
+        "Negative relations between core and default substructures may also be expressed.",
+        "Inheritance hierarchies have chiefly been studied within two overlapping but conceptually distinguishable subareas of artificial intelligence: knowledge representation and commonsense reasoning.",
+        "The latter of these domains is characterized by concerns that extend beyond those of the present work.",
+        "For example, problems of reasoning with possibly incomplete knowledge do not arise in the context of lexical organization, since for any query the writer of a lexicon can be assumed to have envisaged the entire conclusion space and all factors required for computing it."
+      ]
+    },
+    {
+      "heading": "5. Example Analyses",
+      "text": [
+        "This section contains some longer linguistic examples illustrating aspects of the ELU lexicon introduced above.",
+        "While these analyses are correct in the sense that they characterize sets of feature structures that achieve the desired pairing of word forms and morphosyntactic properties, it should of course be borne in mind that each represents just one treatment among the many possible."
+      ]
+    },
+    {
+      "heading": "5.1 English Irregular Verbs",
+      "text": [
+        "In most cases, lexical items that realize certain morphosyntactic properties in irregular forms do not also have regular realizations of those properties; thus *sinked, on the analogy of, e.g., walked, is not a well-formed alternative to sank or sunk.",
+        "This phenomenon has frequently been discussed in both theoretical and computational morphology, under the title of 'blocking,' and it appears to provide clear motivation for a",
+        "Computational LinguisticsVolume 18, Number 3 default-based hierarchical approach to lexical organization.'",
+        "There are exceptions to the general rule, however, and inheritance mechanisms must be sufficiently flexible to permit deviation from this pattern.",
+        "Consider the small class of English verbs including dream, lean, learn, and burn; these have, for many speakers, alternate past finite and past participle forms: e.g., dreamed and dreamt.",
+        "The following fragment produces the correct analyses, in which the value of <morph> expresses inflectional information, and that of <f orm> is the corresponding word form.\"",
+        "Graham Russell et al.A.Practical Approach to Multiple Default Inheritance are overridden by this more specific information, so that while sink behaves like regular verbs in its present tense, the values of <form> for the past finite and past nonfinite variants are sank and sunk.",
+        "Verbs like dream have DualPast as a direct superclass, with higher precedence than Verb.",
+        "DualPast has two variant sets, the first of which assigns as values of <psp_form> and <p_f in_form> the concatenation of the <st em> value and t, giving dreamt, etc.",
+        "The second variant set is empty (recall that variant sets are preceded by the vertical bar ' I ') and the absence of contradictory specifications in this second variant permits the equations in the main set of Verb to apply.",
+        "In addition to specifying exceptional properties, therefore, the definition of DualPast also permits inheritance of properties from more general classes; among these properties is that shared by verbs like walk of forming the two past forms by suffixing ed to the stem, which produces the regular (dreamed, etc.)",
+        "past forms."
+      ]
+    },
+    {
+      "heading": "5.2 German Separable Verbs",
+      "text": [
+        "Two large classes of German verbs are the separable and inseparable-prefixed compound verbs; their analysis involves some quite intricate interactions of morphological, syntactic, and semantic information.",
+        "Separable verbs are of interest syntactically because, as their name suggests, the prefix is a bound morpheme only in certain syntactic environments, namely when the verb is untensed or head of a verb-final clause.'",
+        "Members of both classes share morphological, but not necessarily syntactic or semantic, properties of the verb that corresponds in form to their stem.",
+        "The separable-prefix verb weglaufen ('run away') and inseparable verlaufen ('elapse') are two such verbs that the lexicon should be able to relate to their apparent stem laufen ('run'), assigning them similar morphological propertieslaufen then becomes the model for a family of verbs.",
+        "Morphosyntactic peculiarities of the separable verbs include the form of the past participle, in which the normal past participle prefix ge- is preceded by the separable prefix (e.g., weggelaufen), and the existence of an infinitive form, in which the separable prefix is followed by zu (e.g., wegzulaufen); the infinitive of other verbs is formed phrasally (from the perspective of written language, at least) with the particle zu as a separate word.",
+        "Past participles of inseparable-prefix verbs omit the ge- prefix.",
+        "As in the example of Section 5.1, lexical classes encode just the idiosyncratic properties of verbs.",
+        "Here, for compound verbs related to laufen, only their semantics is specified at this level; other properties are inherited from classes associated with the prefix and stem.",
+        "The class lauf en, in addition, specifies that the form of the past tense stem for this family of verbs is lief.",
+        "The role of the class VStem is rather different; it serves to identify the substring of a verb's citation form that corresponds to its \"base stem.\" For the majority of verbs, whose citation form ends in -en, this is what results when any prefix (with the empty string as default) and the final en are detached.",
+        "For the minority of verbs whose citation form ends in em n or -ern, only the final n is detached.",
+        "Recall that the citation form of verbs in this lexicon coincides with the value of the <sem> attribute."
+      ]
+    },
+    {
+      "heading": "6. Implementational and Practical Issues",
+      "text": [
+        "The introduction stated three main requirements imposed by the context within which the ELu lexicon system is used: the ability to both analyze and generate word forms, good integration with other components that interface to the lexicon system (for example parsers and generators), and the ability to accommodate a large number of words.",
+        "Our implementation, though relatively straightforward, achieves these goals, making the system genuinely useful in practice; this section briefly discusses some of the implementational issues involved."
+      ]
+    },
+    {
+      "heading": "6.1 Analysis and Generation of Word Forms",
+      "text": [
+        "In Section 3, the set of lexical items admitted by a lexicon was defined formally as the union of the global extensions of all lexical classes in the lexicon.",
+        "This definition suggests an obvious (bottom-up) implementation of the analysis and generation of word forms: collecting up all the lexical classes in the lexicon, and computing the union of their global extensions, in analysis returning only the FSs with wordform attribute the same as the word form being analyzed, and in generation returning only the word forms whose FSs unify with the structure being generated from.",
+        "This form of exhaustive search is computationally expensive for all but the smallest lexiconshowever, it does allow all unification and defaulting operations to be traced, so that when developing a lexicon (and working with only a representative sample of lexical classes) the user can precisely monitor the effects of adding new classes and modifying old ones.",
+        "The tracing information is presented in an order and a manner that appears natural to a user who understands global extension."
+      ]
+    },
+    {
+      "heading": "6.2 Efficiency",
+      "text": [
+        "While a lexicon is being debugged, all the words and classes in it are held in main memory, and analysis and generation are performed using exhaustive search, as described above.",
+        "Once the lexicon is fully debugged, this approach has three major drawbacks: since they are ordinary text files, large lexicons take a long time to load",
+        "Graham Russell et al.A Practical Approach to Multiple Default Inheritance into the system, once in memory the representations of the classes in them occupy a lot of space (increasing process size and swapping and garbage collection time), and exhaustive search over all the lexical classes on every lookup is too inefficient for practical purposes.",
+        "To solve these problems, we have implemented a facility that indexes a lexicon, storing all the information in it in a machine-oriented format in files on disc.",
+        "The format is such that the information can be retrieved quickly with minimal processing.",
+        "One index file holds all the classes in the lexicon, each superclass in a class's CPL being stored as an integer representing the byte position in the file at which its definition starts.",
+        "During the indexing process, for each lexical class, all the lexical items admitted by the class are generated.",
+        "The index file byte position of the class is associated with each distinct word form in the lexical items.'",
+        "This position is also associated with the name of each semantic relation occurring in the lexical items.",
+        "At the end of indexing these pairings are lexicographically sorted and written out to index files.",
+        "Analysis works by searching for the word form (using a binary chop on the word form index file), retrieving the byte positions associated with the form, fetching the lexical classes at these positions together with their superclasses, and performing an exhaustive lookup (as described above) using just these lexical classes.",
+        "Generation is similar but instead uses the semantic relation index.",
+        "If there are n possible word forms implicit in a lexicon, then analyzing one form will take time proportional to c log2(n) where c is a small constant, plus in the average case a constant time for lookup with the candidate lexical classes.",
+        "Generation similarly will take time proportional to log2 of the total number of semantic relations in the lexicon plus a constant.",
+        "In practice, the size of the lexicon makes little difference to lookup time; what really matters is the number of classes in the CPLs of lexical classes and their complexity."
+      ]
+    },
+    {
+      "heading": "6.3 Integration",
+      "text": [
+        "The FLU lexicon system is fully integrated with the rest of ELU.",
+        "The fact that the lexicon is based on multiple default inheritance is transparent to the analyzer and generator (and even to the casual user).",
+        "Indeed, au supports another type of lexicon based on finite state morphology; lexicons of this type are accessed via the same interface, and one may be loaded and available for use at the same time as an inheritance-based lexicon.",
+        "One of the characteristics of the au lexicon system that has allowed it to be so well integrated with the other components in the system is that it represents feature structures in exactly the same way that they do.",
+        "In particular, au does not have to convert from one representation to another at the interface to the lexicon, as does DATR when used within a unification grammar system (Kilbury et al.",
+        "1991)."
+      ]
+    },
+    {
+      "heading": "7. Summary",
+      "text": [
+        "The popularity of unification as a tool for computational linguistics stems from its declarative, monotonic semantics; however, the price to be paid for the benefits of a pure unification framework is the lack of a satisfactory treatment of exceptions (negation, defaults, etc.).",
+        "The popularity of default inheritance as a tool for knowledge representation stems from its ability to encode, in a straightforward manner, the type 22 In theory, the system can deal with lexicons admitting up to around 4,000,000 word forms, but the largest lexicon tested to date contains slightly more than 30,000 entries.",
+        "Computational LinguisticsVolume 18, Number 3 of nested generalization with exceptions that natural language lexicons exhibit; however, in achieving this expressive power one introduces a degree of order-dependence into the system.",
+        "The approach presented here attempts to combine the advantages of unification and default inheritance while minimizing the disadvantages arising from their interaction.",
+        "Properties of general default systems that lead to intractability are absent; the total ordering imposed on superclasses by the CPL eliminates cycles, ambiguity, and the redundancy of multiple paths, while the suppression of negative inheritance links removes a further source of complexity.",
+        "Facilities have been dispensed with not only because they are computationally problematic, but also as a result of the application in questionas we observe in Section 2, ambiguity and negation are not essential in the context of a unification-based lexicon."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This paper is an expanded version of Russell et al.",
+        "(1990).",
+        "We are indebted to Mark Johnson for valuable comments on that earlier work, and to Computational Linguistics referees for their suggestions.",
+        "Participants at the ACQUILEX workshop on default inheritance held in Cambridge in April 1991 also made useful suggestions."
+      ]
+    }
+  ]
+}

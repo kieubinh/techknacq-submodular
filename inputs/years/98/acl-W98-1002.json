@@ -1,0 +1,276 @@
+{
+  "info": {
+    "authors": [
+      "John Maloney",
+      "Michael Niv"
+    ],
+    "book": "Workshop on Computational Approaches to Semitic Languages",
+    "id": "acl-W98-1002",
+    "title": "TAGARAB: A Fast, Accurate Arabic Name Recognizer Using High-Precision Morphological Analysis",
+    "url": "https://aclweb.org/anthology/W98-1002",
+    "year": 1998
+  },
+  "references": [
+    "acl-J95-3004",
+    "acl-W97-0711",
+    "acl-W97-0901"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We describe a fast, high-performance name recognizer for Arabic texts.",
+        "It combines a pattern-matching engine and supporting data with a morphological analysis component.",
+        "The role of the morphological analysis in accurate name recognition is discussed.",
+        "We also provide evaluations of both morphological analysis and name recognition."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": []
+    },
+    {
+      "heading": "1.1 Roadmap",
+      "text": [
+        "Arabic named entity recognition in texts in Arabic script is, to our knowledge, a little researched topic.'",
+        "In this paper we describe a system, TAGARAB, that uses a generic pattern-matching engine, SRA's NetOwl TurboTagTm, combined with an integrated morphological analysis process, which recognizes names at a high level of accuracy.2 We first discuss the factors involved in recognizing names in Arabic.",
+        "We then present a system description, focussing on the morphological analysis and the name recognition components.",
+        "We also report the results of our evaluations of each component's performance.",
+        "Finally, we discuss the contribution of the morphological analysis to the name recognition."
+      ]
+    },
+    {
+      "heading": "1.2 Background to Arabic Name Recognition",
+      "text": [
+        "Name recognition has emerged as an NLP technology that is effective and can provide high value to several different kinds of applications, such as clustering and summarization (Aone and Maloney, 1997; Aone et al., 1997).",
+        "Development of such a capability for Arabic involved meeting some new challenges.",
+        "Like other Semitic writing systems, Arabic does not exhibit differences in orthographic case.",
+        "Un",
+        "like in English-language mixed-case texts, therefore, there is no obvious clue such as initial capitalized letters to indicate the presence of a name constituent.",
+        "In our experience with Thai and other non-case writing systems, this seems to effectively impose a requirement that there be some understanding of the morphological nature of each token – especially part-of-speech information.",
+        "Having some morphological information allows one to make distinctions between likely and unlikely name constituents, which is particularly important when deciding where a name ends and the non-name context begins.",
+        "We partially motivate this for Arabic as follows:3",
+        "• Closed-class items are rarely, if ever, part of an Arabic proper name: [Hasan fi], with a preposition in second position, seems an unlikely Arabic name.4 • Inflected forms of verbs are rarely part of proper names: [yata9allamu], \"he learns,\" is not a permissible name constituent.5 • Many lexical items, of course, are not used, or highly unlikely to be used, in proper names: verbs of speaking or cognition, for example, do not appear to occur in names and they do not frequently overlap in appearance with proper name constituents: [muHammad qultu] is an unlikely name.",
+        "• Items with subject or object suffixes are rarely, if ever, part of names: [yukaatibuhu], \"He will correspond with him.\"",
+        "In addition, there are many positive cues, such as titles, frequent given names, and so forth, that allow a system to identify names, but some morphological characterization of non-name portions is of critical importance.",
+        "We will discuss this in more detail below in Section 4."
+      ]
+    },
+    {
+      "heading": "2 System Description",
+      "text": [
+        "Our system has two major modules: a Morphological Tokenizer and a Name Finder.",
+        "The Morphological Tokenizer has the ability, in addition to performing lexical scanning that establishes word-level units, to add morphological features to tokens.",
+        "Text encoded in ISO-8859-6 is first passed through this tokenizer and then the tokenized stream is processed by the Name Finder module which identifies names and other extraction targets and annotates the text with appropriate SGML tags for each extracted item."
+      ]
+    },
+    {
+      "heading": "2.1 Morphological Tokenizer 2.1.1 Description",
+      "text": [
+        "The Morphological Tokenizer's basic task is to identify the sequences of words, punctuation symbols, numbers, existing SGML tags, etc., that comprise the input text.",
+        "For each such \"token,\" a description of what it has found is returned as a vector of up to 32 application-definable bits (e.g., PUNCTUATION, WORD, NUMBER).",
+        "The Tokenizer is a very fast program, generated using the Flex scanner-generator from a tokenizer specification.",
+        "We decided to augment the tokenizer's usual role.",
+        "While it still finds numbers and punctuation tokens, it treats an Arabic word (a contiguous sequence of Arabic letters) as a collection of one or more morpheme tokens, each with its own bit-vector of properties.",
+        "The properties include those listed above, as well as morphology-specific properties whose nature and linguistic motivation is discussed in the next section.",
+        "Making the morphological analysis part of tokenization has the advantage of maintaining the high speed of SRA's TurboTag.",
+        "An external morphology module – with a high computation overhead – would degrade performance.",
+        "Table 1 contains the features identified by the tokenizer.",
+        "Each token in the text receives some subset of the lexical types in Table 1.",
+        "For example, a string such as arbh, phonetically [§aribahu], \"he drank it,\" receives the tokenizer types ARABIC, PERFECT, and SUFFIX.",
+        "The first type means that the token comprises Arabic letters, the second that it is a Perfect verb form, and the third that there is a suffix attached.",
+        "Note that in this case, the string is not broken up into pieces, such as stem and suffix.",
+        "It re",
+        "mains a single token with information being added as to what the component pieces are.",
+        "The only cases where the tokenizer splits off pieces of a string are where there is an attached conjunction (we or fa) or an attached preposition (la, ba, ka), or both.",
+        "In these cases, in place of an original string such as orthographic wel, phonetic [waq5.1a], \"and he said,\" there will be two separate tokens: [wa] with the type information ARABIC and CONJ, and [gala] with the type information ARABIC and PERFECT.",
+        "Some of these tokenizer types are exclusive, such as PERFECT and IMPERFECT.",
+        "A token cannot be both simultaneously.",
+        "Others, however, such as NOUN and DEFART, can both be applied to a token."
+      ]
+    },
+    {
+      "heading": "2.1.2 Implementation",
+      "text": [
+        "We initially developed the morphological analysis module as a sequence of 31 patterns in Perl's regular expression language.",
+        "This allowed us to efficiently",
+        "develop and refine the patterns needed to recognize the various morphological word-shapes.",
+        "When we plugged this version of the morphological analyzer into the original tokenizer, however, processing was quite slow due to the sequential nature of our morphological patterns and the backtracking nature of Perl's regular expression matcher.",
+        "To compensate, we incorporated the morphological functionality directly into the Flex specification of the tokenizer.",
+        "Whenever the Flex-generated scanner identifies an Arabic word, it dispatches the appropriate regular-expression to extract the separate morphemes from that word – a task that is beyond the capability of Flex.",
+        "The result is the fastest Arabic morphological analyzer we are aware of: The overall processing rate for TAGARAB is approximately 46 megabytes/hour on a Sun Ultra 1.",
+        "Morphological processing by itself runs at about 190 megabytes/hour.",
+        "We had originally planned to develop a morphological capability that would be helpful in improving name recognition, as discussed in Section 1.2.",
+        "In the following, we discuss the linguistic design of the morphological analysis.",
+        "Arabic is a highly inflected language.",
+        "We believed that there are frequently enough surface cues in the shape of an Arabic word' to allow the assignment of the kind of morphological information described in Section 2.1.1.",
+        "For example, inflected forms of derived verb stems such as [yaftatiHu], \"he inaugurates,\" would seem to have an orthographic \"shape\" that is fairly unique in an Arabic text.",
+        "We felt that this information could be exploited to successfully identify tokens as nouns, verbs (perfects or 7TAGARAB deals exclusively with the written form, i.e., without indication of short vowels.",
+        "imperfects), etc., to a sufficiently reliable extent that the later name-recognition patterns could effectively make use of it.",
+        "The morphological analysis process consists of a series of regular expressions partially supported by lists of noun, verb, and adjective stems, as well as closed-class items.",
+        "The regular expressions cover all allowable prefixes and suffixes for each stem type.",
+        "Infixation phenomena, however, such as the infixed I of the Eighth Verbal Form,8 are handled as variant forms in the verb stem list e.g., '9tbr, \"he consid-ered\" and 9br, \"he crossed.\" No attempt is made to handle co-occurrence constraints among prefixes and suffixes, nor to assign voice.",
+        "Likewise, no attempt is made to include contextual information, as is done with standard part-of-speech taggers.",
+        "There is no attempt to handle ambiguity: The regular expression patterns are ordered, and the search for an analysis of a word stops at the first match.",
+        "The token types are then assigned, and the form is not submitted to any other regular expressions.",
+        "Not all Arabic tokens are hit by one of these regular-expression patterns that provide morphological features.",
+        "Although there is a mix of patterns supported by lexical information and patterns that operate entirely by rule (no supporting lexical data), the vast majority of matches appear to occur with the former set of patterns.",
+        "In other words, the coverage of the morphological analysis is crucially dependent on the lexical data.",
+        "There are 1051 noun forms, 813 verb forms, and 241 adjective forms.",
+        "There is also a comprehensive list of closed-class items.",
+        "The notion of \"lexical item\" in TAGARAB's lists is somewhat similar to the listing principle found in Landau : broken plural forms for nouns and ad",
+        "jectives receive an independent entry, much like different stems of verbs as mentioned previously.",
+        "We make no effort to distinguish I and II forms of verbs, as these are not usually distinguished orthographically in Al-Hayat.",
+        "In general, if there is no visible orthographic distinction in normal Arabic prose, we do not make a distinction in the lexical data.",
+        "We also entered forms both with and without hamza, as in Al-Ha yat any form that may receive a hamza may also appear without it (even in the same text!).",
+        "Another important feature is that we entered only what seemed to us to be frequent lexical items in the lexical lists, and tried to do it in such a manner that what seemed intuitively the most likely reading of a form would be the one selected.",
+        "This makes sense in the case of such a highly deterministic morphology and also given our time and resource constraints.",
+        "We wanted to ensure that we got the right readings for a large number of highly frequent items, as this would be the most useful way to constrain the name-recognition patterns.",
+        "Many high-frequency common nouns, verbs, adjectives, and other parts of speech in Arabic do not usually form part of names.",
+        "As it turned out (See Section 4 below), this strategy worked quite well with person names but was less significant for organization names.",
+        "We also decided not to enter items that are used directly by the later name-recognition patterns, such as locations and given names, as these are accessed by the patterns through that module's own word lists and therefore having a morphological reading for them is not important (see Section 2.2).",
+        "In addition to the supporting lexical data, the ordering of the regular expressions also aided in determining the analysis selected.",
+        "The regular expressions are grouped functionally, and in general the ones pertaining to closed class items apply first, then nouns, adjectives, perfects, and imperfects in that order.",
+        "This had the effect that items which are highly \"marked\" as belonging to one category (e.g., verbs with a double pronominal object) would be captured appropriately by a verb-recognizing regular expression that looks for such suffixes, but that items that are not so highly marked (e.g., a simple third-person masculine perfect form) would be biased towards a reading according to the order of the regular expressions.",
+        "We were pleasantly surprised to learn that this kind of approach – although obviously simplistic in some ways – produces a very high level of precision in analysis (i.e., the parts of speech assigned tend strongly to be correct) and surprisingly good recall (i.e., there is good coverage of the corpus).",
+        "We discuss our empirical results in Section 3.",
+        "In addition, the morphological information thus produced contributed substantially to the effectiveness of the name-recognition patterns.",
+        "We discuss this in Section 4."
+      ]
+    },
+    {
+      "heading": "2.2 Name Finder",
+      "text": [
+        "The Name Finder module of TAGARAB (see Figure 1) uses as input the tokens found by the Morphological Tokenizer with the basic and morphological features attached.",
+        "The pattern-matching engine is SRA's NetOwl TurboTagTm.",
+        "It uses data consisting of a set of Pattern-Action rules supported by Word Lists.",
+        "The latter consists of items such as personal titles that are used by the patterns to recognize names.",
+        "The Pattern-Action rules use contextual and structural information about names to recognize them dynamically.",
+        "They also make extensive use of the feature information coming from the Morphological Tokenizer.",
+        "There is minimal permanent storage of names.",
+        "The Pattern-Action rules are written in a convenient specification language.",
+        "They are not compiled, but are read at run time as part of engine initialization."
+      ]
+    },
+    {
+      "heading": "3 Evaluation",
+      "text": []
+    },
+    {
+      "heading": "3.1 Morphology 3.1.1 Preparation",
+      "text": [
+        "To evaluate the quality of the morphological analysis, we used SRA's tagging tool, TagToolTm, to manually tag a set of documents for morphological analysis and part of speech.9 For this test document set, we randomly selected fourteen texts from the Al-Ha yat CD-ROM not belonging to the name recognition training or testing sets.",
+        "In addition to manually tagging them, we also ran TAGARAB over these fourteen texts and used a standard AMC-style scoring program to compare the morphological output of TAGARAB with the \"answers\" in the hand-tagged version."
+      ]
+    },
+    {
+      "heading": "3.1.2 Tagging Rules",
+      "text": [
+        "We hand-tagged every token in the text, except for:",
+        "• Punctuation, Digits • Tokens within person names • Person titles • Locations • Location adjectives (e.g., [kuwayti], [lubnanii) • Adverbs or accusative forms of nouns or adjectives marked by fatHatayn.",
+        "These exceptions exist because the morphology component did not attach features to these items for the reasons given in Section 2.1.3.",
+        "As a result of not hand-tagging them, the scoring program judged as spurious any morphological features found by the system for such items.",
+        "We tagged the test set contextually, again in accordance with the design of the morphological component.",
+        "The most important effect was on the feature PART.",
+        "We found participles which act usually as a noun, (e.g., [al-ma:s-rE9], \"the plan\", [al-muwazzaf], \"the employee\"), usually as an adjective (e.g., [al-bayt al-majhal], \"the unknown house\") or seem to be freely used in either reading (e.g., [mus-\"Muslim,\").",
+        "We tagged these participles contextually as nouns or adjectives.",
+        "One effect of this was that the number of items tagged as participles was quite low (in effect, only when they are used p red icat ively ) .",
+        "In all, the evaluation corpus contains 3214 tokens, of which 2324 are Arabic words.",
+        "1879 of the latter received morphological features when hand-tagged."
+      ]
+    },
+    {
+      "heading": "3.1.3 Morphology Evaluation",
+      "text": [
+        "The scores for the morphology component are given in Table 2.\" Since we did not have access to a morphological analyzer that produces all possible readings for forms based on a large lexicon, we do not have a picture of the total morpho-lexical ambiguities in our evaluation texts.",
+        "However, despite the small lexicon we manually built, the overall recall is reasonable (73.0%), and it also holds up well for most of the major open class items: perfects (72.7%), imperfects (60.2%), and nouns (66.8%).",
+        "The low recall in adjectives (28.8%) is due to the fact that we did not make many lexical entries for adjectives.",
+        "Since adjectives do not come first in the Arabic noun phrase, and since we use the morphological information to constrain the name patterns, tagging the head noun in a noun phrase is what is generally necessary, not tagging the adjective.",
+        "What is striking in the above table is the high precision across all the categories, with the exception of adjectives and participles, the latter a very small set for the reasons set out in Section 3.1.2.",
+        "Precision is consistently above 90%.",
+        "We interpret this to mean that a manually built system with a moderate lexicon, having the capacity to only select one reading for a given form and not paying any attention \"The column headings are the standard ones from MUC: POS: possible number of points (one point for identifying a constituent boundary, another for identifying its category), ACT: actual responses given, COR: correct answers, PAR: boundary errors, INC: category labelling errors, SPU: responses given that are not in answer key, MIS: items in key missing from response, REC: recall (COR/POS), PRE: precision (COR/ACT), F-M: f-measure ((2 .",
+        "PRE.",
+        "REC)/(PRE REC)).",
+        "to a word's context, is capable of a very significant amount of morphological disambiguation in Arabic.",
+        "Our results are also consistent with the results of Levinger et al.",
+        "for the structually similar Hebrew.",
+        "Levinger et al.",
+        "discovered that non-context-based morphological analysis preferring the most likely morpho-lexical analysis (generated using a statistical algorithm) gives extremely good results.",
+        "Table 3 shows the collisions among the tags.",
+        "The most common confusions were between perfects and nouns in both directions.",
+        "The system tagged the following tokens as nouns where the human tagged them as perfects: Tar (2x), \"he/it published,\" 691, \"he/it sent,\" Hdt, \"it happened,\" wilthm, \"we described them,\"11 sdrt, \"was issued, appeared,\" wSg, \"he/it continued.\"12 Conversely, there were 16 cases where TAGARAB considered a token as a perfect, and the human tagged it as a noun.",
+        "As with the previous case, the great majority were confusions of the perfect with a derivationally related noun or verbal noun (e.g., qtl, \"he killed\" or \"killing.\") Despite the small numbers of such collisions in the sample, it seems to us that this is the most difficult disambiguation task, at least at the part of speech level, since verbal nouns plus the semantic subject or object in an idiifa construction can look much like a finite verb plus subject or object.",
+        "Clearly, context or a higher level of syntactic/ semantic understanding is required to differentiate the two readings.",
+        "On the other hand, the other major confusion revealed by this table, Noun/Adjective and Adjective/Noun, is one that seems easily remedied by building in some knowledge of short context into the morphology component.",
+        "For example, the following three examples (and the rest resemble these) are cases where the system selects a noun reading for the adjective within the scope of a noun phrase: [15,Fiina muslimfin], \"Muslim refugees,\" [bisiiratin xaasa], \"in a special form,\" [mu'tamaruhu \"his news conference.\" In these cases, the adjectives also have noun readings, but the local context shows clearly which reading is correct.",
+        "These results identify specific areas of morpho-lexical ambiguity bringing into focus where additional contextual cues are needed for better ambiguity resolution."
+      ]
+    },
+    {
+      "heading": "3.2 Evaluation of Name Patterns",
+      "text": [
+        "The scores for the name recognition in TAGARAB over the training set of texts are given in Table 4.",
+        "The blind scores are given in Table 5.",
+        "Pattern performance followed our experience with other languages, except for the recognition of time expressions.",
+        "Usually, these scores run in the mid-to high-nineties on a test corpus, but the rich variety of time and date formulas hindered scoring very high here.",
+        "The scores for Arabic are consistent with scores for other languages (Thai, Chinese, Japanese) where there is no orthographic case information."
+      ]
+    },
+    {
+      "heading": "4 Contribution of Morphology to Name Recognition",
+      "text": [
+        "As described in Section 2.2, name recognition is performed by a set of Pattern-Action rules (\"patterns\") supported by data in the form of word lists, and in the case of TAGARAB, reliance on morphological information.",
+        "To investigate the role of the latter in support-' ing name recognition, we performed an experiment where we turned off the morphological analyzer portion of the tokenizer to see what the impact on the patterns would be.",
+        "\"Turning off\" the morphology simply means that we substituted a tokenizer that does not cleave off clitics, and only generates the token types under Basic Feature in Table 1 and none of those under Morphological Feature.",
+        "This had the effect that name-finding patterns which had previously accessed the morphological features provided by the tokenizer could no longer do so.",
+        "The patterns themselves were not changed in any way.",
+        "The results are contained in Table 6.",
+        "It should be compared with Table 5.",
+        "NUMBER and TIME do not show much change with morphological token information removed.",
+        "This is not surprising, since the patterns identifying these elements rely on word lists of month names, written-out numerals, etc.",
+        "We handled the different inflected forms of such items as words for time units ([9am], \"year,\" etc.)",
+        "by simply listing all possibilites (singular, dual, plural, masculine, feminine) as separate entries.",
+        "This is a reasonable strategy given the relatively small number of inflected forms for these items.",
+        "In addition, relying on \"static\" word lists rather than \"dynamically\" generated morphological information coming from the tokenizer reduces the risk of error.",
+        "PERSON names are affected the most by not having the morphological features available: Recall drops 12.2 points and Precision 24.1.",
+        "By contrast, ENTITY names are less affected: Recall loses 7.4, and Precision 7.2.",
+        "This large difference in the drop in Precision (24.1 points for Person vs. 7.2 for Entity) is due to the difference in pattern-writing \"styles\" for the two name types.",
+        "For PERSON names in Arabic, there are few structural or contextual clues: we had",
+        "available a list of titles and given names which served as the major indicators of the presence of a personal name.",
+        "For the remainder of the name, consisting of an uncertain number of tokens extending out beyond the given name, there was not much to distinguish where the name ended and the non-name context began, except the morphological information provided by the tokenizer.",
+        "Islamic names involving elements such as [ibn], [bin], [abu], etc., were exploited as much as possible, but names with these elements were surprisingly rare in the Al-Ha yatarticles.13 In effect, the patterns recognizing person names relied heavily on the presence of any morphological feature to rule out a given token as being part of the personal name.",
+        "Without this information, there was, for example, a huge increase in the number of spurious names (names tagged by TAGARAB but with no equivalent in the human-tagged keys; under the SPU column in the score reports).",
+        "One typical example is the vocalized string [mudir al-9amaliyat al-siy5siya], \"Director of Political Operations,\" which the system took as a name, but which is actually an appositive to a preceding actual person name.",
+        "The word [mudir] is on the title list signalling the onset of a name and there is nothing to constrain the next two tokens from being consumed.",
+        "If morphological type information were available signalling that [al-9amaliyat] is not a likely name constituent, then the pattern would not have succeeded.",
+        "There was also increase in boundary errors (un-13We do not have direct statistics on different name types in the source (e.g., Islamic, Russian).",
+        "However, we do have statistics on the relative yields of the patterns, which are organized themselves in terms of name types.",
+        "der the PAR column in the score reports).",
+        "These were those cases where the name pattern \"didn't know where to stop,\" as in [al-sayyid muHammad al-baGd5.di ka'annahu], where the last element would have received the feature CLOSED from the Morphological Tokenizer since it is a subordinating conjunction with a person suffix.",
+        "A further side-effect of such a boundary error, as well as the spurious names, is that an element such as [ka'annahu], once it is considered part of a name by the system, will be used to recognize variant short forms of that name.",
+        "This has the result that any [ka'annahu] in the article is subject to being classified as a person name.",
+        "By contrast with person names, the patterns generating entity names were less affected by the lack of morphological information since they were able to exploit more specific name structure.",
+        "For example, a pattern for a specific class of entity names might include both the initial word [majlis], \"council,\" and have as final boundary marker an element such as a location adjective.",
+        "The latter is a separate word list independent of the morphological component of the system.",
+        "In effect, there are more specific structural indicators of entity names than there are of person names, so the patterns are written differently, with less reliance on morphological information.",
+        "The final category of names, LOCATION, shows a large increase in missing names (under the column MIS in the score reports).",
+        "The reason for this might not be obvious, since location names do not receive any morphological features (see 2.1.3).",
+        "However, the morphological capability within TAGARAB identifies clitic items such as the conjunctions [wa] and [fa], as well as the prepositions [ba], [la], and [ka], as described above in Section 2.1.1.",
+        "If there is no mor",
+        "phological capability, then these clitics are not rec- Annemarie Schimmel, Islamic Names.",
+        "Edinburgh ognized anywhere.",
+        "This has the effect that location University Press.",
+        "Edinburgh, 1989. names with a clitic attached will not be recognized, since the system no longer tokenizes the location as a separate item."
+      ]
+    },
+    {
+      "heading": "5 Summary",
+      "text": [
+        "We have described a system for recognizing names, dates, times, and numerics in Arabic-language text through a combination of high-precision morphological analysis and a subsequent component that recognizes the named entities.",
+        "Although highly deterministic and not taking account of context, the morphological analysis component removes a great deal of morpho-lexical ambiguity and has the side-effect of demonstrating that the true difficulties in Arabic morphological ambiguity might be limited to specific contexts.",
+        "In addition, we have shown that named entity recognition in Arabic can be performed at levels consistent with other non-case languages despite great differences in structure between them.",
+        "Finally, we have shown that morphological information is crucially important to effective Arabic name recognition."
+      ]
+    }
+  ]
+}

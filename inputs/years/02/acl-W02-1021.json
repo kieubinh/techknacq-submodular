@@ -1,0 +1,155 @@
+{
+  "info": {
+    "authors": [
+      "Nicola Ueffing",
+      "Franz Josef Och",
+      "Hermann Ney"
+    ],
+    "book": "Conference on Empirical Methods in Natural Language Processing",
+    "id": "acl-W02-1021",
+    "title": "Generation of Word Graphs in Statistical Machine Translation",
+    "url": "https://aclweb.org/anthology/W02-1021",
+    "year": 2002
+  },
+  "references": [
+    "acl-J93-2003",
+    "acl-P95-1034",
+    "acl-W01-1408",
+    "acl-W98-1426"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Statistical machine translation systems usually compute the single sentence that has the highest probability according to the models that are trained on data.",
+        "We describe a method for constructing a word graph to represent alternative hypotheses in an efficient way.",
+        "The advantage is that these hypotheses can be rescored using a refined language or translation model.",
+        "Results are presented on the German-English Verbmobil corpus."
+      ]
+    },
+    {
+      "text": [
+        "whose probability is below this value multiplied with a threshold (lower than one) will not be regarded for further expansion.",
+        "Histogram pruning means that all but the M best hypotheses are pruned for a fixed M. For finding the most likely partial hypotheses, first all hypotheses with the same set of covered source sentence positions are compared.",
+        "After threshold and histogram pruning have been applied, we also compare all hypotheses with the same number of covered source sentence positions and apply both pruning types again.",
+        "Those hypotheses that survive the pruning are called the active hypotheses.",
+        "The word graph structure and the results presented here can easily be transferred to other search algorithms, such as A* search."
+      ]
+    },
+    {
+      "heading": "3 Word Graphs",
+      "text": []
+    },
+    {
+      "heading": "3.1 Motivation",
+      "text": [
+        "It is widely accepted in the community that a significant improvement in translation quality will come from more sophisticated translation and language models.",
+        "For example, a language model that goes beyond m-gram dependencies could be used, but this would be difficult to integrate into the search process.",
+        "As a step towards the solution of this problem, we determine not only the single best sentence hypothesis, but also other complete sentences that the search algorithm found but that were judged worse.",
+        "We can then apply rescoring with a refined model to those hypotheses.",
+        "One efficient way to store the different alternatives is a word graph.",
+        "Word graphs have been successfully applied in speech recognition, for the search process (Ortmanns et al., 1997) and as an interface to other systems (Oerder and Ney, 1993).",
+        "(Knight and Hatzivassiloglou, 1995) and (Langkilde and Knight, 1998) propose the use of word graphs for natural language generation.",
+        "In this paper, we are going to present a concept for the generation of word graphs in a machine translation system."
+      ]
+    },
+    {
+      "heading": "3.2 Bookkeeping",
+      "text": [
+        "During search, we keep a bookkeeping tree.",
+        "It is not necessary to keep all the information that we need for the expansion of hypotheses during search in this structure, thus we store only the following:",
+        "• the produced target word e, • the covered source sentence position j, • a backpointer to the preceding bookkeeping entry.",
+        "After the search has finished, i.e. when all source sentence positions have been translated, we trace back the best sentence in the bookkeeping tree.",
+        "To generate the N best hypotheses after search, it is not sufficient to simply trace back the complete hypotheses with the highest probabilities in the bookkeeping, because those hypotheses have been recombined.",
+        "Thus, many hypotheses with a high probability have not been stored.",
+        "To overcome this problem, we enhance the bookkeeping concept and generate a word graph as described in Section 3.3."
+      ]
+    },
+    {
+      "heading": "3.3 Word Graph Structure",
+      "text": [
+        "If we want to generate a word graph, we have to store both alternatives in the bookkeeping when two hypotheses are recombined.",
+        "Thus, an entry in the bookkeeping structure may have several backpointers to different preceding entries.",
+        "The bookkeeping structure is no longer a tree but a network where the source is the bookkeeping entry with zero covered source sentence positions and the sink is a node accounting for complete hypotheses (see Figure 3).",
+        "This leads us to the concept of word graph nodes and edges containing the following information:",
+        "• node – the last covered source sentence position j, • edge – the target word e,",
+        " – the probabilities according to the different models: the language model and the translation submodels, – the backpointer to the preceding bookkeeping entry.",
+        "After the pruning in beam search, all hypotheses that are no longer active do not have to be kept in the bookkeeping structure.",
+        "Thus, we can perform garbage collection and remove all those bookkeeping entries that cannot be reached from the backpointers of the active hypotheses.",
+        "This reduces the size of the bookkeeping structure significantly.",
+        "An example of a word graph can be seen in Figure 3.",
+        "To keep the presentation simple, we chose an example without reordering of sentence positions.",
+        "The words on the edges are the produced target words, and the bitvectors in the nodes show the covered source sentence positions.",
+        "If an edge is labeled with two words, this means that the first English word has no equivalence in the source sentence, like `just' and 'have' in Figure 3.",
+        "The reference translation 'what did you say ?' is contained in the graph, but it has a slightly lower probability than the sentence 'what do you say ?', which is then chosen by the single best search.",
+        "The recombination of hypotheses can be seen in the nodes with two or more incoming edges: those hypotheses have been recombined, because they were indistinguishable by translation and language model state."
+      ]
+    },
+    {
+      "heading": "4 Pruning and Rescoring",
+      "text": []
+    },
+    {
+      "heading": "4.1 Word Graph Pruning",
+      "text": [
+        "To study the effect of the word graph size on the translation quality, we produce a conservatively large word graph.",
+        "Then we apply word graph pruning with a threshold t < 1 and study the change of graph error rate (see Section 5).",
+        "The pruning is based on the beam search concept also used in the single best search: we determine the probability of the best sentence hypothesis in the word graph.",
+        "All hypotheses in the graph which probability is lower than this maximum probability multiplied with the pruning threshold are discarded.",
+        "If the pruning threshold t is zero, the word graph is not pruned at all, and if t = 1, we retain only the sentence with maximum probability."
+      ]
+    },
+    {
+      "heading": "4.2 Word Graph Rescoring",
+      "text": [
+        "In single best search, a standard trigram language model is used.",
+        "Search with a bigram language model is much faster, but it yields a lower translation quality.",
+        "Therefore, we apply a two-pass approach as it was widely used in speech recognition in the past (Ortmanns et al., 1997).",
+        "This method combines both advantages in the following way: a word graph is constructed using a bigram language model and is then rescored with a trigram language model.",
+        "The rescoring algorithm is based on dynamic programming; a description can be found in (Ortmanns et al., 1997).",
+        "The results of the comparison of the one-pass and the two-pass search are given in Section 5."
+      ]
+    },
+    {
+      "heading": "4.3 Extraction of N-best Lists",
+      "text": [
+        "We use A* search for finding the N best sentences in a word graph: starting in the root of the graph, we successively expand the sentence hypotheses.",
+        "The probability of the partial hypothesis is obtained by multiplying the probabilities of the edges expanded for this sentence.",
+        "As rest cost estimation, we use the probabilities determined in a backward pass as follows: for each node in the graph, we calculate the probability of a best path from this node to the goal node, i.e. the highest probability for completing a partial hypothesis.",
+        "This rest cost estimation is perfect because it takes the exact probability as heuristic, i.e. the probability of the partial hypothesis multiplied with the rest cost estimation yields the actual probability of the complete hypothesis.",
+        "Thus, the N best hypothesis are extracted from the graph without additional overhead of finding sentences with a lower probability.",
+        "Of course, the hypotheses must not be recombined during this search.",
+        "We have to keep every partial hypothesis in the priority queue in order to determine the N best sentences.",
+        "Otherwise, we might lose one of them by recombination.",
+        "• GER (graph error rate):",
+        "The graph error rate is computed by determining that sentence in the word graph that has the minimum Levenstein distance to a given reference.",
+        "Thus, it is a lower bound for the word error rate and gives a measurement of what can be achieved by rescoring with more complex models.",
+        "The calculation of the graph error rate is performed by a dynamic programming based algorithm.",
+        "Its space complexity is the number of graph nodes times the length of the reference translation."
+      ]
+    },
+    {
+      "heading": "5.2 Effect of Word Graph Pruning",
+      "text": [
+        "In our experiments, we varied the word graph pruning threshold in order to obtain word graphs of different densities, i.e. different numbers of hypotheses.",
+        "The word graph density is computed as the total number of word graph edges divided by the number of reference sentence words – analogously to the word graph density in speech recognition.",
+        "The effect of pruning on the graph error rate is shown in Table 3.",
+        "The value of the pruning threshold is given as the negative logarithm of the probability.",
+        "Thus, t = 0 refers to pruning everything but the best hypothesis.",
+        "Figure 4 shows the change in graph error rate in relation to the average graph density.",
+        "We see that for graph densities up to 200, the graph error rate significantly changes if the graph is enlarged.",
+        "The saturation point of the GER lies at 13% and is reached for an average graph density about 1000 which relates to a pruning threshold of 20."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "We have presented a concept for constructing word graphs for statistical machine translation by extending the single best search algorithm.",
+        "Experiments have shown that the graph error rate significantly decreases for rising word graph densities.",
+        "The quality of the hypotheses contained in a word graph is better than of those in an N-best list.",
+        "This indicates that word graph rescoring can yield a significant gain in translation quality.",
+        "For the future, we plan the application of refined translation and language models for rescoring on word graphs."
+      ]
+    }
+  ]
+}

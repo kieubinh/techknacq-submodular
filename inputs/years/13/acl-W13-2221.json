@@ -1,0 +1,305 @@
+{
+  "info": {
+    "authors": [
+      "Maria Nadejde",
+      "Philip Williams",
+      "Philipp Koehn"
+    ],
+    "book": "Workshop on Statistical Machine Translation",
+    "id": "acl-W13-2221",
+    "title": "Edinburgh’s Syntax-Based Machine Translation Systems",
+    "url": "https://aclweb.org/anthology/W13-2221",
+    "year": 2013
+  },
+  "references": [
+    "acl-A97-1014",
+    "acl-C04-1024",
+    "acl-D07-1079",
+    "acl-D10-1063",
+    "acl-E03-1076",
+    "acl-J10-2004",
+    "acl-N03-1017",
+    "acl-N04-1035",
+    "acl-P03-1021",
+    "acl-P05-1066",
+    "acl-P06-1055",
+    "acl-P06-1121",
+    "acl-W06-1606",
+    "acl-W08-0509",
+    "acl-W11-2126",
+    "acl-W12-3150"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We present the syntax-based string-to-tree statistical machine translation systems built for the WMT 2013 shared translation task.",
+        "Systems were developed for four language pairs.",
+        "We report on adapting parameters, targeted reduction of the tuning set, and post-evaluation experiments on rule binarization and preventing dropping of verbs."
+      ]
+    },
+    {
+      "heading": "1 Overview",
+      "text": [
+        "Syntax-based machine translation models hold the promise to overcome some of the fundamental problems of the currently dominating phrase-based approach, most importantly handling reordering for syntactically divergent language pairs and grammatical coherence of the output.",
+        "We are especially interested in string-to-tree models that focus syntactic annotation on the target side, especially for morphologically rich target languages (Williams and Koehn, 2011).",
+        "We have trained syntax-based systems for the",
+        "language pairs ?",
+        "English-German, ?",
+        "German-English, ?",
+        "Czech-English, and ?",
+        "Russian-English.",
+        "We have also tried building systems for French-English and Spanish-English but the data size proved to be problematic given the time constraints.",
+        "We give a brief description of the syntax-based model and its implementation within the Moses system.",
+        "Some of the available features are described as well as some of the preprocessing steps.",
+        "Several experiments are described and final results are presented for each language pair."
+      ]
+    },
+    {
+      "heading": "2 System Description",
+      "text": [
+        "The syntax-based system used in all experiments is the Moses string-to-tree toolkit implementing GHKM rule extraction and Scope-3 parsing previously described in by Williams and Koehn (2012)"
+      ]
+    },
+    {
+      "heading": "2.1 Grammar",
+      "text": [
+        "Our translation grammar is a synchronous context-free grammar (SCFG) with phrase-structure labels on the target side and the generic non-terminal label X on the source side.",
+        "In this paper, we write these rules in the form LHS ?",
+        "RHSs |RHSt where LHS is a target-side non-terminal label and RHSs and RHSt are strings of terminals and non-terminals for the source and target sides, respectively.",
+        "We use subscripted indices to indicate the correspondences between source and target non-terminals.",
+        "For example, a translation rule to translate the German Haus into the English house is NN ?",
+        "Haus |house If our grammar also contains the translation rule S ?",
+        "das ist ein X1 |this is a NN1 then we can apply the two rules to an input das ist ein Haus to produce the output this is a house."
+      ]
+    },
+    {
+      "heading": "2.2 Rule Extraction",
+      "text": [
+        "The GHKM rule extractor (Galley et al., 2004, 2006) learns translation rules from a word-aligned parallel corpora for which the target sentences are syntactically annotated.",
+        "Given a string-tree pair, the set of minimally-sized translation rules is extracted that can explain the example and is consistent with the alignment.",
+        "The resulting rules can be composed in a non-overlapping fashion in order to cover the string-tree pair.",
+        "Two or more minimal rules that are in a parent-child relationship can be composed together to obtain larger rules with more syntactic context.",
+        "To avoid generating an exponential number of composed rules, several limitation have to be imposed.",
+        "One such limitation is on the size of the composed rules, which is defined as the number of non-part-of-speech, non-leaf constituent labels in the target tree (DeNeefe et al., 2007).",
+        "The corresponding parameter in the Moses implementation is MaxRuleSize and its default value is 3.",
+        "Another limitation is on the depth of the rules?",
+        "target subtree.",
+        "The rule depth is computed as the maximum distance from its root node to any of its children, not counting pre-terminal nodes (parameter MaxRuleDepth, default 3).",
+        "The third limitation considered is the number of nodes in the composed rule, not counting target words (parameter MaxNodes, default 15).",
+        "These parameters are language-dependent and should be set to values that best represent the characteristics of the target trees on which the rule extractor is trained on.",
+        "Therefore the style of the treebanks used for training the syntactic parsers will also influence these numbers.",
+        "The default values have been set based on experiments on the English-German language pair (Williams and Koehn, 2012).",
+        "It is worth noting that the German parse trees (Skut et al., 1997) tend to be broader and shallower than those for English.",
+        "In Section 3 we present some experiments where we choose different settings of these parameters for the German-English language pair.",
+        "We use those settings for all language pairs where the target language is English."
+      ]
+    },
+    {
+      "heading": "2.3 Tree Restructuring",
+      "text": [
+        "The coverage of the extracted grammar depends partly on the structure of the target trees.",
+        "If the target trees have flat constructions such as long noun phrases with many sibling nodes, the rules extracted will not generalize well to unseen data since there will be many constraints given by the types of different sibling nodes.",
+        "In order to improve the grammar coverage to generalize over such cases, the target tree can be restructured.",
+        "One restructuring strategy is tree binarization.",
+        "Wang et al. (2010) give an extensive overview of different tree binarization strategies applied for the Chinese-English language pair.",
+        "Moses currently supports left binarization and right binarization.",
+        "By left binarization all the leftmost children of a parent node n except the right most child are grouped under a new node.",
+        "This node is inserted as the left child of n and receives the label n?.",
+        "Left binarization is then applied recursively on all newly inserted nodes until the leaves are reached.",
+        "Right binarization implies a similar procedure but in this case the rightmost children of the parent node are grouped together except the left most child.",
+        "Another binarization strategy that is not currently integrated in Moses, but is worth investigating for different language pairs, is parallel head binarization.",
+        "The result of parallel binarization of a parse tree is a binarization forest.",
+        "To generate a binarization forest node, both right binarization and left binarization are applied recursively to a parent node with more than two children.",
+        "Parallel head binarization is a case of parallel binarization with the additional constraint that the head constituent is part of all the new nodes inserted by either left or right binarization steps.",
+        "In Section 3 we give example of some initial experiments carried out for the German-English language pair."
+      ]
+    },
+    {
+      "heading": "2.4 Pruning The Grammar",
+      "text": [
+        "Decoding for syntax-based model relies on a bottom-up chart parsing algorithm.",
+        "Therefore decoding efficiency is influenced by the following combinatorial problem: given an input sentence of length n and a context-free grammar rule with s consecutive non-terminals, there are (n+1s ) ways to choose subspans, or application contexts (Hopkins and Langmead, 2010), that the rule can applied to.",
+        "The asymptotic running time of chart parsing is linear in this number O(ns).",
+        "Hopkins and Langmead (2010) maintain cubic decoding time by pruning the grammar to remove rules for which the number of potential application contexts is too large.",
+        "Their key observation is that a rule can have any number of non-terminals and terminals as long as the number of consecutive non-terminal pairs is bounded.",
+        "Terminals act to anchor the rule, restricting the number of potential application contexts.",
+        "An example is the rule X ?",
+        "WyY Zz for which there are at most O(n2) application contexts, given that the terminals will have a fixed position and will play the role of anchors in the sentence for the non-terminal spans.",
+        "The number of consecutive non-terminal pairs plus the number of non-terminals at the edge of a rule is referred to as the scope of the rule.",
+        "The scope of a grammar is the maximum scope of any of its rules.",
+        "Moses implements scope-3 pruning and therefore the resulting grammar can be parsed in cubic time."
+      ]
+    },
+    {
+      "heading": "2.5 Feature Functions",
+      "text": [
+        "Our feature functions are unchanged from last year.",
+        "They include the n-gram language model probability of the derivation's target yield, its word",
+        "count, and various scores for the synchronous derivation.",
+        "Our grammar rules are scored according to the following functions: ?",
+        "p(RHSs|RHSt,LHS), the noisy-channel translation probability.",
+        "?",
+        "p(LHS,RHSt|RHSs), the direct translation probability.",
+        "?",
+        "plex (RHSt|RHSs) and plex (RHSs|RHSt), the direct and indirect lexical weights (Koehn et al., 2003).",
+        "?",
+        "ppcfg(FRAGt), the monolingual PCFG probability of the tree fragment from which the rule was extracted.",
+        "This is defined as ?ni=1 p(ri), where r1 .",
+        ".",
+        ".",
+        "rn are the constituent CFG rules of the fragment.",
+        "The PCFG parameters are estimated from the parse of the target-side training data.",
+        "All lexical CFG rules are given the probability 1.",
+        "This is similar to the pcfg feature proposed by Marcu et al. (2006) and is intended to encourage the production of syntactically well-formed derivations.",
+        "?",
+        "exp(?1/count(r)), a rule rareness penalty.",
+        "?",
+        "exp(1), a rule penalty.",
+        "The main grammar and glue grammars have distinct penalty features."
+      ]
+    },
+    {
+      "heading": "3 Experiments",
+      "text": [
+        "This section describes details for the syntax-based systems submitted by the University of Edinburgh.",
+        "Additional post-evaluation experiments were carried out for the German-English language pair."
+      ]
+    },
+    {
+      "heading": "3.1 Data",
+      "text": [
+        "We made use of all available data for each language pair except for the Russian-English where the Commoncrawl corpus was not used.",
+        "Table 1 shows the size of the parallel corpus used for each language pair.",
+        "The English side of the parallel corpus was parsed using the Berkeley parser (Petrov et al., 2006) and the German side of the parallel corpus was parsed using the BitPar parser (Schmid, 2004).",
+        "For German-English, German compounds were split using the script provided with Moses.",
+        "The parallel corpus was word-aligned",
+        "pair.",
+        "5-gram language models were trained using SRILM toolkit (Stolcke, 2002) with modified Kneser-Ney smoothing (Chen and Goodman, 1998) and then interpolated using weights tuned on the newstest2011 development set.",
+        "The feature weights for each system were tuned on development sets using the Moses implementation of minimum error rate training (Och, 2003).",
+        "The size of the tuning data varied for different languages depending on the amount of available data.",
+        "In the case of the the German-English pair a filtering criteria based on sentence level BLEU score was applied which is briefly described in Section 3.5.",
+        "Table 2 shows the size of the tuning set for each language pair."
+      ]
+    },
+    {
+      "heading": "3.2 Pre-processing",
+      "text": [
+        "Some attention was given to preprocessing of the English side of the corpus prior to parsing.",
+        "This was done to avoid propagating parser errors to the rule-extraction step.",
+        "These particular errors arise from a mismatch in punctuation and tokenization between the corpus used to train the parser, the PennTree bank, and the corpus which is being parsed and passed on to the rule extractor.",
+        "Therefore we changed the quotation marks, which appear quite often in the parallel corpora, to opening and closing quotation marks.",
+        "We also added some",
+        "pair.",
+        "The parameters considered are MaxRuleDepth, MaxRuleSize, MaxNodes.",
+        "Grammar sizes are given for the full extracted grammar and after filtering for the newstest2008 dev set.",
+        "for the system submitted to the shared translation task.",
+        "parsed as separate constituents.",
+        "For German?English, we carried out the usual compound splitting (Koehn and Knight, 2003), but not pre-reordering (Collins et al., 2005)."
+      ]
+    },
+    {
+      "heading": "3.3 Rule Extraction",
+      "text": [
+        "Some preliminary experiments were carried out for the German-English language pair to determine the parameters for the rule extraction step: MaxRuleDepth, MaxRuleSize, MaxNodes.",
+        "Table 3 shows the BLEU score on different test sets for various parameter settings.",
+        "For efficiency reasons less training data was used, therefore the grammar sizes, measured as the total number of extracted rules, are smaller than the final systems (Table 1).",
+        "The parameters on the third line Depth=5, Nodes=20, Size=4 were chosen as the average BLEU score did not increase although the size of the extracted grammar kept growing.",
+        "Comparing the rate of growth of the full grammar and the grammar after filtering for the dev set (the columns headed ?Full?",
+        "and ?Filtered?)",
+        "suggests that beyond this point not many more usable rules are extracted, even while the total number of rules stills increases."
+      ]
+    },
+    {
+      "heading": "3.4 Decoder Settings",
+      "text": [
+        "We used the following non-default decoder parameters: max-chart-span=25: This limits sub derivations to a maximum span of 25 source words.",
+        "Glue rules are used to combine sub derivations allowing the full sentence to be covered.",
+        "ttable-limit=200: Moses prunes the translation grammar on loading, removing low scoring rules.",
+        "This option increases the number of translation rules that are retained for any given source side RHSs.",
+        "cube-pruning-pop-limit=1000: Number of hypotheses created for each chart span."
+      ]
+    },
+    {
+      "heading": "3.5 Tuning sets",
+      "text": [
+        "One major limitation for the syntax-based systems is that decoding becomes inefficient for long sentences.",
+        "Therefore using large tuning sets will slow down considerably the development cycle.",
+        "We carried out some preliminary experiments to determine how the size of the tuning set affects the quality and speed of the system.",
+        "Three tuning sets were considered.",
+        "The tuning set that was used for training the baseline system was built using the data from newstest20082010 filtering out sentences longer than 30 words.",
+        "The second tuning set was built using all data from newstest2008-2011.",
+        "The final tuning set was also built using the concatenation of the sets newstest2008-2011.",
+        "All sentences in this set were decoded with a baseline system and the output was scored according to sentence-BLEU scores.",
+        "We se",
+        "lected examples with high sentence-BLEU score in a way that penalizes excessively short examples2.",
+        "Results of these experiments are shown in Table 4.",
+        "Results show that there is some gain in BLEU score when providing longer sentences during tuning.",
+        "Further experiments should consider tuning the baseline with the newstest2008-2011 data, to eliminate variance caused by having different data sources.",
+        "Although the size of the third tuning set is much smaller than that of the other tuning sets, the BLEU score remains the same as when using the largest tuning set.",
+        "The glue rule number, which shows how many times the glue rule was applied, is lowest when tuning with the third data set.",
+        "The tree depth number, which shows the depth of the resulting target parse tree, is higher for the third tuning set as compared to the baseline and similar to that resulted from using the largest tuning set.",
+        "These numbers are all indicators of better utilisation of the syntactic structure.",
+        "Regarding efficiency, the baseline tuning set and the filtered tuning set took about a third of the time needed to decode the larger tuning set.",
+        "Therefore we could draw some initial conclusions that providing longer sentences is useful, but sentences for which some baseline system performs very poorly in terms of BLEU score can be eliminated from the tuning set."
+      ]
+    },
+    {
+      "heading": "3.6 Results",
+      "text": [
+        "Table 5 summarizes the results for the systems submitted to the shared task.",
+        "The BLEU scores for the phrase-based system submitted by the University of Edinburgh are also shown for comparison.",
+        "The syntax-based system had BLEU scores similar to those of the phrase-based system for German-English and English-German language pairs.",
+        "For the Czech-English and Russian-English language pairs the syntax-based system was 2 BLEU points behind the phrase-based system.",
+        "However, in the manual evaluation, the German?English and English?German syntax based systems were ranked higher than the phrase-based systems.",
+        "For Czech?English, the syntax systems also came much closer than the BLEU score would have indicated.",
+        "The Russian-English system performed worse because we used much less of the available data for training (leaving out Commoncrawl) and there-2Ongoing work by Eva Hasler.",
+        "Filtered data set was provided in order to speed up experiment cycles.",
+        "phrase-based syntax-based",
+        "tion scores (?expected wins?)",
+        "on the newstest2013 evaluation set for the phrase-based and syntax-based systems submitted by the University of Edinburgh.",
+        "fore the extracted grammar is less reliable.",
+        "Another reason was the mismatch in data formatting for the Russian-English parallel corpus.",
+        "All the training data was lowercased which resulted in more parsing errors."
+      ]
+    },
+    {
+      "heading": "3.7 Post-Submission Experiments",
+      "text": [
+        "Table 6 shows results for some preliminary experiments carried out for the German-English language pair that were not included in the final submission.",
+        "The baseline system is trained on all available parallel data and tuned on data from newstest2008-2010 filtered for sentences up to 30 words.",
+        "Tree restructuring ?",
+        "In one experiment the parse trees were restructured before training by left binarization.",
+        "Tree restructuring is need to improve generalization power of rules extracted from flat structures such as base noun phrases with several children.",
+        "The second raw in Table 6 shows that the BLEU score did not improve and more glue rules were applied when using left binarization.",
+        "One reason for this result is that the rule extraction parameters MaxRuleDepth, MaxRuleSize, MaxNodes had the same values as in the baseline.",
+        "Increasing this parameters should improve the extracted grammar since binarizing the trees will increase these three dimensions.",
+        "Verb dropping ?",
+        "A serious problem of German?English machine translation is the tendency to drop verbs, which shatters sentence structure.",
+        "One cause of this problem is the failure of the IBM Models to properly align the German verb to its English equivalent, since it is often dislocated with respect to English word order.",
+        "Further problems appear when the main verb is not reordered in the target sentence, which can result in lower lan",
+        "guage model scores and BLEU scores.",
+        "However the syntax models handle the reordering of verbs better than phrase-based models.",
+        "In an experiment we investigated how the number of verbs dropped by the translation rules can be reduced.",
+        "In order to reduce the number of verb dropping rules we looked at unaligned verbs and realigned them before rule extraction.",
+        "An unaligned verb in the source sentence was aligned to the verb in the target sentence for which IBM model 1 predicted the highest translation probability.",
+        "The third row in Table 6 shows the results of this experiment.",
+        "While there is no change in BLEU score the number of glue rules applied is lower.",
+        "Further analysis shows in Table 7 that the number of verb dropping rules in the grammar is almost three times lower and that there are more translated verbs in the output when realigning verbs."
+      ]
+    },
+    {
+      "heading": "4 Conclusion",
+      "text": [
+        "We describe in detail the syntax-based machine translation systems that we developed for four European language pairs.",
+        "We achieved competitive results, especially for the language pairs involving German."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "The research leading to these results has received funding from the European Union Seventh Framework Programme (FP7/2007-2013) under grant agreement 287658 (EU BRIDGE) and grant agreement 288487 (MosesCore)."
+      ]
+    }
+  ]
+}

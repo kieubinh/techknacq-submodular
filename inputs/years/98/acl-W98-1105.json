@@ -1,0 +1,516 @@
+{
+  "info": {
+    "authors": [
+      "Michael John Collins",
+      "Scott Miller"
+    ],
+    "book": "Workshop on Very Large Corpora",
+    "id": "acl-W98-1105",
+    "title": "Semantic Tagging Using a Probabilistic Context Free Grammar",
+    "url": "https://aclweb.org/anthology/W98-1105",
+    "year": 1998
+  },
+  "references": [
+    "acl-A88-1019",
+    "acl-A97-1029",
+    "acl-C92-3145",
+    "acl-J93-2004",
+    "acl-M93-1023",
+    "acl-M95-1014",
+    "acl-M98-1009",
+    "acl-P94-1013",
+    "acl-W96-0213",
+    "acl-W97-1002"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper describes a statistical model for extraction of events at the sentence level, or \"semantic tagging\", typically the first level of processing in Information Extraction systems.",
+        "We illustrate the approach using a management succession task, tagging sentences with three slots involved in each succession event: the post, person coming into the post, and person leaving the post.",
+        "The approach requires very limited resources: a part-of-speech tagger; a morphological analyzer; and a set of training examples that have been labeled with the three slots and the indicator (verb or noun) used to express the event.",
+        "Training on 560 sentences, and testing on 356 sentences, shows the accuracy of the approach is 77.5% (if partial slot matches are deemed incorrect) or 87.8% (if partial slot matches are deemed correct)."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Statistical models have been used quite successfully in natural language processing for recovery of hidden structure such as part-of-speech tags, or syntactic structure.",
+        "This paper considers semantic tagging of text within the context of information extraction, as in the Sixth Message Understanding Conference (MUC-6).",
+        "MUC-6 looked at extraction of events concerning management successions in newspaper texts: recovering the post, company, person entering and person leaving the post.",
+        "We will concentrate on the initial stage of processing, extraction of events at the sentence level.",
+        "For example, given the sentence Last week Hensley West , 59 years old , was named as president, a surprising development.",
+        "the desired output from the system would be {IN = Hensley West, POST = president, IND = named } POST is a slot designating the title of the position, IN is the person coming in to fill the post, and IND is an \"indicator\" – usually a verb or a noun – used to express the event.",
+        "Table 1 gives some more examples.",
+        "The traditional approach to this problem, as exemplified in SRI's FASTUS system (Appelt et al.",
+        "93), has been The work reported here was supported in part by the Defense Advanced Research Projects Agency.",
+        "Technical agents for part of this work were Fort Huachucha under contract number DABT63-94-C0062.",
+        "The views and conclusions contained in this document are those of the authors and should not be interpreted as necessarily representing the official policies, either expressed or implied, of the Defense Advanced Research Projects Agency or the United States Government.",
+        "(IN Jack Bradley) was (IND named) (POST acting president and chief executive officer) of this computer-network manufacturer.",
+        "(IN He) (IND succeeds) as (POST president) (OUT Edward Marinaro) , 56 , who is retiring.",
+        "(IN Mr. Stanley) 's (IND appointment) comes as AK Steel 's Middletown Works is under investigation by OSHA because of its safety record , which includes one accident that killed four men in April 1994 The unexpected (IND departure) of (OUT Citicorp 's highly regarded head of retail banking) and the appointment of a tobacco executive to fill his shoes has caught most Citicorp employees off-guard and confounded many analysts .",
+        "On Friday , the bank said (OUT Pei-yuan Chia) , head of retail banking , will (IND retire) this year.",
+        "to use hand-coded rules.",
+        "These are typically encoded in a series of finite-state transducers that progressively build information in a bottom-up fashion.",
+        "We are interested in developing a machine-learning approach to this problem for two reasons: First, developing hand-coded rules is a lengthy task which requires a fairly considerable amount of expertise – and a new set of rules must be developed for each new domain.",
+        "Annotating training text examples such as those in table 1 can conceivably be done by a non-expert.",
+        "Second, writing accurate rules is difficult, as there are many complex interactions between the rules, and there are many details to be covered.",
+        "This task becomes even more complex when the interaction between the sentence-level rules and the later stages of processing (co-reference and merging, see section 1.1) is considered.",
+        "Machine learning techniques have been shown to be highly effective at managing this kind of complexity in applications such as speech recognition, part-of-speech tagging and parsing.",
+        "Not surprisingly this problem can be approached using finite-state tagging methods, which have previously been applied to part of speech tagging (Church 88) and named-entity identification (Bikel et al.",
+        "97).",
+        "We initially consider this approach, but argue that the Markov approximation gives an extremely bad parameterization of the problem.",
+        "Instead, the method uses a Probabilistic Context Free Grammar (PCFG), which has the advantages of being flexible enough to allow a good parameterization of the problem, while having an efficient decoding algorithm, a variant of the CKY dynamic programming algorithm for parsing with context-free grammars.",
+        "The PCFG does not encode linguistic phrase structure;",
+        "rather, it is semantically motivated, modeling choices such as the choice of indicator, number of slots, fillers for the slots, and generation of other \"noise\" words in the sentence.",
+        "While this paper largely concentrates on the management succession domain, and motivates many of the choices regarding representation with examples from it, the principles should be general enough to also work for other domains – in fact, the method was originally developed for an IE task involving company acquisitions (identifying the buyer, seller and item being bought), and then moved to the management succession domain with no domain-specific tuning."
+      ]
+    },
+    {
+      "heading": "1.1 The Complete Information Extraction Task",
+      "text": [
+        "While a semantic tagging model may be useful for many tasks, our primary motivation is to use it within an information extraction (1E) system.",
+        "Information extraction tasks involve processing an input text to fill slots in an output template, the DARPA-sponsored Message Understanding Conferences (MUCs) have evaluated IE systems from several research sites.",
+        "Some previous tasks attempted at MUC involved extraction of information about terrorist attacks (MUC-4); joint ventures (MUC5); and most recently, at MUC-6, management successions.",
+        "In this paper we concentrate on the management succession task, figure 1 gives an example input-output pair from the domain'.",
+        "Most systems described in the MUC-6 proceedings followed the following three stages of processing in mapping an input text to a set of output templates: We've just shown the most important, \"core\" slots for the task - the MUC-6 specification includes additional information such as the reason for the change, the title of the people involved etc.",
+        "1) Pattern matching at the sentence level.",
+        "This is the task that is approached in this paper.",
+        "In the text in figure 1, \"Hensley E. West, 50 years old, was named president of this telecommunications-product concern\" would be processed to give IN = \"Hensley E. West\", POST = \"president\", COMPANY = \"this telecommunications-product concern\", VERB = \"named\" and \".... the retirement last September of John Bradley ....\" would give { OUT = \"John Bradley\", NOUN = \"retirement\" , IND = \"resignation\") 2) Coreference.",
+        "Pronouns and definite NPs are resolved to their antecedents.",
+        "For example, \"this telecommunications-product concern\" would be resolved to \"RESTOR INDUSTRIES Inc.\".",
+        "This stage is important because pronouns and definite noun-phrases like \"this telecommunications-product concern\" are not informative slot-fillers.",
+        "3) Merging.",
+        "The information in a template may be",
+        "spread across several sentences.",
+        "In the merging stage the information from multiple mentions of the same event is merged into a single template.",
+        "In the example, the information centered around \"named\" and \"retirement\" would be identified as referring to the same event, and would be combined to give { IN = \"Hensley E. West\", OUT = \"John Bradley\", POST = \"president\", COMPANY = \"RESTOR INDUSTRIES Inc.\" This paper's work attacks problem (1) alone, and is restricted to recovery of the IN, OUT and POST slots."
+      ]
+    },
+    {
+      "heading": "1.2 Previous Work",
+      "text": [
+        "The majority of systems at MUC-6, including SRI's system FASTUS (Appelt et al.",
+        "93), and the best-performing system, from NYU (Grishman 95), used cascaded finite-state transducers, which were built by hand.",
+        "The domain independent transducers tokenize the text, recognise person and company names, \"chunk\" noun and verb groups, and finally build some higher level, complete clauses.",
+        "The domain specific rules then extract the slots from the sentence, using patterns such as the example on page 244 of (Appelt et al.",
+        "93): \"Company hires or recruits person from company as position\".",
+        "There have been a number of machine learning approaches to the sentence-level stage of information extraction.",
+        "The AutoSlog system (Riloff 93; Riloff 96) automatically learned \"concept node\" definitions for use on the MUC-4 terrorist events domain.",
+        "A concept node specifies a trigger word, usually a verb, and maps syntactic roles with respect to this trigger to semantic slots – for example, a concept node might specify if trigger = \"destroyed\" and syntax = direct-object then concept = Damaged-Object (Damaged-object is the name of the slot in this case).",
+        "A concept node may also specify hard or soft constraints on the slot-fillers.",
+        "The system uses the CIRCUS parser (Lehnert et al.",
+        "93) to find the syntactic roles in relation to the trigger.",
+        "AutoSlog learns concept nodes given input-output pairs like those in figure 1, so the indicator words do not need to be specified.",
+        "Experiments showed that running AutoSlog followed by 5 hours of filtering the rules by hand gave a system that performed as well as a hand-crafted system.",
+        "The CRYSTAL system (Soderland et al.",
+        "95) also learns rules that map syntactic frames to semantic roles.",
+        "The triggers can be more complicated than those in AutoSlog, in that they can specify whole sequences of words, or restrict patterns by specifying words or classes in the surrounding context.",
+        "CRYSTAL learns patterns by initially specifying a maximally detailed pattern for each training example, then progressively simplifying and merging patterns until some error bound is exceeded.",
+        "CRYSTAL uses the BADGER sentence analyzer to give syntactic information.",
+        "(Calif and Mooney 97) describe a system for extraction of information about job postings from a newsgroup.",
+        "Relational learning is used to learn rule-based patterns that specify: 1) a pre-filler pattern that matches the text before the slot; 2) a pattern that must match the actual slot filler; and 3) a post-filler pattern that matches the text after the slot.",
+        "The patterns can involve parts of speech, semantic classes of words, or the words themselves.",
+        "An example pattern from (Calif and Mooney 97) for identifying locations is pre-filler = in, filler = 2 or fewer words all proper nouns, post-filler = wordl is \",\", word2 is a state.",
+        "This matches phrases like \"in Kansas City, Mis-souri\" or \"in Atlanta, Georgia\".",
+        "The learning algorithm starts with the most specific rule for each training example, then generalizes by merging similar rules.",
+        "A major difference between the approaches described in (Riloff 93; Riloff 96; Soderland et al.",
+        "95) and the approach in this paper is that (Riloff 93; Riloff 96; Soderland et al.",
+        "95) rely on a syntactic parser to produce at least a shallow syntactic analysis.",
+        "The approach described in this paper builds a system from a set of training examples, with only a part-of-speech tagger and a morphological analyzer as additional resources.",
+        "The system in (Califf and Mooney 97) does not require a parser, but the patterns it uses are quite local (the pre-filler and post-filler patterns are adjacent to the slot).",
+        "It isn't clear this method would work well for the management successions domain where there are often many \"noise\" words between the slots and the indicator.",
+        "Another major difference between the methods is that the PCFG based method is probabilistic.",
+        "This may be an advantage when the sentence-level stage of processing is combined with the later merging and coreference stages, as it gives a principled way of combining evidence from the different stages of processing: an uncertainty at the sentence level may, for example, be resolved at the merging stage – in this case it is useful for the sentence level system to be capable of giving a list of candidate analyses with associated probabilities."
+      ]
+    },
+    {
+      "heading": "2 Background",
+      "text": []
+    },
+    {
+      "heading": "2.1 The Problem",
+      "text": [
+        "We assume the following definitions:",
+        "1.",
+        "A sentence, W, consists of n words.",
+        "w1,w2, ...wn.",
+        "2.",
+        "A template, T, is a non-empty set of slots, where each slot is a label together with a tuple giving the start and end point of the slot in the sentence.",
+        "For example, T = {IN = (3, 4), OUT = (5, 6)} means there is an IN slot spanning words 3 to 4 inclusive, and an OUT slot spanning words 5 to 6 inclusive.",
+        "In the management succession domain there are three possible slots, IN, OUT and POST (abbreviated to I, 0 and P respectively).",
+        "IN is the string denoting the person who is filling the post, OUT is the person who is leaving the post, and POST is the name of the post.",
+        "3.",
+        "In addition, we assume that each template contains",
+        "an additional indicator slot, which is the verb or noun used to express the template.",
+        "For example, a (W, T) pair might be W = Last week Hensley West , 59 years old ,joined the company as president, a surprising development",
+        "As alternative notation in this paper we either list the strings in the template, for example T = {IN = \"Hensley West\", POST = \"president\", IND = \"joined\"), or we show the (W, T) pair as a bracketed sentence: Last week (IN Hensley West) , 59 years old (IND joined) the company as (POST president) , a surprising development.",
+        "Table 1 shows more examples from the management succession domain.",
+        "The machine learning task is to learn a function that maps an arbitrary sentence W to a template T, given a training set of N pairs (Wi, Ti) 1 < i < N. A test set of (W, T) pairs is used to evaluate the model.",
+        "In addition to a training set, we assume the following resources:",
+        "1.",
+        "A part of speech (POS) tagger.",
+        "The POS tagger described in (Ratnaparkhi 96) was used to tag both training and test data.",
+        "2.",
+        "A lexicon which maps each indicator word in training data to a class, for example the morphological variants \"join\", \"joins\", \"joined\" and \"joining\" could all be mapped to the JOIN class.",
+        "This can be done automatically by a morphological analyzer as in (Karp et al.",
+        "94), or by hand.",
+        "(This resource is not strictly necessary, but will help to reduce sparse data problems).",
+        "A probabilistic approach defines a conditional probability P(T I W) or a joint probability P(T, W) for every candidate template for a sentence.",
+        "The most likely template for a sentence W is then Tbest = arg miax P(T I W) = arg mpx P(T, W) (1)",
+        "The major part of this paper will be concerned with formalizing a stochastic model that defines P(T,W)."
+      ]
+    },
+    {
+      "heading": "3 A Probabilistic Model",
+      "text": []
+    },
+    {
+      "heading": "3.1 A Naive Approach – Finite State Tagging",
+      "text": [
+        "It is useful to note that a (W, T) pair can be represented as a tagged sentence wi iti , w2/t2, /4, where T = t1,t2...t, is the sequence of tags denoting the semantic type for each word in the sentence.",
+        "For example, the tags could be I, 0, P, IND, for the 3 slots and the indicator, and N for other (noise) words, as in",
+        "As a straw man we consider using a standard bigram tagging model to tag test-set sentences.",
+        "(Church 88) used this to recover part-of-speech tags, a related approach described in (Bikel et al.",
+        "97) gives a useful decomposition of P(T,W) into two terms:",
+        "{L1, L2, ...Lm} is the underlying sequence of tags, in the above example m = 7 and the sequence is {N, I, N, IND, N , P. N}.",
+        "Wi is the string of words under label Li, for example W1 = {Last, week}, W2 = {Hensley, West).",
+        "The two terms are then simplified, using bigram Markov independence assumptions, to be",
+        "and (if label Li covers words wii...wei)",
+        "This finite state approach has been highly effective for part of speech tagging (Church 88) and name finding (Bikel et al.",
+        "97).",
+        "However, the next section considers the characteristics of the task in more detail, and argues that a finite-state tagger is a poor model for the task."
+      ]
+    },
+    {
+      "heading": "3.2 More about the task",
+      "text": [
+        "In developing an intuition for the task, and motivating the choices made in modeling it, it is useful to consider the types of information that may be useful to a system.",
+        "Consider the following 5 points:",
+        "1.",
+        "There are 7 possible templates corresponding to the 7 non-empty subsets of {I,O,P}.",
+        "The distribution over these alternatives is by no means uniform – see table 2 for the distribution.",
+        "2.",
+        "The different slots tend to contain quite different lexical items or strings – for example, the IN and OUT slots are most likely to contain a proper name or a personal pronoun, whereas the POST slot contains strings such as \"president\", \"chairman\" etc.",
+        "3.",
+        "The choice of indicator word depends greatly on the choice of template.",
+        "For example \"name\" is very likely to be used to express an event involving a (I, P) template; \"succeed\" is very likely to express an {I, 0, P) or {I, 0} template.",
+        "See the final column of table 2 for more examples.",
+        "4.",
+        "The relative order of the slots and indicator in the text varies considerably depending on the choice of indicator.",
+        "For example, given the template {I} and the verb \"join\" the order is most likely to be { I Indicator } (e.g.",
+        "IN joined the company); whereas given the verb \"hire\" the order is usually {Indicator I) (e.g. the company hired IN).",
+        "5.",
+        "In addition to the central indicator, there are often secondary indicators – mainly prepositions – which are strong signals of particular slots.",
+        "For example, given the verb is \"named\" or \"succeeded\", the post is very likely to be preceded by the preposition \"as\" (e.g., the company named her as president, he succeeds Jim Smith as president).",
+        "By considering points 1-5 we can see that the finite-state tagging approach is deficient for the semantic tagging task.",
+        "The lexical probabilities in equation (4) are probably sufficient to capture the lexical differences between different states (the preference of the IN slot to generate proper names, of the POST slot to generate Words like \"president\" and so on).",
+        "But the Markov approximation in equation (3) is deficient in many ways: it fails to capture the non-uniform distribution over the 7 possible templates, worse still it is deficient in that it can label more than one substring with the same slot label; it fails to capture the dependence of the slot order on the indicator word, or the dependence between the template and indicator."
+      ]
+    },
+    {
+      "heading": "3.3 A Probabilistic Context-Free Grammar",
+      "text": [
+        "Our proposal is to replace the Markov assumption in (3) with a probabilistic context-free grammar, that is we assume that the label sequence has been generated by the application of r context-free rules LHSj RHSi 1 < j < r (LHS stands for left hand side, RHS stands for right hand side), and that H P(RHSi J LHSi).",
+        "(5) Each LHS is a single non-terminal, and RHS is a string of one or more non-terminals.",
+        "So for each non-terminal LHS in the grammar there is a distribution over possible RHSs which sums to one.",
+        "Counts of context-free rules can be extracted from a training set of context free trees,",
+        "and used to estimate the parameters P(RHSi I LHSi).",
+        "Given a test data sentence, the most likely tree (and hence the most likely template) can be recovered efficiently using a variant of the CKY algorithm."
+      ]
+    },
+    {
+      "heading": "4 The Grammar",
+      "text": [
+        "This section describes the underlying context-free structure2 that we assume has generated the labels, and motivates it in terms of the observations in section 3.2.",
+        "The context-free structure (the tree topology, and the choice of non-terminal labels within the tree), is deterministically derived from the initial labeling of the sentences – so given a set of labeled sentences, the context-free structures can be recovered and the parameters can be estimated."
+      ]
+    },
+    {
+      "heading": "4.1 The Leaf Categories",
+      "text": [
+        "The tagging model as applied in the above example assumed five tags – for the IN, OUT, and POST slots, the indicator, and for noise (other words).",
+        "In fact, we used rather more categories, which are listed in table 3.",
+        "These labels can still be deterministically recovered from the labeled sentence though, given the additional information of a mapping from indicator words to their morphological stem (for example, the mapping \"joined\" JOIN).",
+        "The example sentence would have the following underlying leaf labels: [PREN Last week ] [I Hens k% West [NOISE+ , 59 years old , ] UND(JOIN) joined ] [NOISE- the company ] [P.Prep-(JOIN) as ] [P president ] [POSTN , a surprising development . ]"
+      ]
+    },
+    {
+      "heading": "4.2 The Context-Free Component – a Brief Sketch",
+      "text": [
+        "The PCFG model assumes the pre-terminal3 label sequence {LI, L2...L,,} has been generated by a stochastic process with the following steps: 2 The structures in this paper are non-recursive, and could, therefore, be equivalently handled by a hierarchy of finite-state transducers, or even a single equivalent non-deterministic finite-state automaton.",
+        "However, it is quite possible that extensions to the models could require recursive structures.",
+        "3By pre-terminal, we mean a non-terminal that dominates words rather than other non-terminals.",
+        "1.",
+        "Decide whether to have noise words (PREN) before the template TEMP.",
+        "2.",
+        "Decide whether to have noise words (POSTN) after the template TEMP.",
+        "3.",
+        "Decide which slots to have (one of the 7 subsets of {I, 0, P}).",
+        "4.",
+        "Decide the class of indicator words.",
+        "5.",
+        "Decide the order of the slots and indicator word.",
+        "6.",
+        "For each slot, choose whether to have noise between it and the indicator (NOISE+ or NOISE-).",
+        "7.",
+        "For each slot, choose whether to have a preposition directly preceding or following it.",
+        "Figure 2 gives an example tree and describes the context-free rules within it.",
+        "The next section describes the grammar in more detail, showing how these 7 types of decision can be encoded as context-free rules."
+      ]
+    },
+    {
+      "heading": "4.3 The Context-Free Component in Detail",
+      "text": [
+        "This section describes the top-down derivation of a sequence of leaves within a PCFG framework.",
+        "Choosing noise at the start/end of the sentence This level of the model chooses whether to have noise preceding or following the text which expresses the succession information.",
+        "TOP -> PREN TEMPI #there is noise at start -> TEMPI *or there isn't TEMP1 -> TEMP POSTN #there is noise following -> TEMP #or there isn't The TEMP non-terminal covers the span of the succession information, in the above example \"Hensley ... pres-ident\".",
+        "P(PREN TEMPI I TOP) can be interpreted as the probability of having noise at the beginning of the sentence, P(TEMP POSTN j TEMPI) is the probability of having post-noise.",
+        "TEMP first rewrites in one of seven ways, corresponding to the 7 possible templates.",
+        "The T. non-terminal encodes the slots that will be generated below it, for example T. 10 would generate an IN and an OUT slot below it.",
+        "So P(RHS I TEMP) will mirror the distribution in column 2 of table 2.",
+        "The next step is to choose the Class of indicator that is used to express the transaction.",
+        "Each Class is a set of words with the same morphological stem, for example the JOIN class would include join, joins, joined and joining.",
+        "P(ClassiSlots) is implemented in the CFG fragment shown below.",
+        "The IND non-terminal encodes which slots need to be generated, and the Class used to express the transaction.",
+        "Each T. rule can rewrite in N ways, where N is the number of classes.",
+        "Having chosen the Slots to be generated, and the Class used to express the event, there are many possible orders in which the slots and class can appear.",
+        "In the above example (Slots = II, 1)), Class = JOIN) there are 6 permutations( {JOIN I P}, {I JOIN 11, P JOIN } and so on).",
+        "It is necessary to estimate a distribution over these alternatives.",
+        "The order is parameterized using a binary branching, context-free fragment: part of this (all rules with LHS = IND .",
+        "I P [Clas s] ) is shown below.",
+        "The full grammar specifies similar rules for all IND.",
+        "X (Class where X is any one of the non-empty subsets of {I, 0, P}.",
+        "The notation is:",
+        "• IND keeps tracks of which slots still need to be generated.",
+        "For example INDIP[Class] means that the IN and POST slots need to be generated.",
+        "• The 12, 02, and P2 non-terminals will eventually generate the IN, OUT and POST leaves.",
+        "The \"2\"",
+        "stands for level 2 – more in the next section on why this is necessary.",
+        "\"+\" means the slot appears before the head-word, \".\" means it appears after.",
+        "The Class is propagated to the 12, 02 and P2 nonterminals.",
+        "Propagation of the Class and direction (+ or -) is important because the identity of any prepositions is conditioned on this information.",
+        "Each binary rule expresses a choice of which of the remaining slots to generate next, and which direction to generate it in.",
+        "So IND.IP[Class] can rewrite in 4 ways: either the IN or POST slot can be generated either to the left or right of the headword itself.",
+        "Choosing to generate noise between the slots Noise can appear after any slot preceding the indicator, or before any slot following the indicator.",
+        "The CFG rules below encode the decision to have noise in a gap or not, for an IN slot generated before or after the indicator.",
+        "The rules for OUT and POST are similar.",
+        "Choosing to generate a preposition (or other indicator) linked to a slot Any of the slots can have an adjacent \"indicator\", usually a preposition.",
+        "The rules below encode the binary decision of whether to include an indicator for an IN slot – the OUT and POST cases are similar."
+      ]
+    },
+    {
+      "heading": "5.1 Deriving the Tree Structures in Training Data",
+      "text": [
+        "While the tree structure described in section 4.3 may seem complex, it is important to realise that it can be deterministically derived from an annotator's labeling of the Slots and Indicator.",
+        "This section describes how the structure is derived in a bettom up fashion using the following annotated sentence as example input to the process: Last week [I Hensley West ] , 59 years old [IND joined ] the company as [P president ] , a surprising development.",
+        "The 6 stages are as follows: 1.",
+        "Identify the class of the indicator, and add this information to the IND label.",
+        "Mark any prepositions adjacent to the slots.",
+        "Label \"noise\" words with either PREN, POSTN, NOISE+ or NOISE.",
+        "The output from this stage would be: [PREN Last week ] [I Hensley West ] [NOISE+ , 59 years old , ] [IND(JOIN) joined ] [NOISE- the company] [P.Prep-(JOIN) as ] [P president ] [POSTN , a surprising development . ]",
+        "2.",
+        "Build level 1 of the slots, by including attached prepositions, or just building a unary rule",
+        "4.",
+        "Build the binary-branching context-free structure that defines the order of the slots and indicator.",
+        "END001N).IP 11+ [Class) -> I I.Prep+[Class] 12.001N) INMAN) P 11+ [Class] -> I INDOOIN) P2-(JOIN) Ii [Class] -> I.Prep-[Class] 5.",
+        "Add the top level of the tree Ii [Class] -> I 1T)P",
+        "Again, for each /1, 01 or P1 non-terminal there are two possible re-writes, one binary, one unary, encoding whether or not to generate a preposition.",
+        "The I.Prep, 0.Prep and P.Prep non-terminals then generate the indicator with a bigram model.",
+        "The non-terminal encodes whether the slot appears before or after the headword (\"+\" or \"-\"), and the Class of the headword."
+      ]
+    },
+    {
+      "heading": "5 Training the Model",
+      "text": [
+        "There are two steps to training the model: first, recovering the underlying tree structure from the training data labels; second, deriving counts of the CF rule applications and bigram sequences and using these to estimate the parameters of the model."
+      ]
+    },
+    {
+      "heading": "5.2 Context Free Rule Probabilities",
+      "text": [
+        "Once the training data is processed to have full context-free trees, the grammar can be automatically read from these trees, and event counts can be extracted and used to estimate the parameters of the model.",
+        "The maximum likelihood estimate for a CF rule LHS – > FtHS is",
+        "where C(x) is the number of times event x has been seen in training data.",
+        "This estimate can be unreliable, particularly for low values of C(LH S).",
+        "So we smooth this estimate with a \"backed off\" estimate Pb",
+        "where 0 < A < 1.",
+        "The backed off estimate Pb =",
+        "the slots when choosing the class of indicators.",
+        "This method borrows heavily from smoothing techniques in language modeling for speech recognition – (Jelinek 90) describes methods for estimating A."
+      ]
+    },
+    {
+      "heading": "5.3 Bigram Probabilities",
+      "text": [
+        "The bigram model is used at the leaves of the tree to generate the words themselves, for example to estimate P ( the president I P ) .",
+        "The most obvious way to estimate this is as P(theIST ART, P) *P (presidentithe, 13) * P(EN Dipresident, P) with smoothing being implemented by interpolation between P(wIw – i , State) 4 P(wIState) II,- where V is the vocabulary size.",
+        "Unfortunately we do not have space to go into the full details of the smoothing here (in the final implementation part-of-speech information was also used to smooth the estimates)."
+      ]
+    },
+    {
+      "heading": "6 Experiments",
+      "text": [
+        "This section describes experiments on the management successions domain.",
+        "Before giving the results, we discuss how to deal with sentences that have more than one indicator."
+      ]
+    },
+    {
+      "heading": "6.1 Dealing with Sentences that have more than one Indicator",
+      "text": [
+        "Thus far the model has assumed that there is only one indicator per sentence.",
+        "However, training data frequently has more than one indicator, as in Mr. Smith was named president of the company, succeeding Fred Jones.",
+        "There are two events in this sentence, one centered around named, the other centered around succeeding.",
+        "The solution is to transform sentences in both training and test data to give one sentence per indicator, in this case the sentence would be expanded to give two sentences: Mr. Smith was *named* president of the company, succeeding Fred Jones.",
+        "Mr. Smith was named president of the company, *succeeding* Fred Jones.",
+        "The first sentence is for the named event, the second is for succeeding.",
+        "The indicator is replaced with *indicator* to show that it is under interest – when decoding test data the model either recognises *named* as a potential indicator, but ignores succeeding, or ignores named and recognises *succeeding*.",
+        "If the sentence appeared in training data it would be transformed to give two training data trees.",
+        "We should stress that this process is completely automatic once the indicators have been identified in the text."
+      ]
+    },
+    {
+      "heading": "6.2 Results",
+      "text": [
+        "The model was trained on 563 sentences, and tested on another 356 sentences.",
+        "(That is, 563/356 sentences after producing one sentence per indicator as described in section 6.1).",
+        "The sentences were taken from the \"Who's news\" section of Wall Street Journal, which is almost exclusively about management successions.",
+        "The training sentences were taken from 219 Who's News articles in the 1996 section, the test sentences were taken from 131 articles in the 1995 section.",
+        "The sentence level annotation was part of an annotation effort for the full extraction task, which therefore also marked the relevant coreference relationships and the complete output template as in figure 1.",
+        "The test data sentences always contain an event, and have all indicators marked as *indicator* – only those indicators that have 1 or more slots attached to them are marked.",
+        "This is an idealization, in that we avoid problems of false positives, cases where a potential indicator is not used to express an event.",
+        "See section 6.4 for suggestions about how to extend the model to deal with false positives.",
+        "The results are shown in table 4.",
+        "We define precision and recall when comparing to the annotated test set answers (gold standard) as",
+        "In addition we report the standard \"F-Measure\", which is a combination of precision and recall",
+        "The results are quoted for the IN, OUT and POST slots (the IND slot is not scored, as it is marked in test data and would score 100% recall/precision, inflating the scores).",
+        "The number of \"correct\" slots varies depending on how partial matches are scored – a partial match is where an output slot does not match a gold standard slot exactly, but does partially overlap.",
+        "For example, in Bill Smith was elected vice president, human resources.",
+        "the gold standard might designate the slot as \"vice president, human resources\", whereas the program output might just mark \"vice president\".",
+        "We present three precision/recall scores - where a partial match scores 0, 0.5 or 1.0, and Number of correct slots = Number of exact matches +Score for a partial match x Number of partial matches"
+      ]
+    },
+    {
+      "heading": "6.3 Analysis of the results",
+      "text": [
+        "In this section we look at the errors the system makes in more detail.",
+        "There are two categories of error: precision errors (incorrect slots); and recall errors (slots the system failed to propose).",
+        "For these tests we ran experiments on the training data, jackknifing (i.e. using cross-validation) it into 4 sections, in each case training on three-quarters of the training set and testing on the other quarter.",
+        "Tables 5 and 6 show the results on this data set."
+      ]
+    },
+    {
+      "heading": "6.3.1 Precision errors",
+      "text": [
+        "Table 7 shows the 104 precision errors categorized by hand into four categories.",
+        "These four categories were: 1) Semantically Plausible.",
+        "Here the model has selected a slot-filler that looks good semantically, but is ruled out for other reasons (usually syntactic).",
+        "For example, The appointment puts (IN Mr. Zwirn) , 41 years old , in line to succeed the unit 's president, Frank R. Bakos , 58, who is (IND retiring) at year end.",
+        "Here \"Mr. Zwirn\" is semantically a good filler for \"retiring\", but syntactically this is almost impossible.",
+        "We subdivided this class into 3 sub-categories: problems with relative clauses, as in the example above; problems with non-relativized subjects, for example \"Brandon Sweitzer, 53, succeeds (IN Mr. Wakefield) as president of Guy Carpenter and also (IND becomes) (POST the unit 's CEO) , succeeding Richard Blum , 56 .\"; and problems that fell outside these categories.",
+        "2) \"Correct\".",
+        "These slots were not seen in the gold-standard, but were deemed pretty much correct, in that they would not hurt (and might even help) the score of a full system.",
+        "They fall into two subcategories - \"good al-ternative\", where the model's output is different from the gold standard but still looks reasonable, either because the sentence has more than one reasonable answer, or the gold standard is simply wrong; \"> 1 reference\", where there is more than one reference to the slot filler in the sentence, and the model has chosen a different one from the gold standard.",
+        "For example, (OUT Mr. Johnson) , 52 , said he resigned (POST his positions as chief executive officer) - Here the model marked \"Mr. Johnson\" as OUT, the annotator marked \"he\", and both are in some sense correct.",
+        "3) Bad Lexical Information.",
+        "In these cases the model selected a slot filler that is clearly bad for lexical reasons, for example Mr. Broeksmit is the (OUT latest) in a string of employees to (IND leave) the firm ... 4) Other.",
+        "Miscellaneous errors which do not fall into the above three categories."
+      ]
+    },
+    {
+      "heading": "6.3.2 Recall Problems",
+      "text": [
+        "Of the 356 test-set sentences, 330 (92.7%) were processed by the system to give some output - no output was produced for 26 cases.",
+        "This accounts for the recall figures in table 4 being lower than the precision figures (for example, with a score of 0 for partials, precision = 80.6%, recall = 74.6%, and 92.7%*80.6% = 74.7%).",
+        "Of these 26 cases, 24 involved an indicator word that had never been seen in training data.",
+        "The other 2 cases involved an unusual usage of \"succeed\", which had never been seen in training data and was peculiar enough for the system to fail to get an analysis (we set a probability",
+        "threshold such that the machine gives up if it fails to find an analysis above this probability)."
+      ]
+    },
+    {
+      "heading": "6.4 Dealing with False Positives",
+      "text": [
+        "This work has made a simplifying assumption, that test sentences were marked with indicators that had one or more slots.",
+        "This section considers how this process could be automated.",
+        "A first step would be to identify in test data morphological variants of words that had been seen as indicators in training data.",
+        "However this would inevitably lead to false positives – that is, potential indicators appearing in cases where they don't indicate an event.",
+        "We could see two potential approaches for filtering out these spurious cases: first, word-sense disambiguation methods similar to those in (Yarowsky 95); second, we could extend the model to have an eighth, empty, template as a possibility – the model should then learn how often null templates occur, and what kind of lexical items tend to produce them.",
+        "We leave this to future work.",
+        "At least in this dataset (Who's News articles) we believe that the false positive problem will not be severe, as the articles contain information almost exclusively on management successions, and most of the indicators are unambiguous within this sub-domain.",
+        "The models have also made the assumption that an indicator is used to express each event.",
+        "This may not be the case in all information extraction tasks, in some there may not be clear indicator words; again, we leave dealing with this limitation to future work."
+      ]
+    },
+    {
+      "heading": "7 Future Work",
+      "text": [
+        "We anticipate two directions for future work: first, refining the current model to improve its performance, and second, extending the current model to encompass the complete information extraction task."
+      ]
+    },
+    {
+      "heading": "7.1 Refining the Model",
+      "text": [
+        "When deciding on the direction of future work, it is useful to consider the error analysis in table 7.",
+        "The majority of errors (the \"semantically plausible\" class) were cases where the model picked a slot that was semantically plausible, but syntactically impossible.",
+        "It is unlikely that this problem can be solved with the approach described here, even with vastly increased amounts of training data.",
+        "Our feeling is that a full syntactic parser as a first stage could radically improve performance.",
+        "An improved approach might be to fully integrate the recovery of syntactic structure and semantic labelings, in a similar way to the approach used in BBN's SIFT system (Miller et al.",
+        "98)."
+      ]
+    },
+    {
+      "heading": "7.2 Extending the Model",
+      "text": [
+        "As discussed in section 1.1, the standard approach to information extraction involves three stages of processing: sentence level pattern matching, coreference, and template merging.",
+        "Of these stages, our current work addresses only sentence level pattern matching.",
+        "However, we believe that the generative statistical framework described in this paper could be extended advantageously to the complete information extraction problem.",
+        "In extending the framework, we envision that the information extraction task would be performed using an inverted \"information production\" model.",
+        "We can think of this model as approximating, to some degree, the process by which text is produced by an author.",
+        "Specifically, we assume that each message is produced according to a four stage process: 1) First, the author decides what facts to express.",
+        "For example, the text in figure 1 can be thought of as expressing two succession events: IN = \"Hensley E. West\", OUT = \"John Bradley\", POST = \"president\", COMPANY = \"RESTOR INDUSTRIES Inc.\", and OUT = \"Hensley E. West\", POST = \"group vice president\", COMPANY = \"DSC Communications Corp.\".",
+        "This process can be modeled as a prior probability distribution over sets of templates.",
+        "In this example, the model would give the prior probability of a message containing exactly two succession templates: one containing slots IN, OUT, POST, COMPANY and the other containing slots OUT, POST, COMPANY.",
+        "2) After deciding what facts to express, the author must decompose them into one or more component events.",
+        "For example, the succession event IN = \"Hensley E. West\", OUT = \"John Bradley\", POST = \"president\", COMPANY = \"RESTOR INDUSTRIES Inc.\" is decomposed into two smaller events: IN = \"Hensley E. West\", POST = \"president\", COMPANY = \"RESTOR INDUSTRIES Inc.\" and IN = \"Hensley E. West\", OUT = \"John Bradley\".",
+        "This process can be modeled as a probability distribution over \"template splitting operations\", conditioned on the full template being expressed.",
+        "Template splitting operations are thus the generative analogue of the merging operations used in most information extraction systems.",
+        "3) Next, each component event must be expressed as a linguistic pattern.",
+        "For example, the event IN = \"Hensley E. West\", POST = \"president\", COMPANY = \"RESTOR INDUSTRIES Inc.\" is expressed as the linguistic pattern \"IN ... was named POST of COMPANY\", and the event IN = \"Hensley E. West\", OUT = \"John Bradley\" is expressed as the linguistic pattern \"IN ... fills a vacancy created by the retirement ... of OUT\".",
+        "This process can be modeled as a probability distribution over linguistic patterns, conditioned on the partial template being expressed.",
+        "Modeling this distribution is the subject of the main body of this paper.",
+        "4) Finally, the entities involved in events must be realized as word strings within patterns.",
+        "For example, \"RESTOR INDUSTRIES Inc.\" is realized as \"this telecommunications-product concern\", and \"Hensley E. West\" is realized as \"Mr. West\".",
+        "This process can be modeled as a probability distribution over \"descriptor generating operations\", conditioned on the entity being expressed and other features of the text.",
+        "For exam",
+        "pie, given that the author intends to express \"Hensley E. West\", and given that the full name appears earlier in the text, the model would assign a certain probability to generating the word string \"Mr. West\".",
+        "In this case, the descriptor generating operation would be [title + last name].",
+        "Clearly, there are many details that would need to be resolved before a complete generative model of information extraction could be implemented.",
+        "In this paper, we have described a model containing two of the necessary components: a prior model over templates, and a model of linguistic patterns conditioned on those templates.",
+        "A complete generative model for IE would offer two potentially powerful advantages.",
+        "First, the model would provide principled probability estimates for selecting the most likely set of templates given an input message:",
+        "where",
+        "The second potential advantage derives from the generative aspect of the proposed model.",
+        "While there is an analogue in conventional IE systems for each of stages 2 through 4 described above, there is no conventional analogue to stage 1: the prior model.",
+        "We can think of this prior model as encoding domain-specific world knowledge about the plausibility of proposed sets of relations."
+      ]
+    },
+    {
+      "heading": "8 Conclusions",
+      "text": [
+        "We have shown that a simple statistical model can identify semantic slot-fillers in a management succession task with 83% accuracy (F-measure with a score of 0.5 for partial matches).",
+        "The system was trained on only 560 sentences, with the additional requirements of only a part-of-speech tagger and a morphological analyser.",
+        "We initially considered a finite-state approach similar to that used for POS tagging (Church 88), or named-entity identification (Bikel et al.",
+        "97), but argued that the Markov approximation gives a poor model for this task.",
+        "The alternative, which has a PCFG component to define the probability of the underlying sequence of labels, allows a good parameterization of the problem, and can be decoded efficiently using the CKY algorithm.",
+        "Finally, we believe that the framework presented in this paper can be extended to model the complete information extraction process."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "We would like to thank Richard Schwartz and Ralph Weischedel for many helpful discussions and suggestions concerning this work.",
+        "We would also like to thank the anonymous reviewers for several useful comments."
+      ]
+    }
+  ]
+}

@@ -1,13 +1,12 @@
 import click
 
-from lib.submodular.retrievedinfo import RetrievedInformation
-from lib.techknacq.readinglist import ReadingList
-from lib.techknacq.conceptgraph import ConceptGraph
-from lib.constantvalues import ConstantValues
-from lib.elasticsearch.essubmodular import ElasticsearchSubmodularity
-from lib.elasticsearch.esexporter import ElasticsearchExporter
-
 import RL_experiments as RLE
+from lib.constantvalues import ConstantValues
+from lib.elasticsearch.esexporter import ElasticsearchExporter
+from lib.elasticsearch.essubmodular import ElasticsearchSubmodularity
+from lib.submodular.retrievedinfo import RetrievedInformation
+from lib.techknacq.conceptgraph import ConceptGraph
+from lib.techknacq.readinglist import ReadingList
 
 
 def getlistID(year=10000, resultlist=None):

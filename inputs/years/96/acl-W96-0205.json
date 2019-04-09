@@ -1,0 +1,392 @@
+{
+  "info": {
+    "authors": [
+      "Masaaki Nagata"
+    ],
+    "book": "Conference on Empirical Methods in Natural Language Processing",
+    "id": "acl-W96-0205",
+    "title": "Automatic Extraction of New Words from Japanese Texts Using Generalized Forward-Backward Search",
+    "url": "https://aclweb.org/anthology/W96-0205",
+    "year": 1996
+  },
+  "references": [
+    "acl-A88-1019",
+    "acl-A92-1018",
+    "acl-C94-1032",
+    "acl-C94-1101",
+    "acl-C96-2136",
+    "acl-J93-2006",
+    "acl-P94-1010",
+    "acl-W95-0109"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We present a novel new word extraction method from Japanese texts based on expected word frequencies.",
+        "First, we compute expected word frequencies from Japanese texts using a robust stochastic N-best word segmenter.",
+        "We then extract new words by filtering out erroneous word hypotheses whose expected word frequencies are lower than the predefined threshold.",
+        "The method is derived from an approximation of the generalized version of the Forward-Backward algorithm.",
+        "When the Japanese word segmenter is trained on a 4.7 million word segmented corpus and tested on 1000 sentences whose out-of-vocabulary rate is 2.1%, the accuracy of the new word extraction method is 43.7% recall and 52.3% precision."
+      ]
+    },
+    {
+      "heading": "Introduction",
+      "text": [
+        "Segmentation of sentences into words is trivial in English because words are delimited by spaces.",
+        "It is a simple task to count word frequencies in a given text.",
+        "It is also a simple task to list all new words (unknown words), namely, the words in a given text that are not found in the system dictionary.",
+        "However, several languages such as Japanese, Chinese and Thai do not put spaces between words and so in these languages word segmentation, word frequency counting, and new word extraction remain unsolved problems in computational linguistics.",
+        "Most Japanese NLP applications require word segmentation as a first stage because there are phonological units and semantic units whose pronunciation and/or meaning is not trivially derivable from the pronunciation and/or meaning of the individual characters.",
+        "It is well known that the accuracy of word segmentation greatly depends on the coverage of the dictionary, in other words, the Out-Of-Vocabulary (00V) rate of the target texts.",
+        "Our goal is to provide a method to automatically extract new words from Japanese texts.",
+        "This method should adapt the dictionary of the word segmenter to new domains and applications.",
+        "It should also maintain the dictionary by collecting new words in the target domain.",
+        "The application of the word segmenter is described elsewhere (Nagata, 1996).",
+        "The approach we take is as follows: First, we design a statistical language model that can assign a reasonable word probability to an arbitrary substring in the input sentence, whether or not it is truly a word.",
+        "Second, we devised a method to obtain the expected word N-gram count in the target texts, using an N-best word segmentation algorithm (Nagata, 1994).",
+        "Finally, we extract new words by filtering out spurious word hypotheses whose expected word frequencies are lower than the threshold."
+      ]
+    },
+    {
+      "heading": "Japanese Morphological Analysis",
+      "text": [
+        "Before we start, we briefly explain the difficulties of Japanese morphological analysis, especially when the input sentence includes unknown words.",
+        "Suppose the input sentence is v4f-qt ENIAC (7) 50PI.",
+        "4f-356 5.",
+        "\", which means \"University of Pennsylvania celebrates the 50th anniversary of ENIAC\", where the words -^.",
+        ":/ 7 (transliteration of 'Pennsylvania') and ENIAC (the name of the world's first computer) are not registered in the system dictionary.",
+        "Figure 1 shows three possible analyses of the input sentence, where each box represents a word hypothesis whose meaning and part of speech are shown above and under the box.",
+        "The tag <UNK> represents an unknown word.",
+        "One of the hardest problems in handling unrestricted Japanese text is the identification of unknown words.",
+        "In Figure 1, the string ENIAC is successfully tokenized as an unknown word.",
+        "However, there is ambiguity in the segmentation of the string \"<:,://t.,/7.",
+        "In the first analysis, the system considers (Pennsylvania') as an unknown word,",
+        "because ic1: ('university') is registered in the dictionary.",
+        "This is correct.",
+        "In the second analysis, the system guesses 7Jcl: ('Vania university') as an unknown word, because --,;/;1, (transliteration of 'pencil') is registered in the dictionary and some university names are registered in the dictionary, such as .A V)KI: ('Stanford Uni-versity') and ‘.7 F.;k1-* ('Cambridge Uni-versity').",
+        "In the third analysis, the system considers ('Vania') as an unknown word, because both ./‹.s.,F/ii, and are registered in the dictionary.",
+        "It is often the case that we have overlapping word hypotheses if the input sentence contains unknown words, such as /.=.7jK*, and i7 in Figure 1.",
+        "We need a criteria to select the most likely word hypothesis from among the overlapping candidates.",
+        "In fact, it is fairly difficult to get plausible analyses like the ones shown in Figure 1, because failure to identify an unknown word affects the segmentation of the neighboring words.",
+        "Obviously, a robust word segmenter is the essential first step.",
+        "In the following sections, we first describe a statistical language model to cope with unknown words.",
+        "We then describe the word segmentation algorithm and the new word extraction method, with their derivation as an approximation of a generalization of the Forward-Backward algorithm (Baum, 1972).",
+        "Finally, we show experiment results and prove its effectiveness."
+      ]
+    },
+    {
+      "heading": "Statistical Language Model Segmentation Model (Tagging Model)",
+      "text": [
+        "Let the input Japanese character sequence be C = cic2 , and segment it into word sequence W = w1 w2 wn whose part of speech sequence is 7 = 1112 The word segmentation task can be defined as finding the set of word segmentation and parts of speech assignment (W, that maximize the joint probability of word sequence and tag sequence given character sequence P(W,T1C).",
+        "Since the maximization is carried out with fixed character sequence C, the word segmenter only has to maximize the joint probability of word sequence and tag sequence P(W,T).",
+        "We call P(W,T) the segmentation model, although it is usually called tagging model in English tagger research.",
+        "In this paper, we compare three segmentation models: part of speech tri-gram, word unigram, and word bigram.",
+        "In the part-of-speech trigram model (POS trigram model), the joint probability P(W,T) is approximated by the product of parts of speech trigram probabilities P (tilt i_2, ii_i) and word output probabilities for given part of speech P(wilti)",
+        "In the word unigram and word bigram models, the joint probability P(W,T) is approximated by the product of word unigram probabilities P(wi, ti) and word bigram probabilities P(wi , ti I wi_i , 4_1), respectively.",
+        "Basically, parameters of these segmentation models are estimated by computing the relative frequencies of the corresponding events in the segmented training corpus.",
+        "However, in order to handle unknown words, we have introduced a slight modification in computing the relative frequencies, as is described in the next section."
+      ]
+    },
+    {
+      "heading": "Word Model",
+      "text": [
+        "We think of an unknown word as a word having a special part of speech <UNK>.",
+        "We define a statistical word model to assign a word probability to each word hypothesis.",
+        "It is formally defined as the joint probability of the character sequence c1 .",
+        "• • ck if wi is the unknown word.",
+        "We decompose it into the product of word length probability and word spelling probability,",
+        "where k is the length of the character sequence.",
+        "We call P(k) the word length model, and P(ci ck lk) the word spelling model.",
+        "We assume that word length probability P(k) obeys a Poisson distribution whose parameter is the average word length A in the training corpus,",
+        "This means that we regard word length as the interval between hidden word boundary markers, which are randomly placed with an average interval equal to the average word length.",
+        "Although this word length model is very simple, it plays a key role in making the word segmentation algorithm robust.",
+        "We approximate the spelling probability given word length P(ci .",
+        ".",
+        ".",
+        "ck jk) by the word-based character bigram model, regardless of word length.",
+        "Since there are more than 3,000 characters in Japanese, the amount of training data would be too small if we divided them by word length.",
+        "Here, special symbol \"#\" indicates the word boundary marker.",
+        "Note that the word-based character bigram model is different from the sentence-based character bigram model.",
+        "The former is estimated from the corpus segmented into words.",
+        "It assigns a large probability to a character sequence that appears in the beginning (prefixes), the middle, and the end (suffixes) of a word.",
+        "It also assigns a small probability to a character sequence that appears across a word boundary.",
+        "By using the word model, we can create modified segmentation models that take unknown words into consideration.",
+        "The parameters of the modified POS trigram, word unigram, and word bigram are estimated by Equations (8), (9), (10), and (11), in Figure 2.",
+        "In Figure 2, C(.)",
+        "denotes the count of the specified event in the training corpus.",
+        "In the part of speech trigrarn model, P(wi 14) for an unknown word w, is obtained, by definition, from the word model P(wil<UNK>).",
+        "In the word unigram model, the unigram count C(w1) for unknown word wi is given as the product of the total unigram count of unknown words C(<UNK>) and the word model probability P(wil<UNK>).",
+        "The higher order N-gram counts involving unknown words are also obtained in the same manner.",
+        "In order to compute the parameters in Figure 2, we need the counts involving unknown words, such as C(ti_2, <UNK>), Q<UNK›), and ti-1), <UNK>).",
+        "These counts are important because they represent the contexts in which unknown words likely to appear.",
+        "To estimate these counts, we replace all words appearing only once in the training corpus with unknown word tags <UNK>, before computing relative frequencies.",
+        "The underlying idea of the replacement is the same as Turing's estimates in back-off smoothing (Katz, 1987).",
+        "We redistribute the probability mass of low count sequences to \"unseen\" sequences."
+      ]
+    },
+    {
+      "heading": "Generalized Forward Backward Reestimation",
+      "text": []
+    },
+    {
+      "heading": "Generalization of the Forward and Viterbi Algorithm",
+      "text": [
+        "In English part of speech taggers, the maximization of Equation (1) to get the most likely tag sequence, is accomplished by the Viterbi algorithm (Church, 1988), and the maximum likelihood estimates of the parameters of Equation (2) are obtained from untagged corpus by the Forward-Backward algorithm (Cutting et al., 1992).",
+        "However, it is impossible to apply the Viterbi algorithm and the Forward-Backward algorithm for word segmentation of those languages that have no delimiter between words, such as Japanese and Chinese, because word segmentation hypotheses overlap one another.",
+        "Figure 3 shows an example of overlapping word hypotheses and possible word segmentations for the stringI-A-MiEM:1-1,Y; Call prefectures in the nation).",
+        "We assume EI ('all nation'), ('all'), FINS ('national capital'), gmAlf-t- ('prefectures') ('metropolitan road'), ('metropolis'), ('prefectures'), i ('road'), JffJ.0 ('prefectures'), N:f ('prefecture'), and M ('prefecture') are registered in the dictionary.",
+        "There are 15 possible word segmentations in this example.",
+        "In Japanese, a lot of words consist of one character.",
+        "Moreover, sequence of characters may constitute a different word.",
+        "For Japanese word segmentation, we define a generalized Forward algorithm and a generalized Viterbi algorithm as follows.",
+        "Let the input Japanese character sequence of length n be C = ci c2 cn, and denote the substring cp+i cq.",
+        "We define a function D that maps a character sequence' to a list of word hypotheses {w1}.",
+        "Function D is the generalization of the dictionary.",
+        "Here, wi denotes a combination of orthography (formally denoted by wi) and part of speech ti, for simplicity.",
+        "We use word bigram as the segmentation model in the following example.",
+        "Other segmentation models, such as part of speech trigram and word unigram, can be used in the same manner.",
+        "In the generalized forward algorithm, the forward probability a(wi) is the joint probability of the character sequence 4 and the event that the final word in the segmentation of 4 is wi that spans the substring c. Forward probabilities can be recursively computed as follows.",
+        "The generalized forward algorithm starts from the beginning of the input sentence, and proceeds character by character.",
+        "At each point q in the sentence, it sums over the product of the forward probability of the word segmentation hypotheses ending at the point al,(wi) and the transition probability to the word hypotheses starting at that point P(wi+i jwi).",
+        "0 A.,\", 1 xi 2 43 3 4 )1.4 5 •a 6",
+        "Figure 4 shows a snapshot of the generalized forward algorithm.",
+        "The input is 11143,NIIM-, and the current point q is 2.",
+        "The word hypotheses ending at point 2 (wi E D(c)) are 111 (4) and FiI (c?).",
+        "Those starting at point 2 (wi+i E D(c)) are psinfriM (4), 416 (4), and gi (4).",
+        "The string glIa (4) is not registered in the dictionary.",
+        "All combinations of these words are examined.",
+        "The generalized Viterbi algorithm can be ob",
+        "tamed by replacing summation with maximization in Equation (12).",
+        "Here, 04(ivi) is the probability of the most likely word segmentation sequence for the character sequence cg whose final word wi spans the substring .",
+        "Note that the original Forward algorithm and the Viterbi algorithm is the special case in Equation (12) and (13) where p and q are fixed as p = q – 1 and r = q + 1.",
+        "In order to handle unknown words, the dictionary function D returns a word hypothesis tagged as unknown word if the substring c is not registered in the dictionary, such as MAP (4) in Figure 4.",
+        "The word model assigns a reasonable probability to the unknown word.",
+        "Therefore, in the generalized forward algorithm and the generalized Viterbi algorithm, we hypothesize all substrings in the input sentence as words, and examine all possible combinations of these word hypotheses.",
+        "Since we can define the generalized Backward algorithm in the same manner, we can define the generalized Forward-Backward algorithm to estimate the word N-gram counts in Japanese texts, and to reestimate the word N-gram probabilities in the segmentation model.",
+        "However, we give a more intuitive account of the method to introduce an approximation of the generalized Forward-Backward algorithm."
+      ]
+    },
+    {
+      "heading": "Expected Word N-gram Count",
+      "text": [
+        "By using the above mentioned word segmentation algorithm, we can get all word segmentation hypotheses of the input sentence.",
+        "Once we get them, we can estimate word N-gram count in an unsegmented Japanese corpus.",
+        "Let be the jth word segmentation hypothesis for the ith sentence in the corpus.",
+        "P(0j) can be computed by using the segmentation model.",
+        "The Bayes a posteriori estimate of the word unigram count C(w) and the word bigram count Ci(wi_i, iv) in the ith sentence can be computed as,",
+        "Here, nij(we,) and nij(we,,wp) denote the number of times the unigram we, and the bigram appeared in the jth candidate of the ith sentence The estimate of the total unigram count C(tva) and the total bigram count C(ia, wp) can be obtained by summing the counts over all sentences in the corpus.",
+        "If necessary, we can reestimate the word N-grain probabilities by replacing P(w) and P(wp lw„) with f(w a) and f (w plw a)."
+      ]
+    },
+    {
+      "heading": "Extraction of New Words in Texts",
+      "text": [
+        "Expected word unigram counts (expected word frequencies) in the corpus (Equation (16)) can be used as a measure of likelihood that a particular substring in the input texts is actually a word.",
+        "Let 0 denote the minimum expected word frequency that we use to classify a given word hypothesis tv„ as a word.",
+        "C(w) > 0 (20) Those words that are not found in the dictionary and whose expected frequencies in the corpus are larger than the threshold 0 are extracted as the new words in the input texts.",
+        "In theory, expected word N-gram counts can be obtained by the generalized Forward-Backward algorithm.",
+        "In order to save computation time, however, we approximated the weighted sum of the word N-gram counts over all the word segmentation hypotheses in a sentence (Equation (14)), by that of the N-best word segmentation hypotheses2.",
+        "N-best word segmentation hypotheses can be obtained by using the Forward-DP Backward-A* algorithm (Nagata, 1994).",
+        "It consists of a forward dynamic programming search to record the probabilities of all partial word segmentation hypotheses, and a backward A* algorithm to extract the N-best hypotheses.",
+        "It is a generalization of the tree-trellis search (Soong and Huang, 1991), in the sense that its forward Viterbi search is replaced with the generalized Viterbi search described in this paper.",
+        "In reestimating the word N-gram probabilities, we introduce two modifications to the normal reestirnation procedure.",
+        "The first modification is that, instead of using the relative frequency in an unsegmented corpus (Equation (18) and (19)), we combine the N-gram count in the segmented corpus with the estimated N-gram count in the unsegmented corpus to increase estimate reliability.",
+        "This is because a fairly large amount of segmented Japanese corpus were available in our experiments.",
+        "where C„g() denotes the count in the segmented corpus, and Cunseg() denotes the estimated count in the unsegmented corpus.",
+        "The second modification is that we prune the expected N-gram counts in the unsegmented corpus if they are lower than a predefined threshold, before computing Equation (21) and (22).",
+        "This is because Cunseg() is unreliable, especially when Cu„„g() is low."
+      ]
+    },
+    {
+      "heading": "Examples of Estimating Expected Word Frequencies",
+      "text": [
+        "Finally, we show a simple example of estimating the word N-gram counts in an unsegmented sentence.",
+        "Assume that the ith input sentence is the character sequence aW-I:AM, which means \"introduction to linguistics\", and its best three word segmentation hypotheses are as shown in Figure 5.",
+        "The leftmost numbers in Figure 5 are the relative probabilities of the word segmentation",
+        "The expected total number of the words in the sentence Ea c\"(w,) is 2.3.",
+        "If all word hypotheses are not registered in the dictionary and the threshold 0 is 0.15, we regard AM ('introduction'), iii;11■1: (linguistics'), (language), and I: ('study') as the new words.",
+        "-6- ('say') and:11-fq: ('study of languages') are discarded.",
+        "Let us give another example that shows the effect of summing the expected word unigram counts over all the sentences in the corpus.",
+        "Suppose the sentence \",<Z, ://1,/ 7 It EN I AC 0)50 Pil4f-7, 5.",
+        "\", which means \"University of Pennsylvania celebrates the 50th anniversary of ENIAC.\", is in the corpus, and the first three",
+        "nia University'), and ('Vania') are 0.790, 0.169, and 0.041, respectively.",
+        "Suppose also the sentence \".",
+        "* 9 f r7.Ai//:-----71th 9 t: \", which means \"White House lies at Pennsylvania Avenue.\", is in the corpus, and the expected word unigram counts for 7 ('Pennsylvania'), i=---7311 9 CVania Avenue'), and 7 ('Vania') are 0.825, 0.127, and 0.048, respectively.",
+        "The expected word unigram counts in the corpus are,",
+        "Therefore, is definitely more likely to be a new word.",
+        "The more often the unknown word appears in the corpus, the more it is likely to be extracted, even if there is word segmentation ambiguity in each sentence."
+      ]
+    },
+    {
+      "heading": "Experiments",
+      "text": []
+    },
+    {
+      "heading": "Language Data",
+      "text": [
+        "We used the EDR Japanese Corpus Version 1.0 (EDR, 1995) to train and test the word segmen",
+        "tation program.",
+        "It is a corpus of approximately 5 million words (200,000 sentences).",
+        "It was collected to build a Japanese Electronic Dictionary, and contains a variety of Japanese sentences taken from newspapers, magazines, dictionaries, ency-clopedias, textbooks, etc.",
+        "It has a variety of annotations on morphology, syntax, and semantics.",
+        "We used word segmentation, pronunciation, and part of speech in the morphology information field of the annotation.",
+        "In this experiment, we randomly selected 90% of the sentences in the EDR Corpus for training the word segmentation program.",
+        "We made two test sets from the rest of the corpus, one for a small size experiment (100 sentences) and the other for a medium size experiment (1000 sentences).",
+        "Table 1 shows the number of sentences, words, and characters for training and test sets.",
+        "Note that the test sets were not part of the training set.",
+        "That is, open data were tested in the experiment.",
+        "The training texts contained 133281 word types.",
+        "We discarded word types that appeared only once in the training texts.",
+        "This resulted in 65152 word types being registered in the dictionary of the word segmenter.",
+        "We trained three segmentation models, namely, part of speech trigram, word unigrarn, and word trigram, after we replaced those words appeared only once in the training texts with the unknown word tag <MIK>, as described in the section of word model.",
+        "After this replacement, there were 758172 distinct word bigrams.",
+        "Again, we discarded word bigrams that appeared only once in the training texts for saving main memory, and used the remaining 294668 word bigrarns.",
+        "The word bigram probabilities were smoothed using deleted interpolation (Jelinek, 1985).",
+        "The training texts contained 3534 character types.",
+        "We discarded characters that appeared only once in the training texts; 3167 character types remained.",
+        "We then replaced the discarded characters with the unknown character tag to train the word spelling model.",
+        "There were 91198 distinct character bigrams in the words in the training texts 3.",
+        "'There are more than 3000 (some say more than 10000) charters in Japanese, and their frequency distribution is skewed.",
+        "In order to save memory, we used a type of character bigram model that considers un-We made two spelling models.",
+        "The first was trained using all words in the training texts, while the second was trained using those words whose frequency is less than or equal to 2.",
+        "In principle, the spelling model of unknown words must be trained using the low frequency words.",
+        "However, it might suffer from the sparse data problem because the total number of word tokens for training is decreased from 4746461 to 103919.",
+        "We also made two length models.",
+        "The average word lengths of all words and that of low frequency words were 1.58 and 4.49, respectively.",
+        "Note that the average word length is the only parameter of the word length model."
+      ]
+    },
+    {
+      "heading": "Evaluation Measures",
+      "text": [
+        "Word Segmentation accuracy is expressed in terms of recall and precision.",
+        "First, we count the number of words in corpus segmentation (Std), the number of words in system segmentation (Sys), and the number of matching word segmentations (M).",
+        "Recall is defined as M/Std, and precision is defined as M/Sys.",
+        "Figure 6 shows an example of computing precision and recall for the sentence \"ri",
+        "it*-141:4PIOR-C'1-„ \", which means \"Rockefeller Laboratory is an academic laboratory founded by an American millionaire, Rockefeller\".",
+        "Because of the difference in the segmentation of El y 7 s. 315t,PR, the number of words in corpus segmentation (Std=15) differs from that of system segmentation (Sys=14).",
+        "Note that the system correctly tokenized'4-11M5EFR, although it is not registered in the dictionary.",
+        "New word extraction accuracy is described in terms of recall, precision, and F-measure.",
+        "First, we count the number of unknown words in the corpus segmentation (Std), the number of unknown words in the system segmentation (Sys), and the number of matching words (M).",
+        "Here, unknown words are those that are not registered in the system dictionary.",
+        "Recall is defined as M/Std, and precision is defined as M/Sys.",
+        "Since recall and precision greatly depend on the frequency threshold, we used the F-measure to indicate the overall performance.",
+        "F-measure is used in Information Retrieval, and is calculated by",
+        "where P is precision, R is recall, and # is the relative importance given to recall over precision.",
+        "known characters, like the word bigram model used in the segmentation model."
+      ]
+    },
+    {
+      "heading": "Word Segmentation Accuracy",
+      "text": [
+        "In order to decide the best configuration of the underlying Japanese word segmenter, we compared three segmentation models: part of speech tri-grain, word unigram, and word bigram.",
+        "We also compared three word models: all words, low frequency words, and the combination of the two.",
+        "The third word model consisted of the spelling model trained using all words and the length model trained using low frequency words.",
+        "Table 2 shows, for the small test set (100 sentences), the segmentation accuracy of the various combinations of the segmentation models and the word models.",
+        "It is obvious that word bigram outperformed the part of speech trigram as well as word unigram.",
+        "As for the word model, it seems the combination of the spelling model for all words and the length model for low frequency words is the best, but the difference is small.",
+        "In the following experiment, we decided to use word bigram as the segmentation model, and the combination of the spelling model of all words and the length model of low frequency words as the word model."
+      ]
+    },
+    {
+      "heading": "New Word Extraction Accuracy",
+      "text": [
+        "We tested the new word extraction method using the medium size test set (1000 sentences).",
+        "It contains 538 unknown word types.",
+        "8 word types appeared twice in the test set.",
+        "The other 530 word types appeared only once.",
+        "The out-of-vocabulary rate of the test set is 2.2%.",
+        "To count the expected word frequencies, we used the top-10 word segmentation hypotheses.",
+        "We limited the maximum character length of the a unknown word to 8 in order to save computation time.",
+        "We tested three variations of the new word extraction method.",
+        "The first one was \"No Reesti-mation\" ; it uses the word segmenter's outputs as they are when extracting new words.",
+        "The second and the third ones carry out reestimation before extraction, where the pruning thresholds of the expected N-gram counts in the reestimation are 0.95 and 0.50, respectively.",
+        "Reestimations were carried out three times.",
+        "Table 3 shows the new word extraction accuracies for a variety of expected word frequency thresholds 0, with and without reestimation.",
+        "In Table 3, we set # 1.0 to compute F-measure.",
+        "As Table 3 shows, the higher the threshold is, the higher the precision and the lower the recall become.",
+        "When we put equal importance on recall and precision, the best value for the expected word frequency threshold is around 0.10 where the recall is 43.7% and the precision is 52.3%.",
+        "Figure 7 shows excerpts of correctly extracted new words (matched), incorrectly extracted word hypotheses (sys-matched), and new words that were not extracted (std-matched), when the frequency threshold was 0.5 and reestimation was not carried out.",
+        "We find that the overall quality of the extracted word hypotheses is satisfactory, al",
+        "though the values of recall and precision are not so high.",
+        "We discuss the reason for this in the next section."
+      ]
+    },
+    {
+      "heading": "Discussion",
+      "text": [
+        "The problem of Japanese word segmentation is that people often can not agree on a single word segmentation.",
+        "Therefore, the reported performance could be greatly underestimated.",
+        "Most of the new words extracted by the system are acceptable as a word (at least for us), and may not necessarily be a wrong word entry.",
+        "On the other hand, most of the new words not extracted by the system can be divided into shorter words that are registered in the dictionary.",
+        "For example, in the first sentence of Figure 8, 9 • 3, a ('data communication') is regarded as one word in corpus segmentation and counted as an unknown word in the test sentence.",
+        "However, the system segmented it into - ('data') and -2/ a si ('communication'), both of which are found in the dictionary.",
+        "In the second sentence of Figure 8, the system extracted /NJ- q7!.e, ('Duke of Hanover') as a new word, while this word is divided into iN - )77 ('Hanover') and !t.`.. ('Duke') in corpus segmentation.",
+        "Most of extraction errors are of this category.",
+        "There are three types of obvious extraction errors.",
+        "The first type is the truncation of long words.",
+        "Some transliterated Western-origin words exceed the predefined maximum length for unknown word.",
+        "The third sentence of Figure 8 is an example of this type.",
+        "In Japanese, 'illustration' is transliterated into 9 characters 4 I - 3 which exceeds the maximum unknown word length of 8 characters in our system.",
+        "Since 4 A Is (the transliteration of 'illust', which also means illustration in Japanese) is registered in the dictionary, a (the transliteration of 'ration') is incorrectly extracted as a new word.",
+        "The second type is the fragmentation of numerals.",
+        "Since we did not use any tokenizers, numerals tend to be divided arbitrarily.",
+        "In the second sentence in Figure 8, the system divided \"1676\" into \"16\" and \"76\".",
+        "In fact, it may output \"1\" and \"676\", \"16\" \"7\" and \"6\", or whatever.",
+        "The third type is the concatenation of noun(s) and particle.",
+        "In other words, the system sometimes erroneously recognizes a noun phrase as a word.",
+        "For example, the Japanese counterparts of \"A of B\", \"A and B\", and \"A, B\" are recognized as a word.",
+        "This may be because the probability of one long unknown word can be higher than the product of the probabilities of two short unknown (or infrequent) words and one known word.",
+        "The fourth sentence of Figure 8 is an example of this type of error.",
+        "The system considered oTaillinD 149,i1111 ('controllable and observable') as a word, while it is divided into 171 ('able'), fluIJJ ('control'), bN ('and'), iJ ('able), and *ii/1J('observe') in the corpus.",
+        "As for reestimation, Table 3 shows no significant improvements in the new word extraction accuracy.",
+        "The only effect of reestimation, in our experiment, is to increase the expected word frequencies of the unknown word hypotheses whose expected word frequencies are greater than the pruning threshold of reestimation.",
+        "This result does not necessarily mean that reestimation is useless.",
+        "This is because most un",
+        "known words appeared only once in the test sentences.",
+        "An ideal example to confirm that reesti'nation works well would have an unknown word appearing more than twice in the test sentences, and it is trivial to extract the word in one appearance, while it is difficult in the others, because of, for example, successive unknown words.",
+        "If the test set were larger, or the out-of-vocabulary rate were higher, we believe that the effectiveness of reestimation would be more clearly shown."
+      ]
+    },
+    {
+      "heading": "Related Work",
+      "text": [
+        "Recent years have seen several works on corpus-based word segmentation and dictionary construction for both Japanese and Chinese.",
+        "For Chinese, (Sproat et al., 1994) used the word unigram model in their word segmenter based on weighted finite-state transducer.",
+        "Word frequencies were estimated by the Viterbi reestimation (a reestimation procedure using the best analysis) from an unsegmented corpus of 20 million words.",
+        "Initial estimates of the word frequencies were derived from the frequencies in the corpus of the strings of hanzi making up each word in the lexicon whether or not each string is actually an instance of the word in question.",
+        "(Chang et al., 1995) proposed an automatic dictionary construction method for Chinese from a large unsegmented corpus (311591 sentences) with the help of a small segmented seed corpus (1000 sentences).",
+        "They combined Viterbi reestirnation using the word unigram model with a post filter called the \"Two-Class Classifier\", which is a linear discrimination function to decide whether the string is actually a word or not based on features derived from the character N-gram in a large unsegmented corpus.",
+        "The system's performance is compared with a word list derived from two on-line Chinese dictionaries (21141 words).",
+        "The reported recall and precision values were 56.88% and 77.37% for two character words, and 6.12% and 85.97% for three character words, respectively.",
+        "For Japanese, (Nagao and Mori, 1994) proposed a method of computing an arbitrary length character N-gram, and showed that the character N-gram statistics obtained from a large corpus includes information useful for word extraction.",
+        "However, they did not report any evaluation of their word extraction method.",
+        "(Teller and Batchelder, 1994) proposed a very naive probabilistic word segmentation method for Japanese, based on character type information and hiragana bigrarn frequencies.",
+        "They claimed 98% word segmentation accuracy, while we claim 94.7%.",
+        "However, their evaluation method is very optimistic, and completely different from ours.",
+        "They count an error only when the system segmentation violates morpheme boundaries.",
+        "In other words, they count an error only when the system segmentation is not acceptable to human judgement, while we count an error whenever the system segmentation does not exactly match the corpus segmentation, even if it is inconsistent.",
+        "We used the word bigram model for word segmentation, and expected word frequency for unknown word extraction.",
+        "We compared the results with a segmented Japanese corpus, and reported 43.7% recall and 52.3% precision for 1000 sentences whose out-of-vocabulary rate is 2.1%.",
+        "It is impossible to compare our results with (Chang et al., 1995), because the experiment conditions are completely different in terms of language (Chinese vs. Japanese), the size of seed segmented corpus, the size of target unsegmented corpus and its out-of-vocabulary rate, the size of initial word list, and the type of reference data",
+        "(on-line dictionary vs. segmented corpus).",
+        "Our idea of filtering erroneous word hypothesis by expected word frequency is simple and straightforward.",
+        "The major contribution of this paper is that we present a more accurate method for estimating word frequencies in an unsegmented corpus, even if it includes unknown words.",
+        "This is achieved by introducing an explicit statistical model of unknown words, and by using an N-best word segmentation algorithm (Nagata, 1994) as an approximation of the generalized Forward-Backward algorithm.",
+        "In English taggers, (Weischedel et al., 1993) proposed a statistical model to estimate word output probability p(wslti) for an unknown word from spelling information such as inflectional endings, derivational endings, hyphenation, and capitalization.",
+        "Our word model can be thought of a generalization of their statistical model.",
+        "One potential benefit of our statistical model and segmentation algorithm is that they are completely independent of the target language and its writing system.",
+        "We intend to test our word segmentation method on other languages, such as Chinese and Thai."
+      ]
+    },
+    {
+      "heading": "Conclusion",
+      "text": [
+        "We present a new word extraction method for Japanese based on expected word frequency, which is computed by using a statistical language model and an N-best word segmentation algorithm.",
+        "Although we have encouraging initial results, there are a number of questions to be answered, for example, the minimum seed segmented corpus size required, the minimum initial word list required, the effect of reestimation for a large unsegmented corpus with various out-of-vocabulary rates.",
+        "Besides these questions, we are also thinking of assigning the part of speech to the extracted new words in order to construct a Japanese dictionary automatically."
+      ]
+    }
+  ]
+}

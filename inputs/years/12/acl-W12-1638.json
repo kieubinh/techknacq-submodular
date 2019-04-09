@@ -1,0 +1,182 @@
+{
+  "info": {
+    "authors": [
+      "Ethan O. Selfridge",
+      "Iker Arizmendi",
+      "Peter A. Heeman",
+      "Jason D. Williams"
+    ],
+    "book": "Proceedings of the 13th Annual Meeting of the Special Interest Group on Discourse and Dialogue",
+    "id": "acl-W12-1638",
+    "title": "Integrating Incremental Speech Recognition and POMDP-Based Dialogue Systems",
+    "url": "https://aclweb.org/anthology/W12-1638",
+    "year": 2012
+  },
+  "references": [
+    "acl-E09-1081",
+    "acl-E09-1085",
+    "acl-N07-4014",
+    "acl-N09-1043",
+    "acl-W09-3902",
+    "acl-W09-3919",
+    "acl-W11-2014",
+    "acl-W11-2016"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "The goal of this paper is to present a first step toward integrating Incremental Speech Recognition (ISR) and Partially-Observable Markov Decision Process (POMDP) based dialogue systems.",
+        "The former provides support for advanced turn-taking behavior while the other increases the semantic accuracy of speech recognition results.",
+        "We present an Incremental Interaction Manager that supports the use of ISR with strictly turn-based dialogue managers.",
+        "We then show that using a POMDP-based dialogue manager with ISR substantially improves the semantic accuracy of the incremental results."
+      ]
+    },
+    {
+      "heading": "1 Introduction and Background",
+      "text": [
+        "This paper builds toward integrating two distinct lines of research in spoken dialogue systems: incremental speech recognition (ISR) for input, and Partially Observable Markov Decision Processes (POMDPs) for dialogue management.",
+        "On the one hand, ISR improves on whole-utterance speech recognition by streaming results to the dialogue manager (DM) in real time (Baumann et al., 2009; Skantze and Schlangen, 2009).",
+        "ISR is attractive because it enables sophisticated system behavior such as interruption and back-channeling.",
+        "However, ISR output is particularly error-prone, and often requires a specialized dialogue manager to be written (Bu?",
+        "and Schlangen, 2011; Schlangen and Skantze, 2009).",
+        "1Work done while at AT&T Labs - Research On the other hand, POMDP-based dialogue managers improve on traditional approaches by (in part) tracking a distribution over many possible dialogue states, rather than just one, thereby improving robustness to speech recognition errors (Williams and Young, 2007; Thomson and Young, 2010; Young et al., 2010).",
+        "The overall aim of combining these two lines of research is to improve the robustness of error-prone ISR output.",
+        "To our knowledge only one study to date has combined ISR and POMDPs.",
+        "Lu et al. (2011) show how 1-best ISR hypotheses can be used within a single dialogue turn.",
+        "This work is different than the present paper, where we use N-Best lists of ISR results across multiple turns of a dialogue.",
+        "Specifically, this paper makes two contributions.",
+        "First, as a foundation, we introduce an Incremental Interaction Manager (IIM) that enables ISR to be used within the traditional turn-based dialogue management framework.",
+        "The IIM confers many, but not all, of the benefits of ISR without requiring modification to a traditional dialogue manager.",
+        "Thus, in theory, any existing dialogue system architecture could use ISR with the addition of an IIM.",
+        "Second, we show that pairing our IIM with a POMDP-based dialogue manager yields a substantial improvement in accuracy for incremental recognition results at the dialogue level.",
+        "The paper is organized as follows.",
+        "Section 2 describes the IIM, section 3 describes the POMDP integration, sections 4 and 5 describe experiments and results, and section 6 concludes.",
+        "ridge Acc.",
+        "P / Rej.",
+        "A 0 0 ?I'm sorry...?",
+        "mckee Acc.",
+        "P / Acc.",
+        "A 0 1 ?Ok, Mckee...?",
+        "mckeesport Acc.",
+        "P / Acc.",
+        "A 0 2 ?Ok, Mckeesport..?",
+        "mckeesport center Acc.",
+        "P / Rej.",
+        "A 0 2 ?Ok, Mckeesport..?",
+        "Prompt: ?Ok, Mckeesport.",
+        "Where are you going to??",
+        "pitt Acc.",
+        "P / Rej.",
+        "A 2 4 ?I'm sorry...?",
+        "pittsburgh Acc.",
+        "P / Acc.",
+        "A 2 5 ?Ok, Pittsburgh...?"
+      ]
+    },
+    {
+      "heading": "2 Incremental Interaction manager",
+      "text": [
+        "The Incremental Interaction Manager (IIM) mediates communication between the incremental speech recognizer and the DM.",
+        "The key idea is that the IIM evaluates potential dialogue moves by applying ISR results to temporary instances of the DM.",
+        "The IIM copies the current state of the DM, provides the copied DM with a recognition result, and inspects the action that the copied DM would take.2 If the action does not sufficiently advance the dialogue (such as re-asking the same question), the action is rejected and the copied DM is discarded.",
+        "If the action advances the dialogue (such as asking for or providing new information), then that action is immediately executed.",
+        "The system should gracefully handle revisions following a premature action execution, and a copying procedure is a viable solution for any DM.",
+        "When a revision is received, a second copy of the original DM is made and the new ISR result is passed to that second copy; if that second copy takes an action that advances the dialogue and is different from the action generated by the first copy, then the first action is terminated, the first copy of the DM is discarded, the second action is initiated, and the second copy assumes the position of the first copy.",
+        "Additional revisions can be handled by following the same procedure.",
+        "Terminating a speech action and immediately starting another can be jarring (?Say a city / Ok, Boston...?",
+        "), which can be mitigated by preced-2If the DM design does not force a state transition following a result then the DM supplies the the action without copying.",
+        "ing actions with either a sound or simple silence (at the expense of some response delay).",
+        "Once recognition is complete, the copied DM is installed as the new original DM.",
+        "Many ISR results can be discarded before passing them to the DM.",
+        "First, only incremental results that could correspond to complete user utterance are considered: incomplete results are discarded and never passed to the DM.",
+        "In addition, ISR results are often unstable, and it is undesirable to proceed with an ISR result if it will very likely be revised.",
+        "Thus each candidate ISR result is scored for stability (Selfridge et al., 2011) and results with scores below a manually-set threshold are discarded.",
+        "Table 1 shows an example of the recognizer, the IIM, and the DM.",
+        "For sake of clarity, stability scores are not shown.",
+        "The system asks ?Where are you leaving from??",
+        "and the user answers ?Mckeesport Center.?",
+        "The IIM receives five ISR results (called partials), rejecting the first, yew, because its stability score is too low (not shown).",
+        "With the second, ridge, it copies the DM, passes ridge to the copy, and discards the action of the copied DM (also discarded) because it does not advance the dialogue.",
+        "It accepts and begins to execute the action generated by the third partial, mckee.",
+        "The fourth partial revises the action, and the fifth action is rejected since it is the same.",
+        "The original DM is then discarded and the copied DM state is installed in its place.",
+        "Overall, the IIM enables a turn-based DM to enjoy many of the benefits of ISR ?",
+        "in particular, the ability to make turn-taking decisions with a complete account of the dialogue history."
+      ]
+    },
+    {
+      "heading": "3 Integrating ISR with a POMDP-based",
+      "text": [
+        "dialogue manager A (traditional) dialogue manager based on a partially observable Markov decision process (POMDP DM) tracks a probability distribution over multiple hidden dialogue states called a belief state (Williams and Young, 2007).3 As such, POMDP DMs readily make use of the entire ASR N-Best list, even for low-confidence results ?",
+        "the confidence level of each N-Best list item contributes proportionally to the probability of its corresponding hidden state.",
+        "It is straightforward to integrate ISR and a POMDP DM using the IIM.",
+        "Each item on the N-Best list of an incremental result is assigned a confidence score (Williams and Balakrishnan, 2009) and passed to the POMDP DM as if it were a complete result, triggering a belief state update.",
+        "Note that this approach is not predicting future user speech from partial results (DeVault et al., 2009; Lu et al., 2011), but rather (tentatively) assuming that partial results are complete.",
+        "The key benefit is that a belief state generated from an incremental result incorporates all of the contextual information available to the system from the start of the dialogue until the moment of that incremental result.",
+        "By comparison, an isolated incremental result includes only information from the current utterance.",
+        "If the probability models in the POMDP are estimated properly, belief states should be more accurate than isolated incremental results."
+      ]
+    },
+    {
+      "heading": "4 Experimental design",
+      "text": [
+        "For our experiments we used a corpus of 1037 calls from real users to a single dialogue system that provides bus timetable information for Pittsburgh, PA (a subsequent version of Williams (2011)).",
+        "This dialogue system opened by asking the caller to say a bus route number or ?I don't know?",
+        "; if the system had insufficient confidence following recognition, it repeated the question.",
+        "We extracted the first 3 responses to the system's bus route question.",
+        "Often the system did not need to ask 3 times; our experimental set contained 1037 calls with one or more attempts, 586 calls with two or more attempts, and",
+        "though in this paper we are not concerned with this aspect.",
+        "356 calls with three or more attempts.",
+        "These utterances were all transcribed, and tagged for the bus route they contained, if any: 25% contained neither a route nor ?I don't know?.",
+        "We ran incremental speech recognition on each utterance using Lattice-Aware Incremental Speech Recognition (Selfridge et al., 2011) on the AT&T WATSONSM speech recognizer (Goffin et al., 2005) with the same rule-based language models used in the production system.",
+        "On average, there were 5.78, 5.44, and 5.11 incremental results per utterance (plus an utterance-final result) for the first, second, and third attempts.",
+        "For each incremental result, we noted its time stamp and interpretation: correct, if the interpretation was present and correct, otherwise incorrect.",
+        "Each incremental result included an N-Best list, from which we determined oracle accuracy: correct if the correct interpretation was present anywhere on the most recent ISR N-Best list, otherwise incorrect.",
+        "Each incremental result was then passed to the IIM and POMDP DM.",
+        "The models in the POMDP DM were estimated using data collected from a different (earlier) time period.",
+        "When an incremental result updated the belief state, the top hypothesis for the route was extracted from the belief state and scored for correctness.",
+        "For utterances in the first attempt, the belief state was initialized to its prior; for subsequent attempts, it incorporated all of the prior (whole-turn) utterances.",
+        "In other words, each attempt was begun assuming the belief state had been running up to that point."
+      ]
+    },
+    {
+      "heading": "5 Results and Discussion",
+      "text": [
+        "We present results by showing instantaneous semantic accuracy for the raw incremental result (baseline), the top belief state, and oracle.",
+        "Instantaneous semantic accuracy is shown with respect to the percent of the total recognition time the partial is recognized at.",
+        "An utterance is incorrect if it has no incremental result before a certain percentage.",
+        "We show 2 sets of plots.",
+        "Figure 1 shows only incremental recognition results and excludes the end-of-utterance (phrase) results; Figure 2 shows incremental recognition results and includes phrase results.",
+        "It is useful to view these separately since the phrase result, having access to all the speech, is sub",
+        "rate than the raw incremental result (excluding end-of-phrase results).",
+        "Its performance gain is minimal in attempt 1 because the belief is informed only by the prior.",
+        "In attempt 2 and 3, the gain is larger since the belief also benefits from the previous attempts.",
+        "Since the top POMDP result in subsequent attempts is sometimes already correct (because it incorporates past recognitions), the POMDP sometimes meets and occasionally exceeds the oracle during the early portions of attempts 2 and 3.",
+        "Figure 2 shows that when end-of-phrase recognition results are included, the benefit of the belief state is limited to the initial portions of the second and third turns.",
+        "This is because the POMDP models are not fit well to the data: the models were estimated from an earlier version of the system, with a different user base and different functionality.",
+        "Identifying and eliminating this type of mismatch is an important issue and has been studied before (Williams, 2011).",
+        "Taken as a whole, we find that using belief tracking increases the accuracy of partials by over 8% (absolute) in some cases.",
+        "Even though the final phrase results of the 1-best list are more accurate than the belief state, the POMDP shows better accuracy on the volatile incremental results.",
+        "As compared to the whole utterance results, incremental results have lower 1-best accuracy, yet high oracle accuracy.",
+        "This combination is a natural fit with the POMDPs belief state, which considers the whole N-Best list, effectively re-ranking it by synthesizing information from dialogue history priors."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "This paper has taken a step toward integrating ISR and POMDP-based dialogue systems.",
+        "The Incremental Interaction Manager (IIM) enables a traditional turn-based DM to make use of incremental results and enjoy many their benefits.",
+        "When this IIM is paired with a POMDP DM, the interpretation accuracy of incremental results improves substantially.",
+        "In the future we hope to build on this work by incorporating Reinforcement Learning into turn-taking and dialogue action decisions."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "Thanks to Vincent Goffin for help with this work, and to the anonymous reviewers for their comments and critique.",
+        "We acknowledge funding from the NSF under grant IIS-0713698."
+      ]
+    }
+  ]
+}

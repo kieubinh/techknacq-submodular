@@ -1,0 +1,164 @@
+{
+  "info": {
+    "authors": [
+      "Frank Liberato",
+      "Behrang Mohit",
+      "Rebecca Hwa"
+    ],
+    "book": "Human Language Technologies: the 2010 Annual Conference of the North American Chapter of the Association for Computational Linguistics",
+    "id": "acl-N10-1040",
+    "title": "Improving Phrase-Based Translation with Prototypes of Short Phrases",
+    "url": "https://aclweb.org/anthology/N10-1040",
+    "year": 2010
+  },
+  "references": [
+    "acl-C04-1073",
+    "acl-D07-1091",
+    "acl-D09-1023",
+    "acl-J04-4002",
+    "acl-N03-1017",
+    "acl-N03-1033",
+    "acl-N04-1023",
+    "acl-N07-2015",
+    "acl-N09-1025",
+    "acl-P03-1021",
+    "acl-P07-2045",
+    "acl-W07-0702"
+  ],
+  "sections": [
+    {
+      "text": [
+        "We investigate methods of generating additional bilingual phrase pairs for a phrase-based decoder by translating short sequences of source text.",
+        "Because our translation task is more constrained, we can use a model that employs more linguistically rich features than a traditional decoder.",
+        "We have implemented an example of this approach.",
+        "Experimental results suggest that the phrase pairs produced by our method are useful to the decoder, and lead to improved sentence translations."
+      ]
+    },
+    {
+      "heading": "1. Introduction",
+      "text": [
+        "Recently, there have been a number of successful attempts at improving phrase-based statistical machine translation by exploiting linguistic knowledge such as morphology, part-of-speech tags, and syntax.",
+        "Many translation models use such knowledge before decoding (Xia and McCord, 2004) and during decoding (Birch et al., 2007; Gimpel and Smith, 2009; Koehn and Hoang, 2007; Chiang et al., 2009), but they are limited to simpler features for practical reasons, often restricted to conditioning left-to-right on the target sentence.",
+        "Traditionally, n-best rerankers (Shen et al., 2004) have applied expensive analysis after the translation process, on both the source and target side, though they suffer from being limited to whatever is on the n-best list (Hasan et al., 2007).",
+        "We argue that it can be desirable to pre-translate parts of the source text before sentence-level decoding begins, using a richer model that would typically be out of reach during sentence-level decoding.",
+        "In this paper, we describe a particular method of generating additional bilingual phrase pairs for a new source text, using what we call phrase prototypes, which are are learned from bilingual training data.",
+        "Our goal is to generate improved translations of relatively short phrase pairs to provide the SMT decoder with better phrasal choices.",
+        "We validate the idea through experiments on Arabic-English translation.",
+        "Our method produces a 1.3 BLEU score increase (3.3% relative) on a test set."
+      ]
+    },
+    {
+      "heading": "2. Approach",
+      "text": [
+        "Re-ranking tends to use expensive features of the entire source and target sentences, s and t, and alignments, a, to produce a score for the translation.",
+        "We will call this scoring function </>(s, t, a).",
+        "While </>(•) might capture quite a bit of linguistic information, it can be problematic to use this function for decoding directly.",
+        "This is due to both the expense of computing it, and the difficulty in using it to guide the decoder's search.",
+        "For example, a choice of </>(•) that relies on a top-down parser is difficult to integrate into a left-to-right decoder (Charniak et al., 2003).",
+        "Our idea is to use an expensive scoring function to guide the search for potential translations for part of a source sentence, S, even if translating all of it isn't feasible.",
+        "We can then provide these translations to the decoder, along with their scores, to incorporate them as it builds the complete translation of S. This differs from approaches such as (Och and Ney, 2004) because we generate new phrase pairs in isolation, rather than incorporating everything into the sentence-level decoder.",
+        "The baseline system is the Moses phrase-based translation system (Koehn et al., 2007).",
+        "For this work, we consider a scoring function based on part-of-speech (POS) tags, (f)pos(•).",
+        "It operates in two steps: it converts the source and target phrases, plus alignments, into what we call a phrase prototype, then assigns a score to it based on how common that prototype was during training.",
+        "Each phrase pair prototype is a tuple containing the source prototype, target prototype, and alignment prototype, respectively.",
+        "The source and target prototypes are a mix of surface word forms and POS tags, such as the Arabic string (NN Al jj), or the English string (NN NN).",
+        "For example, the source and target prototypes above might be used in the phrase prototype (NN0 Al JJi , NNi NN0), with the alignment prototype specified implicitly via subscripts for brevity.",
+        "For simplicity, the alignment prototype is restricted to allow a source or target word/tag to be unaligned, plus 1:1 alignments between them.",
+        "We do not consider 1:many, many:1, or many:many alignments in this work.",
+        "For any input (s,t,a), it is possible to construct potentially many phrase prototypes from it by choosing different subsets of the source and target words to represent as POS tags.",
+        "In the above example, the Arabic determiner Al could be converted into an unaligned POS tag, making the source prototype (NN DT JJ).",
+        "For this work, we convert all aligned words into POS tags.",
+        "As a practical concern, we insist that unaligned words are always kept as their surface form.",
+        "< pos(s, t, a) assign a score based on the probability of the resulting prototypes; more likely prototypes should yield higher scores.",
+        "We choose:",
+        "where SP is the source prototype constructed from s, t, a.",
+        "Similarly, TP and AP are the target and alignment prototypes, respectively.",
+        "To compute < pos( ), we must build a model for each of p(SP, AP|TP) and p(TP, AP|SP).",
+        "To do this, we start with a corpus of aligned, POS-tagged bilingual text.",
+        "We then find phrases that are consistent with (Koehn et al., 2003).",
+        "As we extract these phrase pairs, we convert each into a phrase prototype by replacing surface forms with POS tags for all aligned words in the prototype.",
+        "After we have processed the bilingual training text, we have collected a set of phrase prototypes and a count of how often each was observed.",
+        "To generate phrases, we scan through the source text to be translated, finding any span of source words that matches the source prototype of at least one phrase prototype.",
+        "For each such phrase, and for each phrase prototype which it matches, we generate all target phrases which also match the target and alignment prototypes.",
+        "To do this, we use a word-to-word dictionary to generate all target phrases which honor the alignments required by the alignment prototype.",
+        "For each source word which is aligned to a POS tag in the target prototype, we substitute all single-word translations in our dictionary.",
+        "For each target phrase that we generate, we must ensure that it matches the target prototype.",
+        "We give each phrase to a POS tagger, and check the resulting tags against any tags in the target prototype.",
+        "If there are no mismatches, then the phrase pair is retained for the phrase table, else it is discarded.",
+        "In the latter case, </>POS (•) would assign this pair a score of zero.",
+        "In the Moses phrase table, each entry has four parameters: two lexical weights, and the two conditional phrase probabilities p(s|t) and p(t|s).",
+        "While the lexical weights can be computed using the standard method (Koehn et al., 2003), estimating the conditional phrase probabilities is not straightforward for our approach because they are not observed in bilingual training data.",
+        "Instead, we estimate the maximum conditional phrase probabilities that would be assigned by the sentence-level decoder for this phrase pair, as if it had generated the target string from the source string using the baseline phrase table.",
+        "To do this efficiently, we use some simplifying assumptions: we do not restrict how often a source word is used during the translation, and we ignore distortion / reordering costs.",
+        "These admit a simple dynamic programming solution.",
+        "We must also include the score from < pos( ), to give the decoder some idea of our confidence in the generated phrase pair.",
+        "We include the phrase pair's score as an additional weight in the phrase table."
+      ]
+    },
+    {
+      "heading": "3. Experimental Setup",
+      "text": [
+        "The Linguistic Data Consortium Arabic-English corpus2 is used to train the baseline MT system (34K sentences, about one million words), and to learn phrase prototypes.",
+        "The LDC multi-translation Arabic-English corpus (NIST2003) is used for tuning and testing; the tuning set consists of the first 500 sentences, and the test set consists of the next 500 sentences.",
+        "The language model is a 4-gram model built from the English side of the parallel corpus, plus the English side of the wmt07 German-English and French-English news commentary data.",
+        "The baseline translation system is Moses (Koehn et al., 2007), with the msd-bidirectional-fe reordering model.",
+        "Evaluation is done using the BLEU (Papineni et al., 2001) metric with four references.",
+        "All text is lowercased before evaluation; recasing is not used.",
+        "We use the Stanford Arabic POS Tagging system, based on (Toutanova et al., 2003).",
+        "The word-to-word dictionary that is used in the phrase generation step of our method is extracted from the highest-scoring translations for each source word in the baseline phrase table.",
+        "For some closed-class words, we use a small, manually constructed dictionary to reduce the noise in the phrase table that exists for very common words.",
+        "We use this in place of a standalone dictionary to reduce the need for additional resources."
+      ]
+    },
+    {
+      "heading": "4. Experiments",
+      "text": [
+        "To see the effect on the BLEU score of the resulting sentence-level translation, we vary the amount of bilingual data used to build the phrase prototypes.",
+        "(approximately) no difference between building the generated phrase using the baseline phrase table, or using our generated phrase pair directly.",
+        "Figure 1: Bilingual training size vs. BLEU score (middle line, left axis) and phrase table composition (top line, right axis) on Arabic Development Set.",
+        "The baseline BLEU score (bottom line) is included for comparison.",
+        "As we increase the amount of training data, we expect that the phrase prototype extraction algorithm will observe more phrase prototypes.",
+        "This will cause it to generate more phrase pairs, introducing both more noise and more good phrases into the phrase table.",
+        "Because quite a few phrase prototypes are built in any case, we require that each is seen at least three times before we use it to generate phrases.",
+        "Phrase prototypes seen fewer times than this are discarded before phrase generation begins.",
+        "Varying this minimum support parameter does not affect the results noticeably.",
+        "The results on the tuning set are seen in Figure 1.",
+        "The BLEU score on the tuning set generally improves as the amount of bilingual training data is increased, even as the percentage of generated phrases approaches 100%.",
+        "Manual inspection of the phrase pairs reveals that many are badly formed; this suggests that the language model is doing its job in filtering out disfluent phrases.",
+        "Using the first 5,000 bilingual training sentences to train our model, we compare our method to the baseline moses system.",
+        "Each system was tuned via MERT (Och, 2003) before running it on the test set.",
+        "The tuned baseline system scores 38.45.",
+        "Including our generated phrases improves this by 1.3 points to 39.75.",
+        "This is a slightly smaller gain than exists in the tuning set experiment, due in part that we did not run MERT for experiment shown in Figure 1."
+      ]
+    },
+    {
+      "heading": "5. Discussion",
+      "text": [
+        "As one might expect, generated phrases both help and hurt individual translations.",
+        "A sentence that can be translated starting with the phrase \"korea added that the syrian prime minister\" is translated by the baseline system as \"korean | foreign minister | added | that | the syrian\".",
+        "While \"the syrian foreign minister\" is an unambiguous source phrase, the baseline phrase table does not include it; the language and reordering models must stitch the translation together.",
+        "Ours method generates \"the syrian foreign minister \" directly.",
+        "Generated phrases are not always correct.",
+        "For example, a generated phrase causes our system to choose \"europe role\", while the baseline system picks \"the role of | europe\".",
+        "While the same prototype is used (correctly) for reordering Arabic \"NN0 JJ1\" constructs into English as \"NN1NN0\" in many instances, it fails in this case.",
+        "The language model shares the blame, since it does not prefer the correct phrase over the shorter one.",
+        "In contrast, a 5-gram language model based on the LDC Web IT 5-gram counts prefers the correct phrase."
+      ]
+    },
+    {
+      "heading": "6. Conclusion",
+      "text": [
+        "We have shown that translating short spans of source text, and providing the results to a phrase-based SMT decoder can improve sentence-level machine translation.",
+        "Further, it permits us to use linguistically informed features to guide the generation of new phrase pairs."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "This work is supported by U.S. National Science Foundation Grant IIS-0745914.",
+        "We thank the anonymous reviewers for their suggestions."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "info": {
+    "authors": [
+      "Yoshihide Kato",
+      "Shigeki Matsubara",
+      "Yasuyoshi Inagaki"
+    ],
+    "book": "Workshop on Incremental Parsing: Bringing Engineering and Cognition Together",
+    "id": "acl-W04-0302",
+    "title": "Stochastically Evaluating the Validity of Partial Parse Trees in Incremental Parsing",
+    "url": "https://aclweb.org/anthology/W04-0302",
+    "year": 2004
+  },
+  "references": [
+    "acl-C94-2120",
+    "acl-E95-1017",
+    "acl-J01-2004",
+    "acl-J93-2004",
+    "acl-P99-1054"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper proposes a method for evaluating the validity of partial parse trees constructed in incremental parsing.",
+        "Our method is based on stochastic incremental parsing, and it incrementally evaluates the validity for each partial parse tree on a word-by-word basis.",
+        "In our method, incremental parser returns partial parse trees at the point where the validity for the partial parse tree becomes greater than a threshold.",
+        "Our technique is effective for improving the accuracy of incremental parsing."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Real-time spoken language processing systems, such as simultaneous machine interpretation systems, are required to quickly respond to users’ utterances.",
+        "To fulfill the requirement, the system needs to understand spoken language at least incrementally (Allen et al., 2001; Inagaki and Matsubara, 1995; Milward and Cooper, 1994), that is, to analyze each input sentence from left to right and acquire the content.",
+        "Several incremental parsing methods have been proposed to date (Costa et al., 2001; Haddock, 1987; Matsubara et al., 1997; Milward, 1995; Roark, 2001).",
+        "These methods construct candidate partial parse trees for initial fragments of the input sentence on a word-by-word basis.",
+        "However, these methods contain local ambiguity problems that partial parse trees representing valid syntactic relations can not be determined without using information from the rest of the input sentence.",
+        "On the other hand, Marcus proposed a method of deterministically constructing valid partial parse trees by looking ahead several words (Marcus, 1980), while Kato et al.",
+        "proposed an incremental parsing which delays the decision of valid partial parse trees (Kato et al., 2000).",
+        "However, it is hard to say that these methods realize broad-coverage incremental parsing.",
+        "The method in the literature (Marcus, 1980) uses lookahead rules, which are constructed by hand, but it is not clear whether broad coverage lookahead rules can be obtained.",
+        "The incremental parsing in the literature (Kato et al., 2000), which is based on context free grammar, is infeasible to deal with large scale grammar, because the parser exhaustively searches all candidate partial parse trees in top-down fashion.",
+        "This paper proposes a probabilistic incremental parser which evaluates the validity of partial parse trees.",
+        "Our method extracts a grammar from a treebank, and the incremental parsing uses a beam-search strategy so that it realizes broad-coverage parsing.",
+        "To resolve local ambiguity, the parser incrementally evaluates the validity of partial parse trees on a word-by-word basis, and delays the decision of which partial parse trees should be returned, until the validity for the partial parse tree becomes greater than a threshold.",
+        "Our technique is effective for improving the accuracy of incremental parsing.",
+        "This paper is organized as follows: The next section proposes a probabilistic incremental parser.",
+        "Section 3 discusses the validity of partial parse tree constructed in incremental parsing.",
+        "Section 4 proposes a method of incrementally evaluating the validity of partial parse tree.",
+        "In section 5, we report an experimental evaluation of our method."
+      ]
+    },
+    {
+      "heading": "2 TAG-based Incremental Parsing",
+      "text": [
+        "Our incremental parsing is based on tree adjoining grammar (TAG) (Joshi, 1985).",
+        "This section proposes a TAG-based incremental parsing method."
+      ]
+    },
+    {
+      "heading": "2.1 TAG for Incremental Parsing",
+      "text": [
+        "Firstly, we propose incremental-parsing-oriented TAG (ITAG).",
+        "An ITAG comprises two sets of elementary trees just like TAG: initial trees and auxiliary trees.",
+        "The difference between ITAG and TAG is the form of elementary trees.",
+        "Every ITAG initial tree is leftmost-expanded.",
+        "A tree is leftmost-expanded if it is of the following forms:",
+        "1.",
+        "[t]X, where t is a terminal symbol and X is a nonterminal symbol.",
+        "2.",
+        "[σX1 · · · Xk]x, where σ is a leftmost expanded",
+        "tree, X1, ... , Xk, X are nonterminal symbols.",
+        "On the other hand, every ITAG auxiliary tree is of the following form:",
+        "where σ is a leftmost expanded tree and X, X1, ... , Xk are nonterminal symbols.",
+        "X* is called a foot node.",
+        "Figure 1 shows examples of ITAG elementary trees.",
+        "These elemental trees can be combined by using two operations: substitution and adjunction.",
+        "substitution The substitution operation replaces a leftmost nonterminal leaf of a partial parse tree σ with an initial tree α having the same nonterminal symbol at its root.",
+        "We write sa for the operation of substituting α and sa (σ) for the result of applying sa to σ. adjunction The adjunction operation splits a partial parse tree σ at a nonterminal node having no nonterminal leaf, and inserts an auxiliary tree β having the same nonterminal symbol at its root.",
+        "We write ao for the operation of adjoining β and ao(σ) for the result of applying ao to σ.",
+        "The substitution operation is similar to rule expansion of top-down incremental parsing such as (Matsubara et al., 1997; Roark, 2001).",
+        "Furthermore, by introducing the adjunction operation to incremental parsing, we can expect that local ambiguity of left-recursive structures is decreased (Lombardo and Sturt, 1997).",
+        "Our proposed incremental parsing is based on ITAG.",
+        "When i-th word wz is scanned, the parser combines elementary trees for wz with partial parse trees for w1 · · · wz_1 to construct the partial parse trees for w1 · · · wz_1wz.",
+        "As an example, let us consider incremental parsing of the following sentence by using ITAG shown in Figure 1: I found a dime in the wood.",
+        "(1) Table 1 shows the process of tree construction for the sentence (1).",
+        "When the word “found” is scanned, partial parse trees #3, #4 and #5 are constructed by applying substitution operations to partial parse tree #2 for the initial fragment “I”.",
+        "When the word “in” is scanned, partial parse trees #12 and #13 are constructed by applying adjunction operations to partial parse tree #10 for the initial fragment “I found a dime”.",
+        "This example shows that the ITAG based incremental parsing is capable of constructing partial parse trees of initial fragments for every word input."
+      ]
+    },
+    {
+      "heading": "2.2 ITAG Extraction from Treebank",
+      "text": [
+        "Here, we propose a method for extracting an ITAG from a treebank to realize broad-coverage incremental parsing.",
+        "Our method decomposes parse trees in treebank to obtain ITAG elementary trees.",
+        "The decomposition is as follows:",
+        "• for each node q1 having no left-sibling, if the parent qp has the same nonterminal symbol as q1, split the parse tree at q1 and qp, and combine the upper tree and the lower tree.",
+        "q1 of intermediate tree is a foot node.",
+        "• for each node q2 having only one left-sibling, if the parent qp does not have the same nonterminal symbol as the left-sibling q1 of q2, split the parse tree at q2.",
+        "• for the other node q in the parse tree, split the parse tree at q.",
+        "For example, The initial trees α1, α2, α5, α7 αs and α10 and the auxiliary tree β2 are extracted from the parse tree # 18 in Table 1.",
+        "Our proposed tree extraction is similar to the TAG extractions proposed in the literatures (Chen and Vijay-Shanker, 2000; Chiang, 2003; Xia, 1999).",
+        "The main difference between these methods is the position of nodes at which parse trees are split.",
+        "While the methods in the literatures (Chen and Vijay-Shanker, 2000; Chiang, 2003; Xia, 1999) utilize a head percolation rule to split the parse trees at complement nodes, our method splits the parse trees",
+        "at left recursive nodes and nodes having left-sibling.",
+        "The elementary trees extracted by our method are of the forms described in section 2.",
+        "1, and can be combined from left to right on a word-by-word basis.",
+        "The property is suitable for incremental parsing.",
+        "On the other hand, the elementary trees obtained by the method based on head information does not necessarily have this property 1 ."
+      ]
+    },
+    {
+      "heading": "2.3 Probabilistic ITAG",
+      "text": [
+        "This section describes probabilistic ITAG (PITAG) which is utilized by evaluating partial parse trees in incremental parsing.",
+        "PITAG assigns a probability to the event that an elementary tree is combined by substitution or adjunction with another tree.",
+        "We induce the probability by maximum likelihood estimation.",
+        "Let α be an initial tree and X be the root symbol of α.",
+        "The probability that α is substituted is calculated as follows:",
+        "where C(sa) is the count of the number of times of applying substitution sa in the treebank, and I(X) is the set of initial trees whose root is labeled with X.",
+        "tain the elementary tree [a]dt for “a”.",
+        "However, the tree [a]dt cannot be combined with the partial parse tree for “I found”, since substitution node labeled with dt exists in the initial tree [dt[dime]nn]np for “dime” and not the partial parse trees for “I found”.",
+        "Let Q be a auxiliary tree and X be the root symbol of Q.",
+        "The probability that Q is adjoined is calculated as follows:",
+        "where C(X) is the count of the number of occurrences of symbol X.",
+        "The probability that adjunction is not applied is calculated as follows:",
+        "where nilX means that the adjunction is not applied to a node labeled with X, and A(X) is the set of all auxiliary trees whose root is labeled X.",
+        "In this PITAG formalism, the probability that elementary trees are combined at each node depends only on the nonterminal symbol of that node 2.",
+        "The probability of a parse tree is calculated by the product of the probability of the operations which are used in construction of the parse tree.",
+        "For example, the probability of each operation is given as shown in Table 2.",
+        "The probability of the partial parse tree #12, which is constructed by using sa1, sa2, say, sa7, nilNP and aβ2, is 1 x 0.7 x 0.3 x 0.5 x 0.7 x 0.7 = 0.05145.",
+        "We write P(σ) for the probability of a partial parse tree σ."
+      ]
+    },
+    {
+      "heading": "2.4 Parsing Strategies",
+      "text": [
+        "In order to improve the efficiency of the parsing, we adapt two parsing strategies as follows:",
+        "• If two partial parse trees have the same sequence of nodes to which ITAG operations are applicable, then the lower probability tree can be safely discarded.",
+        "• The parser only keeps n-best partial parse trees.",
+        "3 Validity of Partial Parse Trees",
+        "This section gives some definitions about the validity of a partial parse tree.",
+        "Before describing the validity of a partial parse tree, we define the subsumption relation between partial parse trees.",
+        "That U subsumes τ means that τ is the result of applying a substitution or an adjunction to U.",
+        "Figure 2 shows the subsumption relation between the partial parse trees constructed for the sentence (1).",
+        "If a partial parse tree for an initial fragment represents a syntactic relation correctly, the partial parse tree subsumes the correct parse tree for the input sentence.",
+        "We say that such a partial parse tree is valid.",
+        "The validity of a partial parse tree is defined as follows:",
+        "For example, assume that the #18 is correct parse tree for the sentence (1).",
+        "Then partial parse tree #3 is valid for the sentence (1), because #3 D* #18.",
+        "On the other hand, partial parse tree #4 and #5 are not valid for (1).",
+        "Figure 3 shows the valid partial parse trees for the sentence (1)."
+      ]
+    },
+    {
+      "heading": "4 Evaluating the Validity of Partial Parse Tree",
+      "text": [
+        "The validity of a partial parse tree for an initial fragment depends on the rest of the sentence.",
+        "For example, the validity of the partial parse trees #3, #4 and #5 depends on the remaining input that follows the word “found.” This means that the validity dynamically varies for every word input.",
+        "We define a conditional validity of partial parse tree:",
+        "where U is a partial parse tree for an initial fragment w1 • • • wz(i < j), T(w1 • • • wj) is the set of constructed partial parse trees for the initial fragment w1 • • • wj and Sub(U, w1 • • • wj) is the subset of T (w1 • • • wj) whose elements are subsumed by U.",
+        "The equation (5) represents the validity of U on the condition w1 • • • wj.",
+        "U is valid for input sentence if and only if some partial parse tree for w1 • • • wj",
+        "subsumed by Q is valid.",
+        "The equation 5 is the ratio of such partial parse trees to the constructed partial parse trees."
+      ]
+    },
+    {
+      "heading": "4.1 Output Partial Parse Trees",
+      "text": [
+        "Kato et al.",
+        "proposed a method of delaying the decision of which partial parse trees should be returned as the output, until the validity of partial parse trees are guaranteed (Kato et al., 2000).",
+        "The idea of delaying the decision of the output is interesting.",
+        "However, delaying the decision until the validity are guaranteed may cause the loss of incrementality of the parsing.",
+        "To solve the problem, in our method, the incremental parser returns high validity partial parse trees rather than validity guaranteed partial parse trees.",
+        "When the j-th word wj is scanned, our incremental parser returns the following partial parse:",
+        "where 0 is a threshold between [0, 1] and l (Q) is the length of the initial fragment which is yielded by Q.",
+        "The output partial parse tree is the one for the longest initial fragment in the partial parse trees whose validity are greater than a threshold 0."
+      ]
+    },
+    {
+      "heading": "4.2 An Example",
+      "text": [
+        "Let us consider a parsing example for the sentence (1).",
+        "We assume that the threshold 0 = 0.8.",
+        "Let us consider when the partial parse tree #3, which is valid for (1), is returned as output.",
+        "When the word “found” is scanned, partial parse trees #3, #4 and #5 are constructed.",
+        "That is, T(I found) = 1#3, #4, #51.",
+        "As shown in Figure",
+        "#3 is not returned as the output at this point.",
+        "The parser only keeps #3 as a candidate partial parse tree.",
+        "When the next word “a” is scanned, partial parse trees #6, #7, #8 and #9 are constructed, where P(#6) = 0.21, P(#7) = 0.",
+        "14, P(#8) = 0.03 and P(#9) = 0.02.",
+        "Sub(#3, I found a) = 1#6, #71.",
+        "Therefore, Validity (#3, I found a) = (0.21 + 0.14)/(0.21+0.14+0.03+0.02) = 0.875.",
+        "Because Validity(#3, I found a) > 0, partial parse tree #3 is returned as the output.",
+        "Table 3 shows the output partial parse tree for every word input.",
+        "Our incremental parser delays the decision of the output as shown in this example."
+      ]
+    },
+    {
+      "heading": "5 Experimental Results",
+      "text": [
+        "To evaluate the performance of our proposed method, we performed a parsing experiment.",
+        "The parser was implemented in GNU Common Lisp on a Linux PC.",
+        "In the experiment, the inputs of the incremental parser are POS sequences rather than word sequences.",
+        "We used 47247 initial trees and 2931 auxiliary trees for the experiment.",
+        "The elementary trees were extracted from the parse trees in sections 02-21 of the Wall Street Journal in Penn Treebank (Marcus et al., 1993), which is transformed by using parent-child annotation and left factoring (Roark and Johnson, 1999).",
+        "We set the beam-width at 500.",
+        "The labeled precision and recall of the parsing are 80.8% and 78.5%, respectively for the section 23 in Penn Treebank.",
+        "We used the set of sentences for which the outputs of the incremental parser are identical to the correct parse trees in the Penn Treebank.",
+        "The number of these sentences is 451.",
+        "The average length of these sentences is 13.5 words.",
+        "We measured the delays and the precisions for validity thresholds 0.5, 0.6, 0.7, 0.8, 0.9 and 1.0.",
+        "We define the degree of delay as follows: Let s = w1 • • • wn be an input sentence and oj (s) be the partial parse tree that is the output when the j-th word wj is scanned.",
+        "We define the degree of delay when j-th word is scanned as follows:",
+        "We define maximum delay Dmax(s) and average delay Dave(s) as follows:",
+        "The precision is defined as the percentage of valid partial parse trees in the output.",
+        "Moreover, we measured the precision of the parsing whose delay is always 0 and which returns the",
+        "partial parse tree having highest probability.",
+        "We call it the parsing baseline.",
+        "Table 4 shows the precisions and delays.",
+        "Figure 4 illustrates the relation between the precisions and delays.",
+        "The experimental result demonstrates that there is a precision/delay trade-off.",
+        "Our proposed method increases the precision in comparison with the baseline, while returning the output is delayed.",
+        "When 0 = 1, it is guaranteed that the output partial parse trees are valid, that is, our method is similar to the method in the literature (Kato et al., 2000).",
+        "In comparison with this case, our method when 0 < 1 dramatically decreases the delay.",
+        "Although the result does not necessarily demonstrates that our method is the best one, it achieves both high-accuracy and short-delay to a certain extent."
+      ]
+    },
+    {
+      "heading": "6 Concluding Remarks",
+      "text": [
+        "In this paper, we have proposed a method of evaluating the validity that a partial parse tree constructed in incremental parsing becomes valid.",
+        "The method is based on probabilistic incremental parsing.",
+        "When a word is scanned, the method incrementally calculates the validity for each partial parse tree and returns the partial parse tree whose validity is greater than a threshold.",
+        "Our method delays the decision of which partial parse tree should be returned.",
+        "To evaluate the performance of our method, we conducted a parsing experiment using the Penn Treebank.",
+        "The experimental result shows that our method improves the accuracy of incremental parsing.",
+        "The experiment demonstrated a precision/delay trade-off.",
+        "To evaluate overall performance of incremental parsing, we would like to investigate a single measure into which delay and precision are combined."
+      ]
+    },
+    {
+      "heading": "Acknowledgement",
+      "text": [
+        "This work is partially supported by the Grant-in-Aid for Scientific Research of the Ministry of Education, Science, Sports and Culture, Japan (No.",
+        "15300044), and The Tatematsu Foundation."
+      ]
+    }
+  ]
+}

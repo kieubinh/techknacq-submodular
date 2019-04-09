@@ -1,0 +1,143 @@
+{
+  "info": {
+    "authors": [
+      "Nianwen Xue",
+      "Martha Palmer"
+    ],
+    "book": "SIGDAT Conference on Empirical Methods in Natural Language Processing",
+    "id": "acl-W04-3212",
+    "title": "Calibrating Features for Semantic Role Labeling",
+    "url": "https://aclweb.org/anthology/W04-3212",
+    "year": 2004
+  },
+  "references": [
+    "acl-H94-1020",
+    "acl-J02-3001",
+    "acl-J93-2004",
+    "acl-N04-1030",
+    "acl-N04-1032",
+    "acl-P01-1017",
+    "acl-P02-1031",
+    "acl-P98-1013",
+    "acl-W03-1006",
+    "acl-W03-1008",
+    "acl-W03-1707",
+    "acl-W04-2412"
+  ],
+  "sections": [
+    {
+      "text": [
+        "Calibrating Features for Semantic Role Labeling Nianwen Xue CIS, University of Pennsylvania Levine Hall, 3330 Walnut Street Philadelphia, PA 19104-6389 U.S.A. xueniwen@linc.cis.upenn.edu Martha Palmer CIS, University of Pennsylvania Levine Hall, 3330 Walnut Street Philadelphia, PA 19104-6389 U.S.A. mpalmer@line.",
+        "cis.",
+        "upenn.",
+        "edu Abstract This paper takes a critical look at the features used in the semantic role tagging literature and show that the information in the input, generally a syntactic parse tree, has yet to be fully exploited.",
+        "We propose an additional set of features and our experiments show that these features lead to fairly significant improvements in the tasks we performed.",
+        "We further show that different features are needed for different subtasks.",
+        "Finally, we show that by using a Maximum Entropy classifier and fewer features, we achieved results comparable with the best previously reported results obtained with SVM models.",
+        "We believe this is a clear indication that developing features that capture the right kind of information is crucial to advancing the state-of-the-art in semantic analysis."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "There has been growing interest in domain-independent semantic analysis, fed off recent efforts in semantic annotation.",
+        "The availability of semantically annotated corpora such as the Proposition Banks (Kingsbury and Palmer, 2002; Xue and Palmer, 2003) and FrameNet (Baker et al., 1998) have enabled the development of a rapidly growing list of statistical semantic analyzers (Gildea and Jurafsky, 2002; Gildea and Palmer, 2002; Chen and Rambow, 2003; Pradhan et al., 2003; Pradhan et al., 2004; Sun and Jurafsky, 2004; Palmer et al., submitted).",
+        "The shared task of the CoNLL-2004 is devoted to semantic role labeling (Carreras and Mañrquez, 2004).",
+        "Most of these systems generally take as input a syntactic parse tree and use the syntactic information as features to tag the syntactic constituents with semantic role labels.",
+        "Although these systems have shown great promise, we demonstrate that the features used in previous work have not fully exploited the information that a parse tree provides.",
+        "In this paper we prepose an additional set of features and show that these features lead to fairly significant improvements in the tasks we performed.",
+        "This paper is organized as follows.",
+        "In the next section, we briefly describe the annotation of the Proposition Bank, the data for our automatic semantic role labeling experiments.",
+        "Section 3 describes the architecture of our system.",
+        "We take a critical look at the previously used features against each subtask and propose a new set of features in Section 4.",
+        "Section 5 presents experimental results that show the effectiveness of these new features and a comparison with previous results.",
+        "We conclude in Section 6.",
+        "2 The PropBank and Semantic Role Labeling The PropBank adds a layer of semantic annotation to the Treebank II (Marcus et al., 1993; Marcus et al., 1994) to capture generalizations that are not adequately represented in the treebank parse trees.",
+        "For example, in both John broke the window into a million pieces yesterday and The window broke into a million pieces yesterday, the window plays the same role with regard to the verb break in both sentences even though they occur in different syntactic positions.",
+        "The PropBank annotation captures this regularity by assigning a semantic role label to each argument of the verb independently of its syntactic position.",
+        "This means a fixed set of roles are specified for each verb and a different label is assigned to each role.",
+        "In PropBank annotations, these roles are labeled with a sequence of integers, starting with 0� and prefixed with ARG.",
+        "For example, the verb break, has four such numbered arguments: ARGO: the breaker, ARGI: thing broken, ARG2: instrument and ARG3: pieces.",
+        "It is worth pointing out that even though the same numbers (0-5) are used to label the semantic roles of all verbs, these roles can only be interpreted in a verb-specific 'There are some exceptions.",
+        "manner.",
+        "That is, an argument marked with the same number, e.g. ARG2, may not share any semantic similarities for different verbs.",
+        "In addition to the numbered arguments, which are considered to be core to a verb, there are also elements that are less closely related to the verb.",
+        "This roughly parallels the argument/adjunct dichotomy but the distinction may not be drawn along the same lines as in the theoretic linguistics literature.",
+        "These adjunct-like elements are labeled ARGM, followed by a secondary tag indicating the type of adjunct.",
+        "For example, yesterday in those above-mentioned sentences is not specific to the verb break and instead it applies to a wide variety of verbs.",
+        "Therefore it will be marked as ARGM, followed by a secondary tag -TMP, indicating the temporal nature of this constituent.",
+        "The secondary tags are effectively a global classification of adjunct-like elements.",
+        "There are 12 secondary tags for ARGMs in the Proposition Bank: DIR, LOC, MNR, TMP, EXT, REC, PRD, PRP, DIS, ADV, MOD, NEG2.",
+        "Some verbs require different sets of arguments for different senses, and accurately characterizing the semantic roles of their arguments necessitates first distinguishing these senses.",
+        "For example, the verb \"pass\" takes three arguments, legislative body, bill and law when it means \"vote and pass\", while it takes only two arguments entity moving ahead and entity falling behind when it means \"overtake\".",
+        "Each sense of this verb is likely to be realized in a set of distinct sub categorization frames and is therefore called a frameset.",
+        "(1) a.",
+        "The congress passed the bill into law.",
+        "b.",
+        "A couple of my law clerks were going to pass me in three or four years.",
+        "Semantic role tagging There are different ways to formulate the semantic role tagging task based on the annotation of the PropBank, depending on what type information one wants to learn automatically.",
+        "For comparison purposes we ignore the frameset information for now, following the practice of Gildea and Palmer (Gildea and Jurafsky, 2002; Pradhan et al., 2003) and others.",
+        "For each verb, we will predict the core arguments ARG[O-5], as well as the secondary tags for ARGMs.",
+        "The total tagset will 2Modals (MOD) and negation markers (NEG) are clearly not adjuncts.",
+        "They are included because they are critical to the interpretation of the events be ARG[O-5], ARGa3 ARGM x secondary tags.",
+        "There are also constituents that are not semantic arguments (by semantic arguments we mean both numbered arguments and ARGMs) to a given verb and we will label such constituents NULL.",
+        "Semantic role tagging is thus an one of N classification task.",
+        "3 System architecture Although it is conceivable that one can simply treat this as a multi-category classification problem, there are at least two reasons why such a simple approach will not work effectively.",
+        "One is that for a given verb, the majority of the constituents in a syntactic tree are not its semantic arguments.",
+        "When negative samples (constituents marked NULL) overwhelm positive samples, the current machine-learning algorithms will not be effective.",
+        "The second reason, which is more subtle, is that information that is effective in separating arguments from NULL elements may not be as effective in distinguishing different types of arguments and vice versa, as we will show in our experiments.",
+        "Based on these considerations, we will adopt a three-stage architecture: Stage 1: To save training time, we use a simple algorithm to filter out constituents that are clearly not semantic arguments to the predicate in question.",
+        "Stage 2: We then classify the candidates derived from the first stage as either semantic arguments or non-arguments.",
+        "Stage 3: Finally we run a multi-category classifier to classify the constituents that are labeled as arguments into one of the classes plus NULL.",
+        "each argument of the verb.",
+        "There are again two experiment conditions.",
+        "In the first experiment, the constituents that are arguments to a verb is already known, and the task is only to assign the correct semantic role label to the constituents.",
+        "In the second experiment, this same task is performed on the output of the argument identification task presented in Table 1.",
+        "The same experiments are repeated using automatic parses produced by the Collins parser.",
+        "The results are presented in Table 2.",
+        "Row 1 presents results of all arguments when functional tags of the ArgMs are predicted, while Row 2 presents results of all arguments when functional tags are ignored.",
+        "Finally Row 3 presents results when only the core arguments (numbered arguments) are calculated.",
+        "Standard accuracy, GS (f) = Gold Standard f-score, CP = Collins Parser Feature performance Table 3 shows the performance of the new features.",
+        "The baseline system uses the original features proposed in (Gildea and Palmer, 2002) and each row shows the improvement over the baseline when that feature is added to the baseline features.",
+        "The results are on known (when constituents that are semantic arguments are given) and unknown (when constituents that are arguments have to be identified first before being classified) constituents respectively using Gold Standard Treebank parses.",
+        "It is clear that the syntactic frame feature results in the most improvement (more than 1.7%) over the baseline, with the head of the PP parent feature being a close second.",
+        "It is also worth noting that although the feature combining position and voice results in an improvement when the constituents are known, it actually results in a small loss when the constituents are unknown.",
+        "This indicates that the slight change in the classification task (for classification of unknown constituents, an additional category NULL is added) could change the feature performance.",
+        "The last three features are from (Pradhan et al., 2004), and they also result in an improvement in performance."
+      ]
+    },
+    {
+      "heading": "5.3 Comparison with other systems",
+      "text": [
+        "Rapid progress has been made in semantic role labeling since the Propbank annotation became first available in 2002.",
+        "The progress can be attributed to better modeling techniques, more relevant features and in a small measure, cleaner annotation.",
+        "The first system trained on the Propbank is by Gildea and Palmer (2002), who reported 82.8% in accuracy on Gold Standard parses when the constituents that are semantic arguments are given, 67.6% and 53.6% (f-measure) using Gold Standard and automatic parses respectively when the constituents for the arguments have to be first identified.",
+        "Since then, various degrees of improvement have been reported (Gildea and Hockenmaier, 2003; Pradhan et al., 2003; Chen and Rambow, 2003).",
+        "As far as we know the best results so far are reported by (Pradhan et al., 2004), where a wide range of features, including features extracted from named entities, verb clusters and verb senses, temporal cue words, dynamic context, are tested with an SVM classifier.",
+        "Their system achieved an accuracy of 93.0% on known constituents and 89.4% (f-measure) on unknown constituents using Gold Standard parses.",
+        "They did not report results that use automatic parses with this version of the data, but using a previous version of the data, they reported an f-score of 79.4% using automatic parses (Char-niak, 2001).",
+        "By carefully designing features that can all be directly extracted from the treebank parse trees, our system achieved very comparable results using a Maxent classifier and a much smaller feature set: 92.95% on known constituents, 88.51% on unknown constituents and 76.21% when the Collins parser is used.",
+        "The results on known constituents are almost identical and the larger difference when automatic parses are used could be attributed to the different parsers, as we used output from an earlier version of the Collins parser."
+      ]
+    },
+    {
+      "heading": "6 Conclusions and Future work",
+      "text": [
+        "This paper takes a critical look at the features used in the semantic role tagging literature and show that the information in the input, generally a syntactic parse tree, has yet to be fully exploited.",
+        "We propose an additional set of features and our experiments show that these features lead to fairly significant improvements in the tasks we performed.",
+        "We further show that different features are needed for different subtasks.",
+        "Finally, we show that using a maximum entropy classifier and fewer features, we achieved results that are comparable to the best previously reported results obtained with SVM models.",
+        "We believe this is a clear indication that developing features that capture the right kind of information is crucial to advancing the state-of-the-art in semantic analysis.",
+        "We also believe that the features we proposed here are to a large extent complementary to those proposed in a recent work by Pradhan et al. (2004) and we intend to incorporate them in our system."
+      ]
+    },
+    {
+      "heading": "7 Acknowledgements",
+      "text": [
+        "We would like to thank Scott Cotton for providing the PropBank API 6 which greatly simplifies the implementation of our system.",
+        "This work is funded in part by the DOD via grant MDA904-02-C-0412, and in part by the NSF ITR via grant 130-1303-4-541984-XXXX-20001070.",
+        "."
+      ]
+    }
+  ]
+}

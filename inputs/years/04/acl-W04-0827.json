@@ -1,0 +1,176 @@
+{
+  "info": {
+    "authors": [
+      "Bart Decadt",
+      "Véronique Hoste",
+      "Walter Daelemans",
+      "Antal van den Bosch"
+    ],
+    "book": "SENSEVAL International Workshop on the Evaluation of Systems for the Semantic Analysis of Text",
+    "id": "acl-W04-0827",
+    "title": "GAMBL, Genetic Algorithm Optimization of Memory-Based WSD",
+    "url": "https://aclweb.org/anthology/W04-0827",
+    "year": 2004
+  },
+  "references": [
+    "acl-C02-1039",
+    "acl-P96-1006"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "GAMBL is a word expert approach to WSD in which each word expert is trained using memory-based learning.",
+        "Joint feature selection and algorithm parameter optimization are achieved with a genetic algorithm (GA).",
+        "We use a cascaded classifier approach in which the GA optimizes local context features and the output of a separate keyword classifier (rather than also optimizing the keyword features together with the local context features).",
+        "A further innovation on earlier versions of memory-based WSD is the use of grammatical relation and chunk features.",
+        "This paper presents the architecture of the system briefly, and discusses its performance on the English lexical sample and all words tasks in SENSEVAL-3."
+      ]
+    },
+    {
+      "heading": "1 Memory-Based WSD",
+      "text": [
+        "We interpret WSD as a classification task distributed over word experts: given an ambiguous word and its context as input features, a classifier specialized on that word assigns the contextually appropriate sense to it.",
+        "For each word-lemma–POS-tag combination, a separate classifier is trained.",
+        "Information about the words immediately surrounding the ambiguous word (the local context), as well as information about sense-related words in a wider context (keywords) are provided as information sources, coded in a feature vector.",
+        "To train the word experts, memory-based learning (MBL) is used, an instance of the lazy learning paradigm: all contexts in which an ambiguous word occurs in the training text are kept in memory and abstraction only occurs at classification time by extrapolating a class from the most similar item(s) in memory to the new test item.",
+        "This contrasts with eager learning methods such as decision lists which abstract from the training data at training time and forget about the examples themselves.",
+        "For our experiments, we use the MBL algorithms implemented in TIMBL1.",
+        "This software"
+      ]
+    },
+    {
+      "heading": "NO",
+      "text": [
+        "allows a choice between different statistical and information-theoretic feature and value weighting methods, different neighborhood size and weighting parameters, etc., that should be optimized for each word expert independently.",
+        "See (Daelemans et al., 2003b) for more information.",
+        "It has been claimed, e.g. in (Daelemans et al., 1999), that lazy learning has the right bias for learning natural language processing tasks as it makes possible learning from atypical and low-frequency events that are usually discarded by eager learning methods.",
+        "Architecture.",
+        "Previous work on memory-based WSD includes work from Ng and Lee (1996), Veen-stra et al.",
+        "(2000), Hoste et al.",
+        "(2002) and Mihalcea (2002).",
+        "The current design of our WSD system is largely based on Hoste et al.",
+        "(2002).",
+        "Figure 1 gives an overview of the design of our WSD system: the training text is first linguistically analyzed.",
+        "For each word-lemma–POS-tag combination, we check if it (i) is in our sense lexicon, (ii) has more than one sense and (iii) has a frequency in the training text above a certain threshold.",
+        "For all combinations matching these three conditions, we train a word expert module.",
+        "To all combinations with only one sense, or with more senses and a frequency below the threshold, we assign the default sense, which is respectively the only or most frequent sense in WordNet.",
+        "The word expert module consists of two cascaded memory-based classifiers: the sense predicted by",
+        "the first classifier is used as a feature in the second classifier.",
+        "The first classifier is trained on keywords selected according to a statistical criterion, and the second one is trained on the prediction of the first and on the local context of the ambiguous word-lemma–POS-tag combination.",
+        "In the remainder of this paper, we will describe the feature construction process from the available information sources (Section 2), the learning and optimization approach (Section 3), and the results (Section 4) and their interpretation."
+      ]
+    },
+    {
+      "heading": "2 Information sources",
+      "text": [
+        "Preprocessing.",
+        "The training corpus is a concatenation of various sense-tagged English texts: it contains SemCor (included with WordNet 1.7.1), training and test data from the English lexical sample (LS) and all words (AW) tasks from previous SENSEVAL workshops, the line-, hard and serve-corpora, and the example sentences in WordNet 1.7.1.",
+        "This corpus contains 4.494.909 tokens of which 555.269 are sense-tagged words.",
+        "To this corpus, we add the training data from the SENSEVAL-3 English LS task, containing 7860 sense-tagged words.",
+        "For the AW task, we simply append the LS training data after conversion of the verb’s WordSmyth senses to WordNet 1.7.1 senses.",
+        "For the LS task, however, we slightly change the design of the word expert module because (i) WordSmyth senses are used for the verbs, and (ii) for some words in the LS task, the sense distribution in our own training corpus is very different from the distribution in the LS training data – we did not want this difference to (heavily) influence the results.",
+        "Figure 2 shows the word expert module used in the LS task: we first generate a sense prediction using classifier 1A, trained on our own training data using context keywords as features.",
+        "This prediction becomes an extra feature in classifier 1B, also trained on our own training data but using local context as information source.",
+        "Finally, the predictions of classifiers 1A and 1B become extra features for classifier 2: this classifier is trained on the LS training data, and uses local context for disambiguating senses.",
+        "The test data in the English LS task contains 3944 words to be sense-tagged (57 unique word-lemma– POS-tag combinations), and in the English AW task 2041 words (1020 combinations).",
+        "Training and test data are linguistically analyzed: first, we tokenize, POS-tag, and find chunks and grammatical relations in the data with a shallow parser, and then we lem-matize the data.",
+        "These tools were developed locally.",
+        "In our training data we find 3433 word-lemma– POS-tag combinations that fulfilled the word expert criteria: in the LS test data, these word experts cover all 57 word-lemma–POS-tag combinations, and in the AW test data, they cover 596 combinations, or 1448 particular instances (70.95%).",
+        "We will continue with a description of how we create local context feature vectors, and extract keywords to create binary feature vectors.",
+        "Local context.",
+        "The second classifier uses the immediate local context of a focus word-lemma–POStag combination to disambiguate its senses: the focus word itself, and the three words before and after it.",
+        "For each of these seven words, we include in the feature vector the POS-tag and the chunk+relationtag assigned to the word by the shallow parser.",
+        "The chunk+relation-tag contains information on the basic phrase type of the word (nominal, verbal, prepositional), and for nominal phrases also information on the grammatical function (subject or object) of the phrase.",
+        "We set the context window size to f 3 for practical reasons: in the optimization step, we use a genetic algorithm for feature selection.",
+        "This algorithm will determine which features from the context window will eventually be used in the classification step.",
+        "Increasing the initial context window size, however, also increases the amount of computer time needed for the optimization step.",
+        "Using a larger context window was computationally not feasible.",
+        "Finally, to these local context features, we add the prediction of the keywords-in-context classifier as an extra feature.",
+        "We will now explain how we extract the keywords and how we generate predictions for our training items.",
+        "Keywords in context.",
+        "The first classifier of each word expert is trained on information about possible disambiguating keywords in a context of three sentences: the sentence in which the ambiguous word occurs, the previous sentence, and the following sentence.",
+        "The method we use to extract the keywords for each sense is based on the work of Ng and Lee (1996).",
+        "They determine the probability of a sense s of a focus lemma f given keyword k by dividing Ns,kloc (the number of occurrences of a possible local context keyword k with a particular focus word-lemma–POS-tag combination w with a particular sense s) by Nkloc (the number of occurrences of a possible local context keyword kloc with a particular focus word-lemma–POS-tag combination w regardless of its sense).",
+        "In addition, we also take into account the frequency of a possible keyword in the complete training corpus Nkcorp: Words were selected as keywords for a sense if (i) they appeared at least three times in the context of that sense, and (ii) p(s |k) was higher than or equal to 0.001.",
+        "To this collection of local context keywords we add possible disambiguating content words extracted from the WordNet sense definitions for each focus word-lemma–POS-tag combination.",
+        "All the keywords are represented as binary features, of which the value is 1 if the keyword is present in the three-sentence-context, and 0 if not.",
+        "For each training item in the word experts, we generate a keyword-based prediction.",
+        "First, we split the complete set of training items for each word expert in ten folds of equal size.",
+        "We then use nine folds to predict the sense of the remaining fold, after having found an optimal parameter setting for TIMBL with heuristic optimization on the nine folds.",
+        "We repeat this procedure for each fold.",
+        "Finally, for each training item, we append its keyword-based prediction to the local context feature vector."
+      ]
+    },
+    {
+      "heading": "3 Training and optimization",
+      "text": [
+        "In previous work on memory-based WSD (Veenstra et al., 2000; Hoste et al., 2002) we showed that optimization of features and algorithm parameters for each word expert independently contributes considerably to accuracy.",
+        "For classifier 1 in the AW task, and for classifiers 1A and 1B in the LS task, we heuristically determine the optimal algorithm parameter settings: we exhaustively try out all possible combinations of (a selection of) distance metrics, feature-weightings, number of nearest neighbors and nearest neighbor voting schemes, and retain the best result.",
+        "The testing of one setting is done with tenfold cross-validation.",
+        "For classifier 2, we use a genetic algorithm (GA, e.g. (Goldberg, 1989)) to do joint parameter optimization and feature selection.",
+        "We refer to (Daelemans et al., 2003a) for a discussion of the effect of joint parameter optimization and feature selection on accuracy of classifiers for NLP tasks.",
+        "Joint feature selection and parameter optimization is an optimization problem which involves searching the space of all possible feature subsets and parameter settings to identify the combination that is optimal or near-optimal.",
+        "Since exhaustive search in large search spaces is computationally not feasible in practice, a GA is a more realistic approach to search the space.",
+        "Contrary to traditional hill-climbing approaches, such as backward selection, the GA explores different areas of the search space in parallel.",
+        "For the experiments we use a generational GA implemented in the DeGA (Distributed Evaluation Genetic Algorithm) framework 2.",
+        "We use the GA in its default settings.",
+        "The GA optimization is performed using 10-fold cross-validation on the available training data.",
+        "The resulting optimal settings are then applied to the test data.",
+        "In the experiments, the individuals are represented as bit strings (Figure 3).",
+        "Each individual contains particular values for all algorithm settings and for the selection of the features.",
+        "For TIMBL, the large majority of these features control the use of a feature (ignore, or a distance metric) and are encoded in the chromosome as ternary alleles.",
+        "At the end of the chromosome, the 5-valued weighting parameter and the 4-valued neighbor weighting parameter are encoded, together with the k parameter which controls the number of neighbors.",
+        "The latter is encoded as a real value which represents the logarithm of the number of neighbors.",
+        "We will now present the results of our WSD architecture on the LS and AW test sets."
+      ]
+    },
+    {
+      "heading": "4 Experimental results",
+      "text": [
+        "English lexical sample task.",
+        "Table 1 presents the results of our WSD system for each word in the LS task, and our overall score (the opt column).",
+        "We included the results of TIMBL with default settings (the def column) and the score of a statistical baseline (the maj column), which assigns the sense"
+      ]
+    },
+    {
+      "heading": "Features Parameters",
+      "text": [
+        "with the highest frequency in the training set to the test instances.",
+        "For comparison, we also list tenfold cross-validation results (with default and optimized settings) of the second classifier on the training set.",
+        "Looking at the overall score, we see that TIMBL with default settings already outperforms the baseline with 5%, and that the TIMBL classifier optimized with the GA, improves our score even more with another 7%.",
+        "For most words, the improvement after optimization with the genetic algorithm on the training set, also holds on the test set, though for 15 words, the optimal setting from the GA does not result in a better score than the default score.",
+        "For four words, TIMBL and the GA cannot outperform the majority sense baseline.",
+        "We do not yet know what causes TIMBL and the GA to perform badly, but a difference between the sense distributions in the training and test set might be a factor.",
+        "The distribution of the majority sense in the training set of source is 48.4%, while in the test set this distribution increases to 62.6%.",
+        "For important there is a similar increase: from 38.9% to 47.4%.",
+        "However, sense distribution differences in training and test set cannot be the only cause, because for activate and lose there is no such difference between the sense distributions.",
+        "Finally, Table 2 depicts the fine-grained classification accuracies of our system per POS in the LS task, again compared with the accuracies of the majority sense baseline and TIMBL with default settings.",
+        "The classification accuracy for nouns and verbs is more or less the same as the overall score.",
+        "Adjectives, however, seem to be the harder to classify for our system: the classification accuracy is 13% lower than the overall score.",
+        "This could be related to the on average higher number of senses for the adjectives.",
+        "English all words task.",
+        "The last column of Table 3 presents our results on the AW test set: the results of the classifier optimized with the GA are compared with the results of TIMBL with default settings, and with a majority sense baseline, which",
+        "predicts for each word to be sense-tagged the sense that is listed in WordNet as the most frequent one.",
+        "The first half of the table lists the results when we only take into account words for which a word expert is built.",
+        "TIMBL with default settings cannot outperform the already strong baseline, but after optimization with the GA, we see a 4% improvement.",
+        "Unfortunately, this increase is not as high as the performance boost we see in the tenfold cross-validation results on the training set, listed in the first column of Table 3: there is a large increase of 12% after the optimization step.",
+        "Words for which no word expert is built are tagged with their majority sense from WordNet.",
+        "When we also take these words into account, we see similar results: again, default TIMBL cannot outperform the baseline, but GA optimization gives a 3% increase."
+      ]
+    },
+    {
+      "heading": "5 Conclusion",
+      "text": [
+        "From previous research on memory-based WSD, we learned that both feature selection, algorithm parameter settings, and their interaction, play an important role in accuracy, and that good selections and settings do not generalize over different word experts.",
+        "These should therefore be optimized individually.",
+        "We showed in this paper that using Genetic Algorithms and TIMBL, this complex multiple optimization problem can nevertheless be achieved, even for the AW task in which 3433 word experts have to be optimized.",
+        "Compared with our previous system (Hoste et al., 2002), using chunks and grammatical relations as a source of information is an innovation.",
+        "This in",
+        "formation seems to contribute to the disambiguation process: Table 4 list for each type of feature the percentage of times it was selected by the GA.",
+        "Though Table 4 is an not exhaustive comparison of the different types of features, we nevertheless see that the GA selects syntactic and grammatical information more often than plain words or POS-tags.",
+        "Finally, Table 4 also suggests that our cascaded approach to combine two different information sources is quite successful: the predictions from the previous classifier(s) are very often selected, especially in the LS task, where the prediction from the keyword classifier is most often selected."
+      ]
+    }
+  ]
+}

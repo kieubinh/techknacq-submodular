@@ -1,0 +1,253 @@
+{
+  "info": {
+    "authors": [
+      "Tingting Li",
+      "Tiejun Zhao",
+      "Andrew Finch",
+      "Chunyue Zhang"
+    ],
+    "book": "ACL",
+    "id": "acl-P13-2070",
+    "title": "A Tightly-coupled Unsupervised Clustering and Bilingual Alignment Model for Transliteration",
+    "url": "https://aclweb.org/anthology/P13-2070",
+    "year": 2013
+  },
+  "references": [
+    "acl-D11-1029",
+    "acl-J03-1002",
+    "acl-J98-4003",
+    "acl-N07-1047",
+    "acl-P00-1037",
+    "acl-P04-1021",
+    "acl-P07-1016",
+    "acl-P07-2045",
+    "acl-P09-1012",
+    "acl-P09-1088",
+    "acl-P11-2010",
+    "acl-P11-2094",
+    "acl-W09-3504",
+    "acl-W12-4401",
+    "acl-W12-4402",
+    "acl-W12-4404"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Machine Transliteration is an essential task for many NLP applications.",
+        "However, names and loan words typically originate from various languages, obey different transliteration rules, and therefore may benefit from being modeled independently.",
+        "Recently, transliteration models based on Bayesian learning have overcome issues with over-fitting allowing for many-to-many alignment in the training of transliteration models.",
+        "We propose a novel coupled Dirichlet process mixture model (cDPMM) that simultaneously clusters and bilingually aligns transliteration data within a single unified model.",
+        "The unified model decomposes into two classes of non-parametric Bayesian component models: a Dirichlet process mixture model for clustering, and a set of multinomial Dirichlet process models that perform bilingual alignment independently for each cluster.",
+        "The experimental results show that our method considerably outperforms conventional alignment models."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Machine transliteration methods can be categorized into phonetic-based models (Knight et al., 1998), spelling-based models (Brill et al., 2000), and hybrid models which utilize both phonetic and spelling information (Oh et al., 2005; Oh et al., 2006).",
+        "Among them, statistical spelling-based models which directly align characters in the training corpus have become popular because they are language-independent, do not require phonetic knowledge, and are capable of achieving state-of-the-art performance (Zhang et al., 2012b).",
+        "A major problem with real-word transliteration corpora is that they are usually not clean, may contain name pairs with various linguistic origins and this can hinder the performance of spelling-based models because names from different origins obey different pronunciation rules, for example:",
+        "The same Chinese character ???",
+        "should be aligned to different romanized character sequences: ?Kim?, ?Kana?, ?King?, ?Jin?.",
+        "To address this issue, many name classification methods have been proposed, such as the supervised language model-based approach of (Li et al., 2007), and the unsupervised approach of (Huang et al., 2005) that used a bottom-up clustering algorithm.",
+        "(Li et al., 2007) proposed a supervised transliteration model which classifies names based on their origins and genders using a language model; it switches between transliteration models based on the input.",
+        "(Hagiwara et al., 2011) tackled the issue by using an unsupervised method based on the EM algorithm to perform a soft classification.",
+        "Recently, non-parametric Bayesian models (Finch et al., 2010; Huang et al., 2011; Hagiwara et al., 2012) have attracted much attention in the transliteration field.",
+        "In comparison to many of the previous alignment models (Li et al., 2004; Jiampojamarn et al., 2007; Berg-Kirkpatrick et al., 2011), the non-parametric Bayesian models allow unconstrained monotonic many-to-many alignment and are able to overcome the inherent over-fitting problem.",
+        "Until now most of the previous work (Li et al., 2007; Hagiwara et al., 2011) is either affected by the multi-origins factor, or has issues with over-fitting.",
+        "(Hagiwara et al., 2012) took these two factors into consideration, but their approach still operates within an EM framework and model order selection by hand is necessary prior to training.",
+        "We propose a simple, elegant, fully-unsupervised solution based on a single generative model able to both cluster and align simultaneously.",
+        "The coupled Dirichlet Process Mixture Model (cDPMM) integrates a Dirichlet process mixture model (DPMM) (Antoniak, 1974) and a Bayesian Bilingual Alignment Model (BBAM) (Finch et al., 2010).",
+        "The two component models work synergistically to support one another: the clustering model sorts the data into classes so that self-consistent alignment models can be built using data of the same type, and at the same time the alignment probabilities from the alignment models drive the clustering process.",
+        "In summary, the key advantages of our model are as follows:",
+        "?",
+        "it is based on a single, unified generative model; ?",
+        "it is fully unsupervised; ?",
+        "it is an infinite mixture model, and does not require model order selection ?",
+        "it is effectively capable of discovering an appropriate number of clusters from the data; ?",
+        "it is able to handle data from multiple origins; ?",
+        "it can perform many-to-many alignment without over-fitting."
+      ]
+    },
+    {
+      "heading": "2 Model Description",
+      "text": [
+        "In this section we describe the methodology and realization of the proposed cDPMM in detail."
+      ]
+    },
+    {
+      "heading": "2.1 Terminology",
+      "text": [
+        "In this paper, we concentrate on the alignment process for transliteration.",
+        "The proposed cDPMM segments a bilingual corpus of transliteration pairs into bilingual character sequence-pairs.",
+        "We will call these sequence-pairs Transliteration Units (TUs).",
+        "We denote the source and target of a TU as sm1 = ?s1, ..., sm?",
+        "and tn1 = ?t1, ..., tn?",
+        "respectively, where si (ti) is a single character in source (target) language.",
+        "We use the same notation (s, t) = (?s1, ..., sm?, ?t1, ..., tn?)",
+        "to denote a transliteration pair, which we can write as x = (sm1 , tn1 ) for simplicity.",
+        "Finally, we express the training set itself as a set of sequence pairs: D = {xi}Ii=1.",
+        "Our aim is to obtain a bilingual alignment ?",
+        "(s1, t1), ..., (sl, tl)?",
+        "for each transliteration pair xi, where each (sj , tj) is a segment of the whole pair (a TU) and l is the number of segments used to segment xi."
+      ]
+    },
+    {
+      "heading": "2.2 Methodology",
+      "text": [
+        "Our cDPMM integrates two Dirichlet process models: the DPMM clustering model, and the BBAM alignment model which is a multinomial Dirichlet process.",
+        "A Dirichlet process mixture model, models the data as a mixture of distributions ?",
+        "one for each cluster.",
+        "It is an infinite mixture model, and the number of components is not fixed prior to training.",
+        "Equation 1 expresses the DPMM hierarchically.",
+        "where G0c is the base measure and ?c > 0 is the concentration parameter for the distribution Gc.",
+        "xi is a name pair in training data, and ?k represents the parameters of a candidate cluster k for xi.",
+        "Specifically ?k contains the probabilities of all the TUs in cluster k. f(xi|?k) (defined in Equation 7) is the probability that mixture component k parameterized by ?k will generate xi.",
+        "The alignment component of our cDPMM is a multinomial Dirichlet process and is defined as follows: Ga|?a, G0a ?",
+        "DP (?a, G0a) (sj , tj)|Ga ?",
+        "Ga (2) The subscripts ?c?",
+        "and ?a?",
+        "in Equations 1 and 2 indicate whether the terms belong to the clustering or alignment model respectively.",
+        "The generative story for the cDPMM is simple: first generate an infinite number of clusters, choose one, then generate a transliteration pair using the parameters that describe the cluster.",
+        "The basic sampling unit of the cDPMM for the clustering process is a transliteration pair, but the basic sampling unit for BBAM is a TU.",
+        "In order to integrate the two processes in a single model we treat a transliteration pair as a sequence of TUs generated by a BBAM model.",
+        "The BBAM generates a sequence (a transliteration pair) based on the joint source-channel model (Li et al., 2004).",
+        "We use a blocked version of a Gibbs sampler to train each BBAM (see (Mochihashi et al., 2009) for details of this process)."
+      ]
+    },
+    {
+      "heading": "2.3 The Alignment Model",
+      "text": [
+        "This model is a multinomial DP model.",
+        "Under the Chinese restaurant process (CRP) (Aldous, 1985)",
+        "interpretation, each unique TU corresponds to a dish served at a table, and the number of customers in each table represents the count of a particular TU in the model.",
+        "The probability of generating the jth TU (sj , tj)",
+        "where N is the total number of TUs generated so far, and N",
+        "is the count of (sj , tj).",
+        "(s?j , t?j) are all the TUs generated so far except (sj , tj).",
+        "The base measure G0a is a joint spelling model:",
+        "where |s |(|t|) is the length of the source (target) sequence, vs (vt) is the vocabulary (alphabet) size of the source (target) language, and 's (?t) is the expected length of source (target) side."
+      ]
+    },
+    {
+      "heading": "2.4 The Clustering Model",
+      "text": [
+        "This model is a DPMM.",
+        "Under the CRP interpretation, a transliteration pair corresponds to a customer, the dish served on each table corresponds to an origin of names.",
+        "We use z = (z1, ..., zI), zi ?",
+        "{1, ...,K} to indicate the cluster of each transliteration pair xi in the training set and ?",
+        "= (?1, ..., ?K) to represent the parameters of the component associated with each cluster.",
+        "In our model, each mixture component is a multinomial DP model, and since ?k contains the probabilities of all the TUs in cluster k, the number of parameters in each ?k is uncertain and changes with the transliteration pairs that belong to the cluster.",
+        "For a new cluster (the K + 1th cluster), we use Equation 4 to calculate the probability of each TU.",
+        "The cluster membership probability of a transliteration pair xi is calculated as follows,",
+        "where nk is the number of transliteration pairs in the existing cluster k ?",
+        "{1, ...,K} (cluster K + 1 is a newly created cluster), zi is the cluster indicator for xi, and z?i is the sequence of observed clusters up to xi.",
+        "As mentioned earlier, basic sampling units are inconsistent for the clustering and alignment model, therefore to couple the models the BBAM generates transliteration pairs as a sequence of TUs, these pairs are then used directly in the DPMM.",
+        "Let ?",
+        "= ?",
+        "(s1, t1), ..., (sl, tl)?",
+        "be a derivation of a transliteration pair xi.",
+        "To make the model integration process explicit, we use function f to calculate the probability P (xi|z, ?k), where f is defined as follows,",
+        "where R denotes the set of all derivations of xi, G0c is the same as Equation 4.",
+        "The cluster membership zi is sampled together with the derivation ?",
+        "in a single step according to P (zi = k|D, ?, z?i) and f(xi|?k).",
+        "Following the method of (Mochihashi et al., 2009), first f(xi|?k) is calculated by forward filtering, and then a sample ?",
+        "is taken by backward sampling."
+      ]
+    },
+    {
+      "heading": "3 Experiments",
+      "text": []
+    },
+    {
+      "heading": "3.1 Corpora",
+      "text": [
+        "To empirically validate our approach, we investigate the effectiveness of our model by conducting English-Chinese name transliteration generation on three corpora containing name pairs of varying degrees of mixed origin.",
+        "The first two corpora were drawn from the ?Names of The World's Peoples?",
+        "dictionary published by Xin Hua Publishing House.",
+        "The first corpus was constructed with names only originating from English language (EO), and the second with names originating from English, Chinese, Japanese evenly (ECJO).",
+        "The third corpus was created by extracting name pairs from LDC (Linguistic Data Consortium) Named Entity List, which contains names from all over the world (Multi-O).",
+        "We divided the datasets into training, development and test sets for each corpus with a ratio of 10:1:1.",
+        "The details of the division are displayed in Table 2."
+      ]
+    },
+    {
+      "heading": "3.2 Baselines",
+      "text": [
+        "We compare our alignment model with GIZA++ (Och et al., 2003) and the Bayesian bilingual alignment model (BBAM).",
+        "We employ two decoding models: a phrase-based machine translation decoder (specifically Moses (Koehn et al., 2007)), and the DirecTL decoder (Jiampojamarn et al., 2009).",
+        "They are based on different decoding strategies and optimization targets, and therefore make the comparison more comprehensive.",
+        "For the Moses decoder, we applied the grow-diag-final-and heuristic algorithm to extract the phrase table, and tuned the parameters using the BLEU metric.",
+        "To evaluate the experimental results, we utilized 3 metrics from the Named Entities Workshop (NEWS) (Zhang et al., 2012a): word accuracy in top-1 (ACC), fuzziness in top-1 (Mean F-score) and mean reciprocal rank (MRR)."
+      ]
+    },
+    {
+      "heading": "3.3 Parameter Setting",
+      "text": [
+        "In our model, there are several important parameters: 1) max s, the maximum length of the source sequences of the alignment tokens; 2) max t, the maximum length of the target sequences of the alignment tokens; and 3) nc, the initial number of classes for the training data.",
+        "We set max s = 6, max t = 1 and nc = 5 empirically based on a small pilot experiment.",
+        "The Moses decoder was used with default settings except for the distortion-limit which was set to 0 to ensure monotonic decoding.",
+        "For the DirecTL decoder the following settings were used: cs = 4, ng = 9 and nBest = 5. cs denotes the size of context window for features, ng indicates the size of n-gram features and nBest is the size of transliteration candidate list for updating the model in each iteration.",
+        "The concentration parameter ?c, ?a of the clustering model and the BBAM was learned by sampling its value.",
+        "Following (Blunsom et al., 2009) we used a vague gamma prior ?",
+        "(10?4, 104), and sampled new values from a log-normal distribution whose mean was the value of the parameter, and variance was 0.3.",
+        "We used the Metropolis-Hastings algorithm to determine whether this new sample would be accepted.",
+        "The parameters 's and ?t in Equation 4 were set to 's = 4 and ?t = 1."
+      ]
+    },
+    {
+      "heading": "3.4 Experimental Results",
+      "text": [
+        "Table 3 shows some details of the alignment results.",
+        "The #(Clusters) represents the average number of clusters from the cDPMM.",
+        "It is averaged over the final 50 iterations, and the classes which contain less than 10 name pairs are excluded.",
+        "The #(Targets) represents the average number of English character sequences that are aligned to each Chinese sequence.",
+        "From the results we can see that in terms of the number of alignment targets: GIZA++ > cDPMM > BBAM.",
+        "GIZA++ has considerably more targets than the other approaches, and this is likely to be a symptom of it over-fitting the data.",
+        "cDPMM can alleviate the over-fitting through its BBAM component, and at the same time effectively model the diversity in Chinese character sequences caused by multi-origin.",
+        "Table 1 shows some typical TUs from the alignments produced by BBAM and cDPMM on corpus Multi-O.",
+        "The information in brackets in Table 1, represents the ID of the class and origin of",
+        "the Moses phrase-based decoder.",
+        "the name pair; the symbol ?",
+        "?",
+        "indicates a ?NULL?",
+        "alignment.",
+        "We can see the Chinese characters ??",
+        "(ding) ?",
+        "(yi) ?(dong)?",
+        "have different alignments in different origins, and that the cDPMM has provided the correct alignments for them.",
+        "We used the sampled alignment from running the BBAM and cDPMMmodels for 100 iterations, and combined the alignment tables of each class together.",
+        "The experiments are therefore investigating whether the alignment has been meaningfully improved by the clustering process.",
+        "We would expect further gains from exploiting the class information in the decoding process (as in (Li et al., 2007)), but this remains future research.",
+        "The top10 transliteration candidates were used for testing.",
+        "The detailed experimental results are shown in Tables 4 and 5.",
+        "Our proposed model obtained the highest performance on all three datasets for all evaluation metrics by a considerable margin.",
+        "Surprisingly, for dataset EO although there is no multi-origin factor, we still observed a respectable improvement in every metric.",
+        "This shows that although names may have monolingual origin, there are hidden factors which can allow our model to succeed, possibly related to gender or convention.",
+        "Other models based on supervised classification or clustering with fixed classes may fail to capture these characteristics.",
+        "To guarantee the reliability of the comparative results, we performed significance testing based on paired bootstrap resampling (Efron et al., 1993).",
+        "We found all differences to be significant (p < 0.05)."
+      ]
+    },
+    {
+      "heading": "4 Conclusion",
+      "text": [
+        "In this paper we propose an elegant unsupervised technique for monotonic sequence alignment based on a single generative model.",
+        "The key ben",
+        "the DirecTL decoder.",
+        "efits of our model are that it can handle data from multiple origins, and model using many-to-many alignment without over-fitting.",
+        "The model operates by clustering the data into classes while simultaneously aligning it, and is able to discover an appropriate number of classes from the data.",
+        "Our results show that our alignment model can improve the performance of a transliteration generation system relative to two other state-of-the-art aligners.",
+        "Furthermore, the system produced gains even on data of monolingual origin, where no obvious clusters in the data were expected."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "We thank the anonymous reviewers for their valuable comments and helpful suggestions.We also thank Chonghui Zhu, Mo Yu, and Wenwen Zhang for insightful discussions.",
+        "This work was supported by National Natural Science Foundation of China (61173073), and the Key Project of the National High Technology Research and Development Program of China (2011AA01A207)."
+      ]
+    }
+  ]
+}

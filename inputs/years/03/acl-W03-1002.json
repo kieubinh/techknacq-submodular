@@ -1,0 +1,254 @@
+{
+  "info": {
+    "authors": [
+      "Charles Schafer",
+      "David Yarowsky"
+    ],
+    "book": "Conference on Empirical Methods in Natural Language Processing",
+    "id": "acl-W03-1002",
+    "title": "Statistical Machine Translation Using Coercive Two-Level Syntactic Transduction",
+    "url": "https://aclweb.org/anthology/W03-1002",
+    "year": 2003
+  },
+  "references": [
+    "acl-J00-1004",
+    "acl-J93-2003",
+    "acl-J93-2004",
+    "acl-J97-3002",
+    "acl-N01-1006",
+    "acl-N03-1013",
+    "acl-P00-1056",
+    "acl-P01-1067",
+    "acl-P02-1039",
+    "acl-P91-1023",
+    "acl-W00-0508",
+    "acl-W02-2006",
+    "acl-W99-0604"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We define, implement and evaluate a novel model for statistical machine translation, which is based on shallow syntactic analysis (part-of-speech tagging and phrase chunking) in both the source and target languages.",
+        "It is able to model long-distance constituent motion and other syntactic phenomena without requiring a full parse in either language.",
+        "We also examine aspects of lexical transfer, suggesting and exploring a concept of translation coercion across parts of speech, as well as a transfer model based on lemma-to-lemma translation probabilities, which holds promise for improving machine translation of low-density languages.",
+        "Experiments are performed in both Arabic-to-English and French-to-English translation demonstrating the efficacy of the proposed techniques.",
+        "Performance is automatically evaluated via the Bleu score metric."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "In this work we define, implement and evaluate a novel model for statistical machine translation (SMT).",
+        "Our goal was to produce a SMT system for translating foreign languages into English which utilizes some syntactic information in both the foreign language and English without, however, requiring a full parse in either language.",
+        "Some advantages of not relying on full parses include that (1) there is a lack of availability of parsers for many languages of interest; (2) parsing time complexity represents a potential bottleneck for both model training and testing.",
+        "Intuitively, the explicit modeling of syntactic phenomena should be of benefit in the machine translation task; the ability to handle long-distance motion in an intelligently constrained way is a salient example of such a benefit.",
+        "Allowing unconstrained translation reorderings at the word level generates a very large set of permutations that pose a difficult search problem at decoding time.",
+        "We propose a model that makes use of shallow parses (text chunking) to support long-distance motion of phrases without requiring deeper analysis of syntax.",
+        "The resources required to train this system on a new language are minimal, and we gain the ability to model long-distance movement and some interesting properties of lexical translation across parts of speech.",
+        "One of the source languages we examine in this paper, Arabic, has a canonical sentence-level order of Verb-Subject-Object, which means that translation into English (with a standard ordering of Subject-Verb-Object) commonly requires motion of entire phrasal constituents, which is not true of French-to-English translation, to cite one language pair whose characteristics have wielded great influence in the history of work on statistical machine translation.",
+        "A key motivation for and objective of this work was to build a translation model and feature space to handle the above-described phenomenon effectively."
+      ]
+    },
+    {
+      "heading": "2 Prior Work",
+      "text": [
+        "Statistical machine translation, as pioneered by IBM (e.g. Brown et al., 1993), is grounded in the noisy channel model.",
+        "And similar to the related channel problems of speech and handwriting recognition, the original SMT language pair French-English exhibits a relatively close linear correlation in source and target sequence.",
+        "Much common local motion that is observed for French, such as adjective-noun swapping, is adequately modeled by the relative-position-based distortion models of the classic IBM approach.",
+        "Unfortunately, these distortion models are less effective for languages such as Japanese or Arabic, which have substantially different top-level sentential word orders from English, and hence longer distance constituent motion.",
+        "Wu (1997) and Jones and Havrilla (1998) have sought to more closely tie the allowed motion of constituents between languages to those syntactic transductions supported by the independent rotation of parse tree constituents.",
+        "Yamada and Knight (2000, 2001) and Alshawi et al.",
+        "(2000) have effectively extended such syntactic transduction models to fully functional SMT systems, based on channel model tree transducers and finite state head transducers respectively.",
+        "While these models are well suited for the effective handling of highly divergent sentential word orders, the above frameworks have a limitation shared with probabilistic context free grammars that the preferred ordering of subtrees is insufficiently constrained by their embedding context, which is especially problematic for very deep syntactic parses.",
+        "In contrast, Och et al.",
+        "(1999) have avoided the constraints of tree-based syntactic models and allow the relatively flat motion of empirically derived phrasal chunks, which need not adhere to traditional constituent boundaries.",
+        "Our current paper takes a middle path, by grounding motion in syntactic transduction, but in a much flatter 2 level model of syntactic analysis, based on flat embedded noun-phrases in a flat sentential constituent-based chunk sequence that can be driven by syntactic brack-eters and POS tag models rather than a full parser, facilitating its transfer to lower density languages.",
+        "The flatter 2-level structures also better support transductions conditioned to full sentential context than do deeply embedded tree models, while retaining the empirically observed advantages of translation ordering independence of noun-phrases.",
+        "Another improvement over Och et al.",
+        "and Yamada and Knight is the use of the finite state machine (FSM) modelling framework (e.g. Bangalore and Riccardi, 2000), which offers the considerable advantage of a flexible framework for decoding, as well as a representation which is suitable for the fixed two-level phrasal modelling employed here.",
+        "Finally, the original cross-part-of-speech lexical coercion models presented in Section 4.3.3 have related work in the primarily-syntactic coercion models utilized by Dorr and Habash (2002) and Habash and Door (2003), although their induction and modelling are quite different from the approach here."
+      ]
+    },
+    {
+      "heading": "3 Resources",
+      "text": [
+        "As in other SMT approaches, the primary training resource is a sentence-aligned parallel bilingual corpus.",
+        "We further require that each side of the corpus be part-of-speech (POS) tagged and phrase chunked; our lab has previously developed techniques for rapid training of such tools (Cucerzan and Yarowsky, 2002).",
+        "Our translation experiments were carried out on two languages: Arabic and French.",
+        "The Arabic training corpus was a subset of the United Nations (UN) parallel corpus which is being made available by the Linguistic Data Consortium.",
+        "For French-English training, we used a portion of the Canadian Hansards.",
+        "Both corpora utilized sentence-level alignments publicly distributed by the Linguistic Data Consortium.",
+        "POS tagging and phrase chunking in English were done using the trained systems provided with the fnTBL Toolkit (Ngai and Florian, 2001); both were trained from the annotated Penn Treebank corpus (Marcus et al., 1993).",
+        "French POS tagging was done using the trained French lexical tagger also provided with the fnTBL software.",
+        "For Arabic, we used a colleague’s POS tagger and tokenizer (clitic separation was also performed prior to POS tagging), which was rapidly developed in our laboratory.",
+        "Simple regular-expression-based phrase chunkers were developed by the authors for both Arabic and French, requiring less than a person-day each using existing multilingual learning tools.",
+        "A further input to our system is a set of word alignment links on the parallel corpus.",
+        "These are used to compute word translation probabilities and phrasal alignments.",
+        "The word alignments can in principle come from any source: a dictionary, a specialized alignment program, or another SMT system.",
+        "We used alignments generated by Giza++ (Och and Ney, 2000) by running it in both directions (e.g., Arabic – > English and English – > Arabic) on our parallel corpora.",
+        "The union of these bidirectional alignments was used to compute cross-language phrase correspondences by simple majority voting, and for purposes of estimating word translation probabilities, each link in this union was treated as an independent instance of word translation."
+      ]
+    },
+    {
+      "heading": "4 Translation Model",
+      "text": [
+        "Now we turn to a detailed description of the proposed translation model.",
+        "The exposition will give a formal specification and also will follow a running example throughout, using one of the actual Arabic test set sentences.",
+        "This example, its gloss, system translation and reference human translation are shown in Table 1.",
+        "The translation model (TM) we describe is trained directly from counts in the data, and is a direct model, not a noisy channel model.",
+        "It consists of three nested components: (1) a sentence-level model of phrase correspondence and reordering, (2) a model of intra-phrase translation, and (3) models of lexical transfer, or word translation.",
+        "We make a key assumption in our construction that translation at each of these three levels is independent of the others."
+      ]
+    },
+    {
+      "heading": "4.1 Sentence Translation",
+      "text": [
+        "As mentioned, both the foreign language and English corpora are input with “hard” phrase bracketings and labeled with “hard” phrase types (e.g., NP, VP1, PPNP2, etc.)",
+        "as given by the output of the phrase chunker.",
+        "These are denoted in the top-level model presentation in Table 2(1).",
+        "Given word alignment links, as described in Section 2, we compute phrasal alignments on training data.",
+        "We contrain these to have cardinality (foreign)N – > 1(English).",
+        "Next, we collect counts over aligned phrase sequences and use the relative frequencies to estimate the probability distribution in Table 2(2).",
+        "Particularly for smaller training corpora, unseen foreign-language phrase sequences are a problem, so we implemented a simple backoff method which assigns probability to translations of unseen foreign-language phrase sequences.",
+        "Table 2(3) encapsulates the remainder of the translation model, which is described below.",
+        "As an example, Table 3 shows the most probable aligned English phrase sequence generations given an Arabic simple sentence having the canonical VSO ordering.",
+        "Also, note that all probabilities in the following",
+        "bic, for canonical Arabic simple sentence structure VP (verb) NP (subject) NP (object).",
+        "Subscripts in English phrase sequence are alignments to positions in the corresponding Arabic phrase sequence."
+      ]
+    },
+    {
+      "heading": "4.2 Phrase Translation",
+      "text": [
+        "Given an Arabic test sentence, a distribution of aligned English phrase sequences is proposed by the sentence-level model described in the previous section and in Table 2.",
+        "Each proposed English phrase in each of the phrase sequence possibilities, therefore, comes to the middle level of the translation model with access to the identity of the French phrases aligned to it.",
+        "Phrase translation is implemented as shown in Table 4.",
+        "The phrase translation model is structured with several levels of backoff: if no observations exist from training data for a particular level, the model backs off to the next-more-general level.",
+        "In all cases, generation of an English phrase is conditioned on the foreign phrase as well as the type (NP, VP, etc.)",
+        "of the English phrase.",
+        "Table 4 (1) describes the initial phrase translation model.",
+        "It comes into play if the precise sequence of foreign words has been observed aligning to an English phrase of the appropriate type.",
+        "In the example, we are trying to generate an NP given the Arabic word string “Al- jnp Al sAdsp” (literally: “the committee the sixth”).",
+        "If this has been observed in data, then that relative frequency distribution serves as the translation probability distribution.",
+        "Table 11 contains examples of some of these literal phrase translations from the French data.",
+        "The next stage of backoff from the above, literal level is a model that generates aligned English POS tag sequences given foreign POS tag sequences: details and an example can be found in Table 4(2).",
+        "The sequence alignments determine the position in English phrase and the part-of-speech into which we translate the foreign word.",
+        "Again, translation is also conditioned on the English phrase type.",
+        "Table 5 and Table 6 show the most probable aligned English sequence generations for two of the phrases in the example sentence.",
+        "If there were no counts for (foreign-POS-sequence, english-phrase-type) then we back off to counts collected over (foreign-coarse-POS-sequence, english-phrase-type), where a coarse POS is, for example, N instead of NOUN-SG.",
+        "This is shown in Table 4(3).",
+        "In case further backoff is needed, as shown in Table 4(4), we begin stripping POS-tags off the “less significant” (non-head) end of the foreign POS-sequence until we are left with a phrase sequence that has been seen in training, and from this a corresponding English phrase distribution is observable.",
+        "We define the “less significant” end of a phrase to be the end if it is head-initial, or the beginning if it is head-final, and at this point ignore issues such as nested structure in French and Arabic NP’s.",
+        "Aligned English POS-tag Sequence Translation Probabilities (conditioned on Arabic POS-tag sequence from NP in example)",
+        "Table 5: From the running Arabic example, top English NP generations given an Arabic phrase DET NOUN-SG DET ADJ.",
+        "Note: 0 denotes a null alignment (generation from null).",
+        "Generation from a null alignment is allowed for specified parts of speech, such as determiners and prepositions."
+      ]
+    },
+    {
+      "heading": "4.3 Lexical Transfer 4.3.1 The Basic Model",
+      "text": [
+        "In the basic model of word generation, phrases may be translated directly as single atomic entities (as in Table 4(1)), or via phrasal decomposition to individual words translated independently, conditioned only on the source word and target POS.",
+        "Word translation in the latter case",
+        ".2GenerationviaaLemmaModelTocountersparsedataproblemsinestimatingwordtranslation probabilities, we also implemented a lemma",
+        "els of backoff in the lexical transfer model.",
+        "The example shows translations for the French word droit (“right”) conditioned on decreasingly specific values.",
+        "The progressively lower ranking of the correct translation as we move from fine, to coarse, to no POS, illustrates the benefit of conditioning generation on the English part of speech.",
+        "based model for word translation.",
+        "Under this model, translation distributions are estimated by counting word alignment links between foreign and English lemmas, assuming a lemmatization of both sides of the parallel corpus as input.",
+        "The form of the model is illustrated below:",
+        "First, note that P( lemmaF I WF , TcoarseF ) is very simply a hard lemma assignment by the foreign language lemmatizer.",
+        "Second, English word generation from English lemma and coarse POS (P(WE I lemmaE , T f ineE )) is programmatic, and can be handled by means of rules in conjunction with a lookup table for irregular forms.",
+        "The only distribution here that must be estimated from data is P( lemmaE I lemmaF , TcoarseE ).",
+        "This is done as described above.",
+        "Furthermore, given an electronic translation dictionary, even this distribution can be pre-loaded: indeed, we expect this to be an advantage of the lemma model, and an example of a good opportunity for integrating compiled human knowledge about language into an SMT system.",
+        "Some examples of the lemma model combating sparse data problems inherent in the basic word-to-word models can be found in Table 9."
+      ]
+    },
+    {
+      "heading": "4.3.3 Coercion",
+      "text": [
+        "Lexical coercion is a phenomenon that sometimes occurs when we condition translation of a foreign word on the word and the English part-of-speech.",
+        "We find that the system we have described frequently learns this behav-ior: specifically, the model learns in some cases how to generate, for instance, a nominal form with similar meaning from a French adjective, or an adjectival realization of a French verb’s meaning; some examples of this phenomenon are shown in Table 10.",
+        "We find this coercion effect to be of interest because it identifies interesting associations of meaning.",
+        "For example, in Table 10 “willing” and “ready” are both sensible ways to realize the meaning of the action “to accept” in a passive, descriptive mode.",
+        "droit behaves similarly.",
+        "Though the English verb “to right’ or “to be righted” does not have the philosophical/judicial entitlement sense of the noun “right”, we see that the model has learned to realize the meaning in an active, verbal form: e.g., VBG ‘receiving” and VB “qualify”."
+      ]
+    },
+    {
+      "heading": "5 Decoding",
+      "text": [
+        "Decoding was implemented by constructing finite-state machines (FSMs) per evaluation sentence to encode relevant portions (for the individual sentence in question) ofthe component translation distributions described above.",
+        "Operations on these FSMs are performed using the AT&T FSM Toolkit (Mohri et al., 1997).",
+        "The FSM constructed for a test sentence is subsequently composed with a FSM trigram language model created via the SRI Language Modeling Toolkit (Stolcke, 2002).",
+        "Thus we use the trigram language model to implement rescoring",
+        "of the (direct) translation probabilities for the English word sequences in the translation model lattice.",
+        "We found that using the finite-state framework and the general-purpose AT&T toolkit greatly facilitates decoder development by freeing the implementation from details of machine composition and best-path searching, etc.",
+        "The structure of the translation model finite-state machines is as illustrated in Figure 1.",
+        "The sentence-level (aligned phrase sequence generation) and phrase-level (aligned intra-phrase sequence generation) translation probabilities are encoded on epsilon arcs in the machines.",
+        "Word translation probabilities are placed onto arcs emitting the word as an output symbol (in the figure, note the arcs emitting “committee”, “the”, etc.).",
+        "The FSM in Figure 1 corresponds to the Arabic example sentence used throughout this paper.",
+        "In the portion of the machine shown, the (best) path which generated the example sentence is drawn in bold.",
+        "Finally, Figure 2 is a rendering of the actual FSM (aggressively pruned for display purposes) that generated the example Arabic sentence; although labels and details are not visible, it may provide a visual aid for better understanding the structure of the FSM lattices generated here.",
+        "As a practical matter in decoding, during translation model FSM construction we modified arc costs for output words in the following way: a fixed bonus was assigned for generating a “content” word translating to a “content” word.",
+        "Determining what qualifies as a content word was done on the basis of a list of content POS tags for each language.",
+        "For example, all types of nouns, verbs and adjectives were listed as content tags; determiners, prepositions, and most other closed-class parts of speech were not.",
+        "This implements a reasonable penalty on undesirable output sentence lengths.",
+        "Without such a penalty, translation outputs tend to be very short: long sentence hypotheses are penalized de facto merely by containing many word translation probabilities.",
+        "An additional trick in decoding is to use only the N-best translation options for sentence-level, phrase-level, and word-level translation.",
+        "We found empirically (and very consistently) in dev-test experiments that restricting the syntactic transductions to a 30-best list and word translations to a 15-best list had no negative impact on Bleu score.",
+        "The benefit, of course, is that the translation lattices are dramatically reduced in size, speeding up composition and search operations.",
+        "Results Tables A and B below list evaluation results for translation on the Arabic and French test sets respectively.",
+        "In each case, results for a comparison system – the Giza++ IBM Model 4 implementation (Och and Ney, 2000) with the ReWrite decoder (Marcu and Germann, 2002) – are included as a benchmark.",
+        "Results were generated for training corpora of varying sizes.",
+        "For Arabic, we ran our system on two large subsets of the UN corpus and evaluated on a 200-sentence held-out set (refer to Results Table A below).",
+        "For the 150K sentence Arabic training set, Giza++ and the shallow syntax model achieved very similar performance.",
+        "We were unable to obtain evaluation numbers for Giza++/ReWrite on the large Arabic training set, however, since its language model component has a vocabulary size limit which was exceeded in the larger corpus.",
+        "In French we observed the systems to perform similarly on the small training sets we used (Results Table B).",
+        "We performed some experiments in classifier combination using the two compatible (150K-training-sentence) Arabic systems, wherein a small devtest set was used to identify simple system combination parameters based on model confidence and sentence length.",
+        "In situations where our system was confident we used its output, and used Giza++ output otherwise.",
+        "We achieved a 3% boost in Bleu score over Giza++ performance on the evaluation set with these very simple classifier combination techniques, and anticipate that research in this direction – classifier combination of diversely trained SMT systems –could yield significant performance improvements.",
+        "translation on the UN corpus, with a 200-sentence evaluation set.",
+        "Note that Giza++/ReWrite cannot be run for the 500K sentence training set; the CMU Language Modeling Toolkit, which ReWrite uses, has a vocabulary size limit which is exceeded in the 500K corpus."
+      ]
+    },
+    {
+      "heading": "7 Conclusions",
+      "text": [
+        "We have described and implemented an original syntax-based statistical translation model that yields baseline results which compete successfully with other state-of-the-art SMT models.",
+        "This is particularly encouraging in that the authors are not well-versed in Arabic or French and it appears that the quality of the rule-based phrase chun-kers we developed in a single person-day offers substantial room for improvement.",
+        "We expect to be able to attain improved bracketings from native speakers and, in addition, via translingual projection of existing brack-eters.",
+        "Secondly, the lemma model we have proposed for lexical transfer provides an efficient framework for integrating electronic dictionaries into SMT models.",
+        "Although we have at this time no large electronic dictionaries for either Arabic or French, efforts are underway to acquire electronic or scanned paper dictionaries for this purpose.",
+        "We did evaluate the lemma models in isolation for French and Arabic without dictionary inclusion, but in each experiment the results did not differ significantly from the word-specific lexical transfer models, despite their substantially reduced dimensionality.",
+        "We anticipate that the relatively seamless direct incorporation of dictionaries into the lemma-based models will be particularly effective for translating low-density languages, which suffer from data sparseness in the face of limited parallel text.",
+        "Finally, we incorporated lexical translation coercion models into this full SMT framework, the induction of which is a phenomenon of interest in its own right."
+      ]
+    },
+    {
+      "heading": "8 Acknowledgements",
+      "text": [
+        "This work was supported in part by NSF grant number IIS-9985033.",
+        "In addition, we owe many thanks to colleagues who generously lent their time and insights.",
+        "David Smith shared his tools for Arabic part-of-speech tagging and morphological analysis and answered many questions about the Arabic language.",
+        "Thanks to Skankar Kumar and San-jeev Khudanpur for numerous helpful discussions."
+      ]
+    },
+    {
+      "heading": "9 References",
+      "text": [
+        "Generation of a verb lemma given manger manger V eat 0.60 manger V feed 0.05 manger V have 0.04 Generation of a noun lemma given manger manger N meal 0.06 manger N trough 0.04 manger N loaf 0.04 manger N food 0.04 Generation of an adj.",
+        "lemma given manger manger J hungry 0.33 Raw lemma translation probabilities (ignoring English Coarse POS) manger eat 0.28 manger to 0.03 manger feed 0.03 manger out 0.02 manger have 0.02 manger are 0.02 manger , 0.02 manger you 0.01 manger meal 0.01 Table 9: Direct generation (word-to-word translation probabilities at the various levels of backoff) is contrasted with lemma generation.",
+        "Manger (`to eat”) is a relatively rare word in the Hansards.",
+        "Note that due to low counts, the desired verb POS (target of generation) for `eat” may not have been observed as a translation in training data.",
+        "In addition, in this situation, noisy word alignments may cause an incorrect translation to have similar estimated translation probability.",
+        "This problem is addressed by the lemma model; note the much sharper probability distribution for verb lemmas given manger.",
+        "Generation of English inflections given lemma and target POS is algorithmic (and irregular exceptions are handled via a lookup table).",
+        "ercions of the French verb accepter “to accept” and the French noun droit “right” (there is parallel polysemy between the two languages for this word, but the predominant sense in our corpus is the philosophical/judicial sense, as opposed to the direction).",
+        "PPNP par an per year 0.67 PPNP par an in each year 0.03 PPNP par an for a year 0.03 ADVP par an annually 1.00 NP par an a year 0.79 NP par an each year 0.02 NP un discours a speech 0.83 NP un discours an address 0.05 VP un discours to speak 1.00"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+{
+  "info": {
+    "authors": [
+      "George Anton Kiraz"
+    ],
+    "book": "Annual Meeting of the Association for Computational Linguistics",
+    "id": "acl-P96-1022",
+    "title": "SEMHE a Generalised Two-Level System",
+    "url": "https://aclweb.org/anthology/P96-1022",
+    "year": 1996
+  },
+  "references": [
+    "acl-C86-1065",
+    "acl-C94-1029",
+    "acl-C96-1077",
+    "acl-E87-1002",
+    "acl-E93-1035",
+    "acl-E95-1028",
+    "acl-J94-1003"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper presents a generalised two-level implementation which can handle linear and non-linear morphological operations.",
+        "An algorithm for the interpretation of multi-tape two-level rules is described.",
+        "In addition, a number of issues which arise when developing non-linear grammars are discussed with examples from Syriac."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "The introduction of two-level morphology (Kosken-niemi, 1983) and subsequent developments has made implementing computational-morphology models a feasible task.",
+        "Yet, two-level formalisms fell short from providing elegant means for the description of non-linear operations such as infixation, circumfix-ation and root-and-pattern morphology.1 As a result, two-level implementations – e.g. (Antworth, 1990; Karttunen, 1983; Karttunen and Beesley, 1992; Ritchie et al., 1992) – have always been biased towards linear morphology.",
+        "The past decade has seen a number of proposals for handling non-linear morphology;2 however, none * Supported by a Benefactor Studentship from St John's College.",
+        "This research was done under the supervision of Dr Stephen G. Pulman.",
+        "Thanks to the anonymous reviewers for their comments.",
+        "All mistakes remain mine.",
+        "1 Although it is possible to express some classes of non-linear rules using standard two-level formalisms by means of ad hoc diacritics, e.g., infixation in (Antworth, 1990, p. 156), there are no means for expressing other classes as root-and-pattern phenomena.",
+        "2(Kay, 1987), (Kataja and Koskenniemi, 1988), (Beesley et al., 1989), (Lavie et al., 1990), (Beesley, 1990), (Beesley, 1991), (Kornai, 1991), (Wiebe, 1992), (Pulman and Hepple, 1993), (Narayanan and Hashem, 1993), and (Bird and Ellison, 1994).",
+        "See (Kiraz, 1996) for a review.",
+        "(apart from Beesley's work) seem to have been implemented over large descriptions, nor have they provided means by which the grammarian can develop non-linear descriptions using higher level notation.",
+        "To test the validity of one's proposal or formalism, minimally a medium-scale description is a desideratum.",
+        "SemHe3 fulfils this requirement.",
+        "It is a generalised multi-tape two-level system which is being used in developing non-linear grammars This paper (1) presents the algorithms behind SemHe; (2) discusses the issues involved in compiling non-linear descriptions; and (3) proposes extension/solutions to make writing non-linear rules easier and more elegant.",
+        "The paper assumes knowledge of multi-tape two-level morphology (Kay, 1987; Kiraz, 1994c)."
+      ]
+    },
+    {
+      "heading": "2 Linguistic Descriptions",
+      "text": [
+        "The linguist provides SemHe with three pieces of data: a lexicon, two-level rules and word formation grammar.",
+        "All entries take the form of Prolog terms.'",
+        "(Identifiers starting with an uppercase letter denote variables, otherwise they are instantiated symbols.)",
+        "A lexical entry is described by the term",
+        "a notational variant of the PATR-II category formalism (Shieber, 1986).",
+        "thalphabet (0, [k , t , b, a, e] ).",
+        "% surface alphabet thalphabet(1, [ci,c2, c3 , v ,17] ).",
+        "thalphabet(2, [k,t ,b , ).",
+        "thalphabet (3, [a, e , ).",
+        "% lexical alphabets tl_set (radical , [k , t , b] ).",
+        "tl_set (vowel , [a , e] ).",
+        "tl_set(c1c3 , [ci , c3] ).",
+        "% variable sets tl_rule(R1, [0 , , 0] , [ [b] , [5] , [b]] , , , =>, H, , 0 ,",
+        "A two-level rule is described using a syntactic variant of the formalism described by (Ruessink, 1989; Pulman and Hepple, 1993), including the extensions by (Kiraz, 1994c),",
+        "The arguments are: (1) a rule identifier, id; (2) the left-lexical-context, LLC, the lexical center, Lex, and the right-lexical-context, RLC, each in the form of a list-of-lists, where the ith list represents the ith lexical tape; (3) an operator, => for optional rules or <=> for obligatory rules; (4) the left-surface-context, LSC, the surface center, Surf, and the right-surface-context, RSC, each in the form of a list; (5) a list of the variables used in the lexical and surface expressions, each member in the form of a predicate indicating the set identifier (see infra) and an argument indicating the variable in question; and (6) a set of features (i.e. category forms) in the form of a list-of-lists, where the ith item must unify with the feature-structure of the morpheme affected by the rule on the ith lexical tape.",
+        "A lexical string maps to a surface string iff (1) they can be partitioned into pairs of lexical-surface subsequences, where each pair is licenced by a rule, and (2) no partition violates an obligatory rule.",
+        "Alphabet declarations take the form tl_alphabet ((tape), (symbol_list)), and variable sets are described by the predicate tl_set((id), (symbol_list)).",
+        "Word formation rules take the form of unification-based CFG rules, synrule((identifier), (mother), Rclaug hteri), .",
+        "• , (daughtern)D• The following example illustrates the derivation of Syriac /ktab/5 'he wrote' (in the simple p 'al measurer from the pattern morpheme {cvcvc} 'verbal pattern', root {ktb} 'notion of writing', and vocalism {a}.",
+        "The three morphemes produce the underlying form */katab/, which surfaces as /ktab/ since short vowels in open unstressed syllables are deleted.",
+        "The process is illustrated in (1).7",
+        "The pa \"el measure of the same verb, viz. /katteb/, is derived by the gemination of the middle consonant (i.e. t) and applying the appropriate vocalism lael.",
+        "The two-level grammar (Listing 1) assumes three lexical tapes.",
+        "Uninstantiated contexts are denoted by an empty list.",
+        "R1 is the morpheme boundary b) rule.",
+        "R2 and R3 sanction stem consonants and vowels, respectively.",
+        "R4 is the obligatory vowel deletion rule.",
+        "R5 and R6 map the second radical, [t], for p 'al and pa \"el forms, respectively.",
+        "In this example, the lexicon contains the entries in (2).8",
+        "(2) synword(c1vc2vc3, pattern : [1).",
+        "synword(ktb, root : [measure = M]).",
+        "synword(aa, vocalism : [measure =-- p`a11).",
+        "synword(ae, vocalism : [measure = pa\"e1]).",
+        "Note that the value of 'measure' in the root entry is",
+        "uninstantiated; it is determined from the feature values in R5, R6 and/or the word grammar (see infra, §4.3).",
+        "affairs holds.",
+        "Rules are then reasserted in the order of their precedence value.",
+        "This ensures that rules which contain the most specified expressions are tested first resulting in better performance."
+      ]
+    },
+    {
+      "heading": "3 Implementation",
+      "text": [
+        "There are two current methods for implementing two-level rules (both implemented in SemHe): (1) compiling rules into finite-state automata (multi-tape transducers in our case), and (2) interpreting rules directly.",
+        "The former provides better performance, while the latter facilitates the debugging of grammars (by tracing and by providing debugging utilities along the lines of (Carter, 1995)).",
+        "Additionally, the interpreter facilitates the incremental compilation of rules by simply allowing the user to toggle rules on and off.",
+        "The compilation of the above formalism into automata is described by (Grimley-Evans et al., 1996).",
+        "The following is a description of the interpreter."
+      ]
+    },
+    {
+      "heading": "3.1 Internal Representation",
+      "text": [
+        "The word grammar is compiled into a shift-reduce parser.",
+        "In addition, a first-and-follow algorithm, based on (Aho and Ullman, 1977), is applied to compute the feasible follow categories for each category type.",
+        "The set of feasible follow categories, NextCats, of a particular category Cat is returned by the predicate FoLLow(+ Cat, – NextCats).",
+        "Additionally, FOLLOW(bos, NextCats) returns the set of category symbols at the beginning of strings, and eos E NextCats indicates that Cat may occur at the end of strings.",
+        "The lexical component is implemented as character tries (Knuth, 1973), one per tape.",
+        "Given a list of lexical strings, Lex, and a list of lexical pointers, LexPtrs, the predicate",
+        "succeeds if there are transitions on Lex from LexPtrs; it returns NewLexPtrs, and the categories, LexCats, at the end of morphemes, if any.",
+        "Two-level predicates are converted into an internal representation: (1) every left-context expression is reversed and appended to an uninstantiated tail;",
+        "(2) every right-context expression is appended to an uninstantiated tail; and (3) each rule is assigned a 6-bit 'precedence value' where every bit represents one of the six lexical and surface expressions.",
+        "If an expression is not an empty list (i.e. context is specified), the relevant bit is set.",
+        "In analysis, surface expressions are assigned the most significant bits, while lexical expressions are assigned the least significant ones.",
+        "In generation, the opposite state of"
+      ]
+    },
+    {
+      "heading": "3.2 The Interpreter Algorithm",
+      "text": [
+        "The algorithms presented below are given in terms of prolog-like non-deterministic operations.",
+        "A clause is satisfied if all the conditions under it are satisfied.",
+        "The predicates are depicted top-down in (3).",
+        "(SemHe makes use of an earlier implementation by (Pulman and Hepple, 1993).)",
+        "In order to minimise accumulator-passing arguments, we assume the following initially-empty stacks: Pars eStack accumulates the category structures of the morphemes identified, and FeatureStack maintains the rule features encountered so far.",
+        "(`+' indicates concatenation.)",
+        "PARTITION partitions a two-level analysis into sequences of lexical-surface pairs, each licenced by a rule.",
+        "The base case of the predicate is given in Listing 2,9 and the recursive case in Listing 3.",
+        "The recursive COERCE predicate ensures that no partition is violated by an obligatory rule.",
+        "It takes three arguments: Result is the output of PARTITION (usually reversed by the calling predicate, hence, COERCE deals with the last partition first), PreyCats is a register which keeps track of the last morpheme category encountered, and Partition returns selected elements from Result.",
+        "The base case of the predicate is simply COERCE( -, ) – i.e., no more partitions.",
+        "The recursive case is shown in Listing 4.",
+        "CurrentCats keeps track of the category of the morpheme which occures in the current partition.",
+        "The invalidity of a partition is determined by INVALID-PARTITION (Listing 5).",
+        "TWO-LEVEL-ANALYSIS (Listing 6) is the main predicate.",
+        "It takes a surface string or lexical string(s) and returns a list of partitions and a",
+        "morphosyntactic parse tree.",
+        "To analyse a surface form, one calls Two-LEvEL-ANALYsis(+Surf, -Lex, -Partition, -Parse).",
+        "To generate a surface form, one calls Two-LEVEL-ANALYSIS(-Surf, +Lex, -Partition, -Parse)."
+      ]
+    },
+    {
+      "heading": "4 Developing Non-Linear Grammars",
+      "text": [
+        "When developing Semitic grammars, one comes across various issues and problems which normally do not arise with linear grammars.",
+        "Some can be solved by known methods or `tricks'; others require extensions in order to make developing grammars easier and more elegant.",
+        "This section discuss issues which normally do not arise when compiling linear grammars"
+      ]
+    },
+    {
+      "heading": "4.1 Linearity vs. Non-Linearity",
+      "text": [
+        "In Semitic languages, non-linearity occurs only in stems.",
+        "Hence, lexical descriptions of stems make use of three lexical tapes (pattern, root & vocalism), while those of prefixes and suffixes use the first lexical tape.",
+        "This requires duplicating rules when stating lexical constraints.",
+        "Consider rule R4 (Listing 1).",
+        "It allows the deletion of the first stem vowel by the virtue of RLC (even if c2 was not indexed); hence /katab/ – > /ktab/.",
+        "Now consider adding the suffix {eh} 'him/it': /katab/+{eh} /katbeh/, where the second stem vowel is deleted since deletion applies right-to-left; however, RLC can only cope with stem vowels.",
+        "Rule R7 (Listing 7) is required.",
+        "One might suggest placing constraints on surface expressions instead.",
+        "However, doing so causes surface expressions to be dependent on other rules.",
+        "Additionally, Lex in R4 and R7 deletes stem vowels.",
+        "Consider adding the prefix {wa} 'and': {wa} /Icatab/ I {eh} 4 /wkatbeh/, where the prefix vowel is also deleted.",
+        "To cope with this, two additional rules like R4 and R7 are required, but with Lex = [ [V] , , ] • We resolve this by allowing the user to write expansion rules of the from expand((symbo/), (expansion), (variables)).",
+        "In our example, the expansion rules in (4) are needed.",
+        "(4) expand(C, [ [C] , , ] , [radical (C)] )• expand(C, [Cc] , [C] , 1] ] , [radical (C)] ).",
+        "expand(V, 1[V] , 0 , C]], [vowel (V)] ).",
+        "expand(V, [ [v] , , [V]] , [vowel (V)] ).",
+        "The linguist can then rewrite R4 as R8 (Listing 7), and expand it with the command expand (R8) .",
+        "This produces four rules of the form of R4, but with the following expressions for Lex and RLC:1°",
+        "[v] , 0 , EV1] [ [c , v] , [C] , [V2] ]"
+      ]
+    },
+    {
+      "heading": "4.2 Vocalisation",
+      "text": [
+        "Orthographically, Semitic texts are written without short vowels.",
+        "It was suggested by (Beesley et al., 1989, et.",
+        "seq.)",
+        "and (Kiraz, 1994c) to allow short vowels to be optionally deleted.",
+        "This, however, puts a constraint on the grammar: no surface expression can contain a vowel, lest the vowel is optionally deleted.",
+        "We assume full vocalisation in writing rules.",
+        "A second set of rules can allow the deletion of vowels.",
+        "The whole grammar can be taken as the composition of the two grammars: e.g. {cvcvc},{ktb},{aa} /ktab/ [ktab, ktb]."
+      ]
+    },
+    {
+      "heading": "4.3 Morphosyntactic Issues",
+      "text": [
+        "Finite-state models of two-level morphology implement morphotactics in two ways: using 'continuation patterns/classes' (Koskenniemi, 1983; Antworth, 1990; Karttunen, 1993) or unification-based grammars (Bear, 1986; Ritchie et al., 1992).",
+        "The former fails to provide elegant morphosyntactic parsing for Semitic languages, as will be illustrated in this section.",
+        "A pattern, a root and a vocalism do not alway produce a free stem which can stand on its own.",
+        "In Syriac, for example, some verbal forms are bound: they require a stem morpheme which indicates the measure in question, e.g. the prefix {Pa} for eel"
+      ]
+    },
+    {
+      "heading": "Listing 8",
+      "text": [
+        "stems.",
+        "Additionally, passive forms are marked by the reflexive morpheme {Pet}, while active forms are not marked at all.",
+        "This structure of stems can be handled hierarchically using X-theory.",
+        "A stem whose stem morpheme is known is assigned Y=-2 (Rules 1-2 in Listing 8).",
+        "Rules which indicate mood can apply only to stems whose measure has been identified (i.e. they have X=-2).",
+        "The resulting stems are assigned X=-1 (Rules 3-4 in Listing 8).",
+        "The parsing of Syriac petkteb/ (from {et}±/kateb/ after the deletion of /a/ by R4) appears in (5).11",
+        "(5) stem: X.-1]",
+        "111n the remaining examples, it is assumed that the lexicon and two-level rules are expanded to cater for the new material.",
+        "verbal inflectional markers."
+      ]
+    },
+    {
+      "heading": "4.3.2 Verbal Inflectional Markers",
+      "text": [
+        "With respect to verbal inflexional markers (VIMs), there are various types of Semitic verbs: those which do not require a VIM (e.g. sing.",
+        "3rd masc.",
+        "), and those which require a VIM in the form of a prefix (e.g. perfect), suffix (e.g. some imperfect forms), or circumfix (e.g. other imperfect forms).",
+        "Each VIM is lexically marked inter alia with two features: 'type' which states whether it is a prefix or a suffix, and `circum' which denotes whether it is a circumfix.",
+        "Rules 5-8 (Listing 8) handle this."
+      ]
+    },
+    {
+      "heading": "The parsing of Syriac /netkatbun/ (from Inel+",
+      "text": [
+        "(Beesley et al., 1989) handle this problem by finding a logical expression for the prefix and suffix portions of circumfix morphemes, and use unification to generate only the correct forms – see (Sproat, 1992, p. 158).",
+        "This approach, however, cannot be used here since, unlike Arabic, not all Syriac VIMs are in the form of circumfixes."
+      ]
+    },
+    {
+      "heading": "4.3.3 Interfacing with a Syntactic Parser",
+      "text": [
+        "A Semitic 'word' (string separated by word boundary) may in fact be a clause or a sentence.",
+        "Therefore, a morphosyntactic parsing of a 'word' may be a (partial) syntactic parsing of a sentence in the form of a (partial) tree.",
+        "The output of a morphological analyser can be structured in a manner suitable for syntactic processing.",
+        "Using tree-adjoining grammars (Joshi, 1985) might be a possibility."
+      ]
+    },
+    {
+      "heading": "5 Performance",
+      "text": [
+        "To test the integrity, robustness and performance of the implementation, a two-level grammar of the most frequent words in the Syriac New Testament was compiled based on the data in (Kiraz, 1994b).",
+        "The grammar covers most classes of verbal and nominal forms, in addition to prepositions, proper nouns and words of Greek origin.",
+        "A wider coverage would involve enlarging the lexicon (currently there are 165 entries) and might triple the number of two-level rules (currently there are c. 50 rules).",
+        "Table 1 provides the results of analysing verbal classes.",
+        "The test for each class represents analysing most of its inflexions.",
+        "The test was executed on a Sparc ELC computer.",
+        "By constructing a corpus which consists only of the most frequent words, one can estimate the performance of analysing the corpus as follows,",
+        "occurrences) can be analysed at the rate of 16.35 words/sec.",
+        "(Performance will be less if additional rules are added for larger coverage.)",
+        "The results may not seem satisfactory when compared with other prolog implementations of the same formalism (cf. 50 words/sec, in (Carter, 1995)).",
+        "One should, however, keep in mind the complexity of Syriac morphology.",
+        "In addition to morphological nonlinearity, phonological conditional changes – consonantal and vocalic – occur in all stems, and it is not unusual to have more than five such changes per word.",
+        "Once developed, a grammar is usually compiled into automata which provides better performance."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "This paper has presented a computational morphology system which is adequate for handling non-linear grammars.",
+        "We are currently expanding the grammar to cover the whole of New Testament Syriac.",
+        "One of our future goals is to optimise the prolog implementation for speedy processing and to add debugging facilities along the lines of (Carter, 1995).",
+        "For useful results, a Semitic morphological analyser needs to interact with a syntactic parser in order to resolve ambiguities.",
+        "Most non-vocalised strings give more than one solution, and some inflectional forms are homographs even if fully vocalised (e.g. in Syriac imperfect verbs: sing.",
+        "3rd masc.",
+        "= plural 1st common, and sing.",
+        "3rd fern.",
+        "= sing.",
+        "2nd masc.).",
+        "We mentioned earlier the possibility of using TAGs."
+      ]
+    }
+  ]
+}

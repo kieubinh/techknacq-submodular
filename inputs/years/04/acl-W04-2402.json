@@ -1,0 +1,423 @@
+{
+  "info": {
+    "authors": [
+      "Rie Kubota Ando"
+    ],
+    "book": "Conference on Computational Natural Language Learning CoNLL",
+    "id": "acl-W04-2402",
+    "title": "Semantic Lexicon Construction: Learning from Unlabeled Data Via Spectral Analysis",
+    "url": "https://aclweb.org/anthology/W04-2402",
+    "year": 2004
+  },
+  "references": [
+    "acl-P02-1046",
+    "acl-P95-1026",
+    "acl-P98-2182",
+    "acl-P99-1008",
+    "acl-W01-0501",
+    "acl-W02-1017",
+    "acl-W02-1028",
+    "acl-W97-0313",
+    "acl-W99-0613"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper considers the task of automatically collecting words with their entity class labels, starting from a small number of labeled examples (‘seed’ words).",
+        "We show that spectral analysis is useful for compensating for the paucity of labeled examples by learning from unlabeled data.",
+        "The proposed method significantly outperforms a number of methods that employ techniques such as EM and co-training.",
+        "Furthermore, when trained with 300 labeled examples and unlabeled data, it rivals Naive Bayes classifiers trained with 7500 labeled examples."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Entity detection plays an important role in information extraction systems.",
+        "Whether entity recognizers employ machine learning techniques or rule-based approaches, it is useful to have a gazetteer of words' that reliably suggest target entity class membership.",
+        "This paper considers the task of generating such gazetteers from a large unannotated corpus with minimal manual effort.",
+        "Starting from a small number of labeled examples (seeds), e.g., “car”, “plane”, “ship” labeled as vehicles, we seek to automatically collect more of these.",
+        "This task is sometimes called the semi-automatic construction of semantic lexicons, e.g. (Riloff and Shepherd, 1997; Roark and Charniak, 1998; Thelen and Riloff, 2002; Phillips and Riloff, 2002).",
+        "A common trend in prior studies is bootstrapping, which is an iterative process to collect new words and regard the words newly collected with high confidence as additional labeled examples for the next iteration.",
+        "The aim of bootstrapping is to compensate for the paucity of labeled examples.",
+        "However, its potential danger is label ‘contamination’ – namely, wrongly (automatically) labeled examples may 'Our argument in this paper holds for relatively small linguistic objects including words, phrases, collocations, and so forth.",
+        "For simplicity, we refer to words.",
+        "misdirect the succeeding iterations.",
+        "Also, low frequency words are known to be problematic.",
+        "They do not provide sufficient corpus statistics (e.g., how frequently the word occurs as the subject of “said”), for adequate label prediction.",
+        "By contrast, we focus on improving feature vector representation for use in standard linear classifiers.",
+        "To counteract data sparseness, we employ subspace projection where subspaces are derived by singular value decomposition (SVD).",
+        "In this paper, we generally call such SVDbased subspace construction spectral analysis.",
+        "Latent Semantic Indexing (LSI) (Deerwester et al., 1990) is a well-known application of spectral analysis to word-by-document matrices.",
+        "Formal analyses of LSI were published relatively recently, e.g., (Papadimitriou et al., 2000; Azar et al., 2001).",
+        "Ando and Lee (2001) show the factors that may affect LSI’s performance by analyzing the conditions under which the LSI subspace approximates an optimum subspace.",
+        "Our theoretical basis is partly derived from this analysis.",
+        "In particular, we replace the abstract notion of ‘optimum subspace’ with a precise definition of a subspace useful for our task.",
+        "The essence of spectral analysis is to capture the most prominently observed vector directions (or sub-vectors) into a subspace.",
+        "Hence, we should apply spectral analysis only to ‘good’ feature vectors so that useful portions are captured into the subspace, and then factor out ‘harmful’ portions of all the vectors via subspace projection.",
+        "We first formalize the notion of harmful portions of the commonly used feature vector representation.",
+        "Experimental results show that this new strategy significantly improves label prediction performance.",
+        "For instance, when trained with 300 labeled examples and unlabeled data, the proposed method rivals Naive Bayes classifiers trained with 7500 labeled examples.",
+        "In general, generation of labeled training data involves expensive manual effort, while unlabeled data can be easily obtained in large amounts.",
+        "This fact has motivated supervised learning with unlabeled data, such as co-training (e.g., Blum and Mitchell (1998)).",
+        "The method we propose (called Spectral) can also be regarded as exploiting unlabeled data for supervised learning.",
+        "The main difference from co-training or popular EM-based approaches is that the process of learning from unlabeled data (via spectral analysis) does not use any class information.",
+        "It encodes learned information into feature vectors – which essentially serves as prediction of unseen feature occurrences – for use in supervised classification.",
+        "The absence of class information during the learning process may seem to be disadvantageous.",
+        "On the contrary, our experiments show that Spectral consistently outperforms all the tested methods that employ techniques such as EM and co-training.",
+        "We formalize the problem in Section 2, and propose the method in Section 3.",
+        "We discuss related work in Section 4.",
+        "Experiments are reported in Section 5, and we conclude in Section 6."
+      ]
+    },
+    {
+      "heading": "2 Word Classification Problem",
+      "text": [
+        "The problem is to classify words (as lexical items) into the entity classes that are most likely referred to by their occurrences, where the notion of ‘most likely’ is with respect to the domain of the text2.",
+        "More formally, consider all the possible instances of word occurrences (including their context) in the world, which we call set , and assume that each word occurrence in refers to one of the entity classes in set (e.g., ‘Person’, ‘Location’, ‘Others’ ).",
+        "Further assume that observed word occurrences (i.e., corpora) are independently drawn from according to some probability distribution .",
+        "An example of might be the distribution observed in all the newspaper articles in 1980’s, or the distribution observed in biomedical articles.",
+        "That is, represents the assumed domain of text.",
+        "We define to be the entity class most likely referred to by word ’s occurrences in the assumed domain of text, i.e., refers to is an occurrence of given that is arbitrarily drawn from according to .",
+        "Then, our word classification problem is to predict labels of all the words (as lexical items) in a given word set , when the following resources are available: An unannotated corpus of the domain of interest – which we regard as unlabeled word occurrences arbitrarily drawn from according to .",
+        "We assume that all the words in appear in this corpus.",
+        "Feature extractors.",
+        "We assume that some feature extractors are available, which we can apply to word occurrences in the above unannotated corpus.",
+        "Feature might be, for instance, the set of head nouns that participate in list construction with the focus word of .",
+        "2E.g., “plant” might be most likely to be a living thing if it occurred in gardening books, but it might be most likely to be a facility in newspaper articles.",
+        "Seed words and their labels.",
+        "We assume that the labels of several words in are revealed as labeled examples.",
+        "Note that in this task configuration, test data is known at the time of training (as in the transductive setting).",
+        "Although we do not pursue transductive learning techniques (e.g., Vapnik (1998)) in this work, we will set up the experimental framework accordingly."
+      ]
+    },
+    {
+      "heading": "3 Using Vector Similarity",
+      "text": []
+    },
+    {
+      "heading": "3.1 Error Factors",
+      "text": [
+        "Consider a straightforward feature vector representation using normalized joint counts of features and the word, which we call count vector .",
+        "More formally, the - th element of is where denotes the count of events observed in the unannotated corpus.",
+        "One way to classify words would be to compare count vectors for seeds and words and to choose the most similar seeds, using inner products as the similarity measure.",
+        "Let us investigate the factors that may affect the performance of such inner product-based label prediction.",
+        "Let (for word ) and (for class ) be the vectors of feature occurrence probabilities, so that their -th elements are 3 and , respectively.",
+        "Now we set vectors and so that they satisfy: That is, is a vector of the difference between true (but unknown) feature occurrence probabilities and their maximum likelihood estimations.",
+        "We call estimation error.",
+        "If occurrences of word and features are conditionally independent given labels, then is zero 4.",
+        "Therefore, we call , dependency.",
+        "It would be ideal (even if unrealistic) if the dependency were zero so that features convey class information rather than information specific to .",
+        "Now consider the conditions under which a word pair with the same label has a larger inner product than the pair with different labels.",
+        "It is easy to show that, with feature extractors fixed to reasonable ones, smaller estimation errors and smaller dependency ensure better performance of label prediction, in terms of lower-bound analysis.",
+        "More precise descriptions are found in the Appendix."
+      ]
+    },
+    {
+      "heading": "3.2 Spectral analysis for classifying words",
+      "text": [
+        "We seek to remove the above harmful portions and from count vectors – which correspond to estimation error and feature dependency – by employing spectral analysis and succeeding subspace projection.",
+        "Background A brief review of spectral analysis is found in the Appendix.",
+        "Ando and Lee (2001) analyze the conditions under which the application of spectral analysis to a term-document matrix (as in LSI) approximates an optimum subspace.",
+        "The notion of ‘optimum’ is with respect to the accuracy of topic-based document similarities.",
+        "The proofs rely on the mathematical findings known as the invariant subspace perturbation theorems proved by Davis and Kahan (1970).",
+        "Approximation of the span of ’s By adapting Ando and Lee’s analysis to our problem, it can be shown that spectral analysis will approximate the span of ’s, essentially, if the count vectors (chosen as input to spectral analysis) well-represent all the classes, and if these input vectors have sufficiently small estimation errors and dependency.",
+        "This is because, intuitively, ’s are the most prominently observed sub-vectors among the input vectors in that case.",
+        "(Recall that the essence of spectral analysis is to capture the most prominently observed vector directions into a subspace.)",
+        "Then, the error portions can be mostly removed from any count vectors by orthogonally projecting the vectors onto the subspace, assuming error portions are mostly orthogonal to the span of ’s.",
+        "Choice of count vectors As indicated by the above two conditions, the choice of input vectors is important when applying spectral analysis.",
+        "The tightness of subspace approximation depends on the degree to which those conditions are met.",
+        "In fact, it is easy to choose vectors with small estimation errors so that the second condition is likely to be met.",
+        "Vectors for high frequency words are expected to have small estimation errors.",
+        "Hence, we propose the following procedure.",
+        "1.",
+        "From the unlabeled word set , choose the most frequent words.",
+        "is a sufficiently large constant.",
+        "Frequency is counted in the given unannotated corpus.",
+        "2.",
+        "Generate count vectors for all the words by applying a feature extractor to word occurrences in the given unannotated corpus.",
+        "3.",
+        "Compute the dimensional subspace by applying",
+        "spectral analysis to the count vectors generated in Step 2 5.",
+        "4.",
+        "Generate count vectors (as in Step 2) for all the words (including seeds) in .",
+        "Generate new feature vectors by orthogonally projecting them onto the subspace 6.",
+        "When we have multiple feature extractors, we perform the above procedure independently for each of the feature extractors, and concatenate the vectors in the end.",
+        "Hereafter, we call this procedure and the vectors obtained in this manner Spectral and spectral vectors, respectively.",
+        "Spectral vectors serve as feature vectors for a linear classifier for classifying words.",
+        "Note that we do not claim that the above conditions for subspace approximation are always satisfied.",
+        "Rather, we consider them as insight into spectral analysis on this task, and design the method so that the conditions are likely to be met."
+      ]
+    },
+    {
+      "heading": "3.3 The number of input vectors and the subspace dimensionality",
+      "text": [
+        "There are two parameters: , the number of count vectors used as input to spectral analysis, and , the dimensionality of the subspace.",
+        "should be sufficiently large so that all the classes are represented by the chosen vectors.",
+        "However, an excessively large would result in including low frequency words, which might degrade the subspace approximation.",
+        "In principle, the dimensionality of the subspace should be set to the number of classes , since we seek to approximate the span of ’s for all .",
+        "However, for the typical practice of semantic lexicon construction, should be greater than because at least one class tends to have very broad coverage – ‘Others’ as in Person, Organization, Others .",
+        "It is reasonable to assume that features correlate to its (unknown) inherent subclasses rather than to such a broadly defined class itself.",
+        "The dimensionality should take account of the number of such subclasses.",
+        "In practice, and need be determined empirically.",
+        "We will return to this issue in Section 5.2.",
+        "5 We generate a matrix so that its columns are the length-normalized count vectors.",
+        "We compute left singular vectors of this matrix corresponding to the largest singular values.",
+        "The computed left singular vectors are the basis vectors of the desired subspace.",
+        "6We compute where is the left singular vector computed in the previous step.",
+        "Alternatively, one can generate the vector whose -th entry is , as it produces the same inner products, due to the orthonormality of left singular vectors."
+      ]
+    },
+    {
+      "heading": "4 Related Work and Discussion",
+      "text": []
+    },
+    {
+      "heading": "4.1 Spectral analysis for word similarity measurement",
+      "text": [
+        "Spectral analysis has been used in traditional factor analysis techniques (such as Principal Component Analysis) to summarize high-dimensional data.",
+        "LSI uses spectral analysis for measuring document or word similarities.",
+        "From our perspective, the LSI word similarity measurement is similar to the special case where we have a single feature extractor that returns the document membership of word occurrence .",
+        "Among numerous empirical studies of LSI, Landauer and Dumais (1997) report that using the LSI word similarity measure, 64.4% of the synonym section of TOEFL (multi-choice) were answered correctly, which rivals college students from non-English speaking countries.",
+        "We conjecture that if more effective feature extractors were used, performance might be better.",
+        "Sch¨uetze (1992)’s word sense disambiguation method uses spectral analysis for vector dimensionality reduction.",
+        "He reports that use of spectral analysis does not affect the task performance, either positively or negatively."
+      ]
+    },
+    {
+      "heading": "4.2 Bootstrapping methods for constructing semantic lexicons",
+      "text": [
+        "A common trend for the semantic lexicon construction task is that of bootstrapping, exploiting strong syntactic cues – such as a bootstrapping method that iteratively grows seeds by using cooccurrences in lists, conjunctions, and appositives (Roark and Charniak, 1998); meta-bootstrapping which repeatedly finds extraction patterns and extracts words from the found patterns (Riloff and Jones, 1999); a co-training combination of three bootstrapping processes each of which exploits appositives, compound nouns, and ISA-clauses (Phillips and Riloff, 2002).",
+        "Thelen and Riloff (2002)’s bootstrapping method iteratively performs feature selection and word selection for each class.",
+        "It outperformed the best-performing bootstrapping method for this task at the time.",
+        "We also note that there are a number of bootstrapping methods successfully applied to text – e.g., word sense disambiguation (Yarowsky, 1995), named entity instance classification (Collins and Singer, 1999), and the extraction of ‘parts’ word given the ‘whole’ word (Berland and Charniak, 1999).",
+        "In Section 5, we report experiments using syntactic features shown to be useful by the above studies, and compare performance with Thelen and Riloff (2002)’s bootstrapping method."
+      ]
+    },
+    {
+      "heading": "4.3 Techniques for learning from unlabeled data",
+      "text": [
+        "While most of the above bootstrapping methods are targeted to NLP tasks, techniques such as EM and co-training are generally applicable when equipped with appropriate models or classifiers.",
+        "We will present high-level and empirical comparisons (Sections 4.4 and 5, respectively) of Spectral with representative techniques for learning from unlabeled data, described below.",
+        "Expectation Maximization (EM) is an iterative algorithm for model parameter estimation (Dempster et al., 1977).",
+        "Starting from some initial model parameters, the E-step estimates the expectation of the hidden class variables.",
+        "Then, the M-step recomputes the model parameters so that the likelihood is maximized, and the process repeats.",
+        "EM is guaranteed to converge to some local maximum.",
+        "It is very popular and useful, but also known to be sensitive to the initialization of parameters.",
+        "The co-training paradigm proposed by Blum and Mitchell (1998) involves two classifiers employing two distinct views of the feature space, e.g., ‘textual content’ and ‘hyperlink’ of web documents.",
+        "The two classifiers are first trained with labeled data.",
+        "Each of the classifiers adds to the labeled data pool the examples whose labels are predicted with the highest confidence.",
+        "The classifiers are trained with the new augmented labeled data, and the process repeats.",
+        "Its theoretical foundations are based on the assumptions that two views are redundantly sufficient and conditionally independent given classes.",
+        "Abney (2002) presents an analysis to relax the (fairly strong) conditional independence assumption to weak rule dependence.",
+        "Nigam and Ghani (2000) study the effectiveness of co-training through experiments on the text categorization task.",
+        "Pierce and Cardie (2001) investigate the scalability of co-training on the base noun phrase bracketing task, which typically requires a larger number of labeled examples than text categorization.",
+        "They propose to manually correct labels to counteract the degradation of automatically assigned labels on large data sets.",
+        "We use these two empirical studies as references for the implementation of co-training in our experiments.",
+        "Co-EM (Nigam and Ghani, 2000) combines the essence of co-training and EM in an elegant way.",
+        "Classifier A is initially trained with the labeled data, and computes probabilistically-weighted labels for all the unlabeled data (as in E-step).",
+        "Then classifier B is trained with the labeled data plus the probabilistic labels computed by classifier A.",
+        "It computes probabilistic labels for A, and the process repeats.",
+        "Co-EM differs from co-training in that all the unlabeled data points are reassigned probabilistic labels in every iteration.",
+        "In Nigam and Ghani (2000)’s experiments, co-EM outperformed EM, and rivaled co-training.",
+        "Based on the results, they argued for the benefit of exploiting distinct views."
+      ]
+    },
+    {
+      "heading": "4.4 Discussion",
+      "text": [
+        "We observe two major differences between spectral analysis and the above techniques for learning from unlabeled data.",
+        "Feature prediction (Spectral) vs. label prediction First, the learning processes of the above techniques are driven by the prediction of class labels on the unlabeled data.",
+        "As their iterations proceed, for instance, the estimations of class-related probabilities such as , may be improved.",
+        "On the other hand, a spectral vector can be regarded as an approximation of (a vector of ) when the dependency is sufficiently small.",
+        "In that sense, spectral analysis predicts unseen feature occurrences which might be observed with word if had more occurrences in the corpus.",
+        "Global optimization (Spectral) vs. local optimization Secondly, starting from the status initialized by labeled data, EM performs local maximization, and co-training and other bootstrapping methods proceed greedily.",
+        "Consequently, they are sensitive to the given labeled data.",
+        "In contrast, spectral analysis performs global optimization (eigenvector computation) independently from the labeled data.",
+        "Whether or not the performed global optimization is meaningful for classification depends on the ‘usefulness’ of the given feature extractors.",
+        "We say features are useful if dependency and feature mingling (defined in the Appendix) are small.",
+        "It is interesting to see how these differences affect the performance on the word classification task.",
+        "We will report experimental results in the next section."
+      ]
+    },
+    {
+      "heading": "5 Experiments",
+      "text": [
+        "We study Spectral’s performance in comparison with the algorithms discussed in the previous sections."
+      ]
+    },
+    {
+      "heading": "5.1 Baseline algorithms",
+      "text": [
+        "We use the following algorithms as baseline: EM, co-training, and co-EM, as established techniques for learning from unlabeled data in general; the bootstrapping method proposed by Thelen and Riloff (2002) (hereafter, TRB and TR) as a state-of-the-art bootstrapping method designed for semantic lexicon construction."
+      ]
+    },
+    {
+      "heading": "5.1.1 Implementation of EM, co-training, and co-EM",
+      "text": [
+        "Naive Bayes classifier To instantiate EM, co-training, and co-EM, we use a standard Naive Bayes classifier, as it is often used for co-training experiments, e.g., (Nigam and Ghani, 2000; Pierce and Cardie, 2001).",
+        "As in Nigam and Ghani (2000)’s experiments, we estimate with Laplace smoothing, and for label prediction, we compute for every : The underlying naive Bayes assumption is that occurrences of features are conditionally independent of each other, given class labels.",
+        "The generative interpretation in this case is analogous to that of text categorization, when we regard features (or contexts) of all the occurrences of word as a pseudo document.",
+        "We initialize model parameters ( and ) using labeled examples.",
+        "The test data is labeled after iterations.",
+        "We explore for EM and co-EM, and for co-training7.",
+        "Analogous to the choice of input vectors for spectral analysis, we hypothesize that using all the unlabeled data for EM and co-EM may rather degrade performance.",
+        "We feed EM and co-EM with the most frequent unlabeled words8.",
+        "As for co-training, we let each of the classifiers predict labels of all the unlabeled data, and choose words labeled with the highest confidence9.",
+        "Co-training and co-EM require two redundantly sufficient and conditionally independent views of features.",
+        "We split features randomly, as in one of the settings in Nigam and Ghani (2000).",
+        "We also tested left context vs. right context (not reported in this paper), and found that random split performs slightly better.",
+        "To study the potential best performance of the baseline methods, we explore the parameters described above and report the best results."
+      ]
+    },
+    {
+      "heading": "5.2 Implementation of Spectral",
+      "text": [
+        "In principle, spectral vectors can be used with any linear classifier.",
+        "In our experiments, we use a standard centroid-based classifier using cosine as the similarity measure.",
+        "For comparison, we also test count vectors (with and without tf-idf weighting) with the same centroid-based classifier.",
+        "Spectral has two parameters: the number of input vectors , and the subspace dimensionality .",
+        "We set and based on the observation on a corpus disjoint from the test corpora, and use these settings for all the experiments."
+      ]
+    },
+    {
+      "heading": "5.3 Target Classes and Data",
+      "text": [
+        "Following previous semantic lexicon studies, we evaluate on the classification of lemma-form nouns.",
+        "As noted by several authors, accurate evaluation on a large number of proper nouns (without context) is extremely hard since the judgment requires real-world knowledge.",
+        "We choose to focus on non-proper head nouns.",
+        "To generate the training/test data, we extracted all the non-proper nouns which appeared at least twice as the head word of a noun phrase in the AP newswire articles (25K documents), using a statistical syntactic chunker and a lemmatizer.",
+        "This resulted in approx.",
+        "1 0K words.",
+        "These 1 0K words were manually annotated with six classes: five target classes –persons, organizations, geopolitical entities (GPE), locational entities, and facilities – , and ‘others’.",
+        "The assumed distribution ( ) was that of general newspaper articles.",
+        "The definitions of the classes follow the annotation guidelines for ACE (Automatic Content Extraction)10.",
+        "Our motivation for choosing these classes is the availability of such independent guidelines.",
+        "The breakdown of the 1 0K words is as follows.",
+        "The majority (80.7%) are labeled as Others.",
+        "The most populous target class is Person (13.8%).",
+        "The reason for GPE’s small population is that geopolitical entities are typically referred to by their names or pronouns rather than common nominal.",
+        "We measure precision ( target-class match proposed as target-class ) and recall ( target-class match target-class members ), and combine them into the F-measure with equal weight.",
+        "The chance performance is extremely low since target classes are very sparse.",
+        "Random choice would result in F-measure=6.3%.",
+        "Always proposing Person would produce F=23.1 %."
+      ]
+    },
+    {
+      "heading": "5.4 Features",
+      "text": [
+        "Types of feature extractors used in our experiments are essentially the same as those used in TR’s experiments, lohttp://www.nist.gov/speech/index.htm which exploit the syntactic constructions such as subject-verb, verb-object, NP-pp-NP (pp is preposition), and subject-verb-object.",
+        "In addition, we exploit syntactic constructions shown to be useful by other studies – lists and conjunctions (Roark and Charniak, 1998), and adjacent words (Riloff and Shepherd, 1997).",
+        "We count feature occurrences ( ) in the unannotated corpus.",
+        "All the tested methods are given exactly the same data points."
+      ]
+    },
+    {
+      "heading": "5.5 High-frequency seed experiments",
+      "text": [
+        "Prior semantic lexicon studies (e.g., TR) note that the choice of seeds is critical – i.e., seeds should be high-frequency words so that methods are provided with plenty of feature information to bootstrap with.",
+        "In practice, this can be achieved by first extracting the most frequent words from the target corpus and manually labeling them for use as seeds.",
+        "To simulate this practical situation, we split the above 10K words into a labeled set and an unlabeled set11, by choosing the most frequent words as the labeled set, where , and .",
+        "Note that approximately 80% of the seeds are negative examples (‘Others’).",
+        "As we assume that test data is known at the time of training, we use the unlabeled set as both unlabeled data and test data."
+      ]
+    },
+    {
+      "heading": "5.5.1 AP-corpus high-frequency seed results",
+      "text": [
+        "Overall F-measure results on the AP corpus are shown in Figure 1.",
+        "The columns of the figure are roughly sorted in the descending order of performance.",
+        "Spectral significantly outperforms the others.",
+        "The algorithms that exploit unlabeled data outperform those which do not.",
+        "Tf-idf and Count perform poorly on this task.",
+        "Although TRB’s performance was better on a smaller number of seeds in this particular setting, it showed different trends in other settings.",
+        "Spectral trained with 300 or 500 labeled examples (and 1000 unlabeled examples via spectral analysis) rivals Naive Bayes classifiers trained with 7500 labeled examples (which produce on average over five runs",
+        "with random training/test splits).",
+        "Also note that the reported numbers for TRB, co-training, co-EM, and EM are the best performance among the explored parameter settings (described in Section 5.1.1), whereas Spectral’s parameters were determined on a corpus disjoint from the test corpora once and used for all the experiments (Section 5.2)."
+      ]
+    },
+    {
+      "heading": "5.5.2 WSJ-corpus high-frequency seed results",
+      "text": [
+        "Figure 2 shows the results of Spectral and the best-performing baseline algorithms when features are extracted from a different corpus (Wall Street Journal 36K documents).",
+        "We use the same 10K words as the labeled/unlabeled word set while discarding 501 words which do not occur in this corpus.",
+        "Spectral outperforms the others.",
+        "Furthermore, Spectral trained with 300 or 500 seeds rivals Naive Bayes classifiers trained with 7500 seeds on this corpus (which achieve on average over five runs with random training/test splits)."
+      ]
+    },
+    {
+      "heading": "5.6 Random-seed experiments",
+      "text": [
+        "To study performance dependency on the choice of seeds, we made labeled/unlabeled splits randomly.",
+        "Figure 3 shows results of Spectral and the best-performing baseline algorithms.",
+        "The average results over five runs using different seeds are shown.",
+        "All the methods (except Spectral) exhibit the same tendency.",
+        "That is, performance on random seeds is lower than that on high-frequency seeds, and the degradation is larger when the number of seeds is small.",
+        "This is not surprising since a small number of randomly chosen seeds provide much less information (corpus statistics) than high frequency seeds.",
+        "However, Spectral’s perfor",
+        "mance does not degrade on randomly chosen seeds.",
+        "We presume that this is because it learns from unlabeled data independently from seeds."
+      ]
+    },
+    {
+      "heading": "5.7 Choice of input vectors for spectral analysis",
+      "text": [
+        "Recall that our basic idea is to use vectors with small estimation errors to achieve better subspace approximation.",
+        "This idea led to applying spectral analysis to the most frequent words.",
+        "We confirm the effectiveness of this strategy in Figure 4.",
+        "‘Medium’ and ‘Low’ in the figure compute the subspaces from 1000 words with medium frequency (68 to 197) and with low frequency (2 on average), respectively.",
+        "Clearly, standard Spectral (‘High’: computing subspace from the most frequent 1000 words; frequency ) outperforms the others.",
+        "When all the vectors are used (as LSI does), performance degrades to below Medium.",
+        "‘Low’ gains almost no benefits from spectral analysis.",
+        "The results are in line with our prediction."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "We show that spectral analysis is useful for overcoming data sparseness on the task of classifying words into their entity classes.",
+        "In a series of experiments, the proposed method compares favorably with a number of methods that employ techniques such as EM and co-training.",
+        "We formalize the notion of harmful portions of the commonly used feature vectors for linear classifiers, and seek to factor out them via spectral analysis of unlabeled data.",
+        "This process does not use any class information.",
+        "By contrast, the process of bootstrapping is generally driven by class label prediction.",
+        "As future work, we are interested in combining these somewhat orthogonal approaches."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "I would like to thank colleagues at IBM Research for helpful discussions, and anonymous reviewers for useful comments.",
+        "This work was supported by the Advanced Research and Development Activity under the Novel Intelligence and Massive Data (NIMD) program PNWDSW-6059."
+      ]
+    },
+    {
+      "heading": "Appendix",
+      "text": []
+    },
+    {
+      "heading": "Estimation error, dependency, and feature mingling",
+      "text": [
+        "Using the notation in Section 3.1, for simplicity, assume that all the seeds and words are non-polysemous.",
+        "Suppose that label prediction is done by choosing the most similar seed where similarity is measured by inner products of corresponding count vectors.",
+        "Set where is a matrix whose element is if ;otherwise.",
+        "Intuitively, quantifies ‘feature mingling’; it is larger when feature distributions over classes are uniform (i.e., useless for label prediction).",
+        "Let be a set of given seeds.",
+        "Set Using properties of the matrix norm, it is easy to show that for arbitrary , if then, ’s label is predicted correctly.",
+        "Since the condition is sufficient but not necessary, the proportion of the words that satisfy this condition gives the lower bound of the label prediction accuracy."
+      ]
+    },
+    {
+      "heading": "Background: spectral analysis",
+      "text": [
+        "Singular value decomposition (SVD) factors a matrix into the product: , such that and are orthonormal and is diagonal.",
+        "Columns of are called left singular vectors, and diagonal entries of are called singular values.",
+        "Also note that left singular vectors of are eigenvectors of .",
+        "Let be the subspace spanned by left singular vectors corresponding to the largest singular values of matrix .",
+        "In this paper, we call this process of computing spectral analysis.",
+        "Among all possible dimensional subspaces, is the subspace that maximizes orthogonal projections of ’s column vectors in terms of the sum of squares of vector lengths.",
+        "In that sense, we say that spectral analysis captures the most prominent vector directions.",
+        "More details are found in e.g., (Golub and Loan, 1996)."
+      ]
+    }
+  ]
+}

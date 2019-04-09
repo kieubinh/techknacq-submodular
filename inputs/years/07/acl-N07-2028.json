@@ -1,0 +1,148 @@
+{
+  "info": {
+    "authors": [
+      "Gideon S. Mann",
+      "Andrew McCallum"
+    ],
+    "book": "Human Language Technologies 2007: the Conference of the North American Chapter of the Association for Computational Linguistics; Companion Volume, Short Papers",
+    "id": "acl-N07-2028",
+    "title": "Efficient Computation of Entropy Gradient for Semi-Supervised Conditional Random Fields",
+    "url": "https://aclweb.org/anthology/N07-2028",
+    "year": 2007
+  },
+  "references": [
+    "acl-N06-2018",
+    "acl-P06-1027"
+  ],
+  "sections": [
+    {
+      "text": [
+        "Gideon S. Mann and Andrew McCallum",
+        "Entropy regularization is a straightforward and successful method of semi-supervised learning that augments the traditional conditional likelihood objective function with an additional term that aims to minimize the predicted label entropy on unlabeled data.",
+        "It has previously been demonstrated to provide positive results in linear-chain CRFs, but the published method for calculating the entropy gradient requires significantly more computation than supervised CRF training.",
+        "This paper presents a new derivation and dynamic program for calculating the entropy gradient that is significantly more efficient – having the same asymptotic time complexity as supervised CRF training.",
+        "We also present efficient generalizations of this method for calculating the label entropy of all sub-sequences, which is useful for active learning, among other applications."
+      ]
+    },
+    {
+      "heading": "1. Introduction",
+      "text": [
+        "Semi-supervised learning is of growing importance in machine learning and NLP (Zhu, 2005).",
+        "Conditional random fields (CRFs) (Lafferty et al., 2001) are an appealing target for semi-supervised learning because they achieve state-of-the-art performance across a broad spectrum of sequence labeling tasks, and yet, like many other machine learning methods, training them by supervised learning typically requires large annotated data sets.",
+        "Entropy regularization (ER) is a method of semi-supervised learning first proposed for classification tasks (Grandvalet and Bengio, 2004).",
+        "In addition to maximizing conditional likelihood of the available labels, ER also aims to minimize the entropy of the predicted label distribution on unlabeled data.",
+        "By insisting on peaked, confident predictions, ER guides the decision boundary away from dense regions of input space.",
+        "It is simple and compelling – no pre-clustering, no \"auxiliary functions,\" tuning of only one meta-parameter and it is discriminative.",
+        "Jiao et al.",
+        "(2006) apply this method to linear-chain CRFs and demonstrate encouraging accuracy improvements on a gene-name-tagging task.",
+        "However, the method they present for calculating the gradient of the entropy takes substantially greater time than the traditional supervised-only gradient.",
+        "Whereas supervised training requires only classic forward/backward, taking time O(ns) (sequence length times the square of the number of labels), their training method takes O(ns) – a factor of O(ns) more.",
+        "This greatly reduces the practicality of using large amounts of unlabeled data, which is exactly the desired use-case.",
+        "This paper presents a new, more efficient entropy gradient derivation and dynamic program that has the same asymptotic time complexity as the gradient for traditional CRF training, O(ns).",
+        "In order to describe this calculation, the paper introduces the concept of subsequence constrained entropy – the entropy of a CRF for an observed data sequence when part of the label sequence is fixed.",
+        "These methods will allow training on larger unannotated data set sizes than previously possible and support active learning."
+      ]
+    },
+    {
+      "heading": "2. Semi-Supervised CRF Training",
+      "text": [
+        "Lafferty et al.",
+        "(2001) present linear-chain CRFs, a discriminative probabilistic model over observation sequences x and label sequences Y = (Yi..Yn), where |x| = | Y| = n, and each label Y has s different possible discrete values.",
+        "For a linear-chain CRF of Markov order one:",
+        "data D = (d1..dn), the model is trained by maximizing the log-likelihood of the data D) = Ed log p* (Y(d)|x(d)) by gradient methods (e.g. Limited Memory BFGS), where the gradient of the likelihood is:",
+        "- EE (Y |x(d))Fk (x(d),Y).",
+        "The second term (the expected counts ofthe features given the model) can be computed in a tractable amount of time, since according to the Markov assumption, the feature expectations can be rewritten:",
+        "E E P*(Yi,Yi+i|x)/k(x,Y,Yi+i).",
+        "A dynamic program (the forward/backward algorithm) then computes in time O(ns) all the needed probabilities pe (Yi, Yi+1), where n is the sequence length, and s is the number of labels.",
+        "For semi-supervised training by entropy regularization, we change the objective function by adding the negative entropy of the unannotated data U = (u1..un).",
+        "(Here Gaussian prior is also shown.)",
+        "+ A J^p* (Y(u) |x(u)) log pe (Y(u) |x(u)).",
+        "This negative entropy term increases as the decision boundary is moved into sparsely-populated regions of input space."
+      ]
+    },
+    {
+      "heading": "3. An Efficient Form of the Entropy Gradient",
+      "text": [
+        "In order to maximize the above objective function, the gradient for the entropy term must be computed.",
+        "Jiao et al.",
+        "(2006) perform this computation by:",
+        "- EPe(y|x)[Fj(x,Y)]EPe(y|x)[Ft(x, Y)].",
+        "While the second term of the covariance is easy to compute, the first term requires calculation of quadratic feature expectations.",
+        "The algorithm they propose to compute this term is O(ns) as it requires an extra nested loop in forward/backward.",
+        "However, the above form of the gradient is not the only possibility.",
+        "We present here an alternative derivation of the gradient:",
+        "+ £pe(Y|x) ^Ffc(x,Y) - Xpe(Y'|x)Ffc(x,Y.",
+        "- pe(Y|x)logpe(Y|x)j pe(Y'|x)Ffc(x,Y.",
+        "Like the gradient obtained by Jiao et al.",
+        "(2006), there are two terms, and the second is easily computable given the feature expectations obtained by forward/backward and the entropy for the sequence.",
+        "However, unlike the previous method, here the first term can be efficiently calculated as well.",
+        "First, the term must be further factored into a form more amenable to analysis:",
+        "E p* (Y |x)log p* (Y |x).",
+        "to efficiently calculate this term, it is sufficient to calculate EY r +1) p*(Y|x)logpe(Y|x) for all pairs yi, The next section presents a dynamic program which can perform these computations in",
+        "O(ns)."
+      ]
+    },
+    {
+      "heading": "4. Subsequence Constrained Entropy",
+      "text": [
+        "We define subsequence constrained entropy as",
+        "Ha(Y-(a..6)|y„..6,x) = p*(Y|x)logpe(Y|x).",
+        "The key to the efficient calculation for all subsets is to note that the entropy can be factored given a linear-chain CRF of Markov order 1, since Yi+2 is independent of Yi given Yi+1 .",
+        "Given the Ha() and H^(•) lattices, any sequence entropy can be computed in constant time.",
+        "Figure 1",
+        "puting the subsequence constrained entropy: T,yP(Y-(3..4),y3,y4)logp(Y-(3..4),y3,y4).",
+        "Once the complete Ha and H lattices are constructed (in the direction of the arrows), the entropy for each label sequence can be computed in linear time.",
+        "illustrates an example in which the constrained sequence is of size two, but the method applies to arbitrary-length contiguous label sequences.",
+        "Computing the Ha() and H^(•) lattices is easily performed using the probabilities obtained by forward/backward.",
+        "First recall the decomposition formulas for entropy:",
+        "H(Y|X) = P(X = x)H(Y|X = x).",
+        "Using this decomposition, we can define a dynamic program over the entropy lattices similar to forward/backward:",
+        "+ Y1 p* (yi|yi+1,x)Ha(Y1..(i_1)|yi).",
+        "The base case for the dynamic program is Ha(0|y1) = p(y1) logp(y1).",
+        "The backward entropy is computed in a similar fashion.",
+        "The conditional probabilities pe (yi | yi_ 1, x) in each of these dynamic programs are available by marginalizing over the per-transition marginal probabilities obtained from forward/backward.",
+        "The computational complexity of this calculation for one label sequence requires one run of forward/backward at O(ns), and equivalent time to calculate the lattices for Ha and H^.",
+        "To calculate the gradient requires one final iteration over all label pairs at each position, which is again time O(ns), but no greater, as forward/backward and the entropy calculations need only to be done once.",
+        "The complete asymptotic computational cost of calculating the entropy gradient is O(ns), which is the same time as supervised training, and a factor of O(ns) faster than the method proposed by Jiao et al.",
+        "(2006).",
+        "Wall clock timing experiments show that this method takes approximately 1.5 times as long as traditional supervised training – less than the constant factors would suggest.",
+        "In practice, since the three extra dynamic programs do not require recalculation of the dot-product between parameters and input features (typically the most expensive part of inference), they are significantly faster than calculating the original forward/backward lattice."
+      ]
+    },
+    {
+      "heading": "5. Confidence Estimation",
+      "text": [
+        "In addition to its merits for computing the entropy gradient, subsequence constrained entropy has other uses, including confidence estimation.",
+        "Kim et al.",
+        "(2006) propose using entropy as a confidence estimator in active learning in CRFs, where examples with the most uncertainty are selected for presentation to humans labelers.",
+        "In practice, they approximate the entropy of the labels given the N-best labels.",
+        "Not only could our method quickly and exactly compute the true entropy, but it could also be used to find the subsequence that has the highest uncertainty, which could further reduce the additional human tagging effort."
+      ]
+    },
+    {
+      "heading": "6. Related Work",
+      "text": [
+        "Hernando et al.",
+        "(2005) present a dynamic program for calculating the entropy of a HMM, which has some loose similarities to the forward pass of the algorithm proposed in this paper.",
+        "Notably, our algorithm allows for efficient calculation of entropy for any label subsequence.",
+        "Semi-supervised learning has been used in many models, predominantly for classification, as opposed to structured output models like CRFs.",
+        "Zhu (2005) provides a comprehensive survey of popular semi-supervised learning techniques."
+      ]
+    },
+    {
+      "heading": "7. Conclusion",
+      "text": [
+        "This paper presents two algorithmic advances.",
+        "First, it introduces an efficient method for calculating subsequence constrained entropies in linear-chain CRFs, (useful for active learning).",
+        "Second, it demonstrates how these subsequence constrained entropies can be used to efficiently calculate the gradient of the CRF entropy in time O(ns) – the same asymptotic time complexity as the forward/backward algorithm, and a O(ns) improvement over previous algorithms – enabling the practical application of CRF entropy regularization to large unlabeled data sets."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "This work was supported in part by DoD contract #HM1582-06-1-2013, in part by The Central Intelligence Agency, the National Security Agency and National Science Foundation under NSF grant #IIS-0427594, and in part by the Defense Advanced Research Projects Agency (DARPA), through the Department of the Interior, NBC, Acquisition Services Division, under contract number NBCHD030010.",
+        "Any opinions, findings and conclusions or recommendations expressed in this material belong to the author(s) and do not necessarily reflect those of the sponsor."
+      ]
+    }
+  ]
+}

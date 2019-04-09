@@ -1,0 +1,271 @@
+{
+  "info": {
+    "authors": [
+      "Ngoc Quang Luong",
+      "Benjamin Lecouteux",
+      "Laurent Besacier"
+    ],
+    "book": "Workshop on Statistical Machine Translation",
+    "id": "acl-W13-2248",
+    "title": "LIG System for WMT13 QE Task: Investigating the Usefulness of Features in Word Confidence Estimation for MT",
+    "url": "https://aclweb.org/anthology/W13-2248",
+    "year": 2013
+  },
+  "references": [
+    "acl-C04-1046",
+    "acl-H05-1096",
+    "acl-N07-1051",
+    "acl-P10-1052",
+    "acl-P10-1062",
+    "acl-P10-1063",
+    "acl-W12-3110"
+  ],
+  "sections": [
+    {
+      "heading": "Laurent Besacier Abstract",
+      "text": [
+        "This paper presents the LIG's systems submitted for Task 2 of WMT13 Quality Estimation campaign.",
+        "This is a word confidence estimation (WCE) task where each participant was asked to label each word in a translated text as a binary ( Keep/Change) or multi-class (Keep/Substitute/Delete) category.",
+        "We integrate a number of features of various types (system-based, lexical, syntactic and semantic) into the conventional feature set, for our baseline classifier training.",
+        "After the experiments with all features, we deploy a ?Feature Selection?",
+        "strategy to keep only the best performing ones.",
+        "Then, a method that combines multiple ?weak?",
+        "classifiers to build a strong ?composite?",
+        "classifier by taking advantage of their complementarity is presented and experimented.",
+        "We then select the best systems for submission and present the official results obtained."
+      ]
+    },
+    {
+      "heading": "1 Introduction Recently Statistical Machine Translation (SMT)",
+      "text": [
+        "systems have shown impressive gains with many fruitful results.",
+        "While the outputs are more acceptable, the end users still face the need to post edit (or not) an automatic translation.",
+        "Then, the issue is to be able to accurately identify the correct parts as well as detecting translation errors.",
+        "If we focus on errors at the word level, the issue is called Word-level Confidence Estimation (WCE).",
+        "In WMT 2013, a shared task about quality estimation is proposed.",
+        "This quality estimation task is proposed at two levels: word-level and sentence-level.",
+        "Our work focuses on the word-level quality estimation (named Task 2).",
+        "The objective is to highlight words needing post-edition and to detect parts of the sentence that are not reliable.",
+        "For the task 2, participants produce for each token a label according to two sub-tasks: ?",
+        "a binary classification: good (keep) or bad (change) label ?",
+        "a multi-class classification: the label refers to the edit action needed for the token (i.e. keep, delete or substitute).",
+        "Various approaches have been proposed for WCE: Blatz et al. (2003) combine several features using neural network and naive Bayes learning algorithms.",
+        "One of the most effective feature combinations is the Word Posterior Probability (WPP) as proposed by Ueffing et al. (2003) associated with IBM-model based features (Blatz et al., 2004).",
+        "Ueffing and Ney (2005) propose an approach for phrase-based translation models: a phrase is a sequence of contiguous words and is extracted from word-aligned bilingual training corpus.",
+        "The confidence value of each word is then computed by summing over all phrase pairs in which the target part contains this word.",
+        "Xiong et al. (2010) integrate target word's Part-Of-Speech (POS) and train them by Maximum Entropy Model, allowing significative gains compared to WPP features.",
+        "Other approaches are based on external features (Soricut and Echihabi, 2010; Felice and Specia, 2012) allowing to deal with various MT systems (e.g. statistical, rule based etc.).",
+        "In this paper, we propose to use both internal and external features into a conditionnal random fields (CRF) model to predict the label for each word in the MT hypothesis.",
+        "We organize the article as follows: section 2 explains all the used features.",
+        "Section 3 presents our experimental settings and the preliminary experiments.",
+        "Section 4 explores a feature selection refinement and the section 5 presents work using several classifiers associated with a boosting decision.",
+        "Finally we present",
+        "our systems submissions and propose some conclusions and perspectives."
+      ]
+    },
+    {
+      "heading": "2 Features",
+      "text": [
+        "In this section, we list all 25 types of features for building our classifier (see a list in Table 3).",
+        "Some of them are already used and described in detail in our previous paper (Luong, 2012), where we deal with French - English SMT Quality Estimation.",
+        "WMT13 was a good chance to reinvestigate their usefulness for another language pair: English-Spanish, as well as to compare their contributions with those from other teams.",
+        "We categorize them into two types: the conventional features, which are proven to work efficiently in numerous CE works and are inherited in our systems, and the LIG features which are more specifically suggested by us."
+      ]
+    },
+    {
+      "heading": "2.1 The conventional features",
+      "text": [
+        "We describe below the conventional features we used.",
+        "They can be found in some previous papers dealing with WCE.",
+        "?",
+        "Target word features: the target word itself; the bigram (trigram) it forms with one (two) previous and one (two) following word(s); its number of occurrences in the sentence.",
+        "?",
+        "Source word features: all the source words that align to the target one, represented in BIO1 format.",
+        "?",
+        "Source alignment context features: the combinations of the target word and one word before (left source context) or after (right source context) the source word aligned to it.",
+        "?",
+        "Target algnment context features: the combinations of the source word and each word in the window ?2 (two before, two after) of the target word.",
+        "?",
+        "Target Word's Posterior Probability (WPP).",
+        "?",
+        "Backoff behaviour: a score assigned to the word according to how many times the target Language Model has to back-off in order to assign a probability to the word sequence, as described in (Raybaud et al., 2011).",
+        "?",
+        "Part-Of-Speech (POS) features (using Tree-Tagger2 toolkit): The target word's POS; the source POS (POS of all source words aligned to it); bigram and trigram sequences between its POS and the POS of previous and follow",
+        "ing words.",
+        "?",
+        "Binary lexical features that indicate whether the word is a: stop word (based on the stop word list for target language), punctuation symbol, proper name or numerical."
+      ]
+    },
+    {
+      "heading": "2.2 The LIG features",
+      "text": [
+        "?",
+        "Graph topology features: based on the N-best list graph merged into a confusion network.",
+        "On this network, each word in the hypothesis is labelled with its WPP, and belongs to one confusion set.",
+        "Every completed path passing through all nodes in the network represents one sentence in the N-best, and must contain exactly one link from each confusion set.",
+        "Looking into a confusion set, we find some useful indicators, including: the number of alternative paths it contains (called Nodes), and the distribution of posterior probabilities tracked over all its words (most interesting are maximum and minimum probabilities, called Max and Min).",
+        "?",
+        "Language Model (LM) features: the ?longest target n-gram length?",
+        "and ?longest source n-gram length?",
+        "(length of the longest sequence created by the current target (source aligned) word and its previous ones in the target (source) LM).",
+        "For example, with the target word wi: if the sequence wi?2wi?1wi appears in the target LM but the sequence wi?3wi?2wi?1wi does not, the n-gram value for wi will be 3. ?",
+        "The word's constituent label and its depth in the tree (or the distance between it and the tree root) obtained from the constituent tree as an output of the Berkeley parser (Petrov and Klein, 2007) (trained over a Spanish treebank: AnCora3).",
+        "?",
+        "Occurrence in Google Translate hypothesis: we check whether this target word appears in the sentence generated by Google Translate engine for the same source.",
+        "?",
+        "Polysemy Count: the number of senses of each word given its POS can be a reliable indicator for judging if it is the translation of a particular source word.",
+        "Here, we investigate the polysemy characteristic in both target word and its aligned source word.",
+        "For source word (English), the number of senses can be counted by applying a Perl extension named Lingua::WordNet4, which provides functions for manipulating the Word-Net database.",
+        "For target word (Spanish), we employ BabelNet5 - a multilingual semantic network that works similarly to WordNet but covers more European languages, including Spanish."
+      ]
+    },
+    {
+      "heading": "3 Experimental Setting and Preliminary",
+      "text": []
+    },
+    {
+      "heading": "Experiment",
+      "text": [
+        "The WMT13 organizers provide two bilingual data sets, from English to Spanish: the training and the test ones.",
+        "The training set consists of 803 MT outputs, in which each token is annotated with one appropriate label.",
+        "In the binary variant, the words are classified into ?K?",
+        "(Keep) or ?C?",
+        "(Change) label, meanwhile in the multi-class variant, they can belong to ?K?",
+        "(Keep), ?S?",
+        "(Substitution) or ?D?",
+        "(Deletion).",
+        "The test set contains 284 sentences where all the labels accompanying words are hidden.",
+        "For optimizing parameters of the classifier, we extract 50 sentences from the training set to form a development set.",
+        "Since a number of repetitive sentences are observed in the original training set, the dev set was carefully chosen to ensure that there is no overlap with the new training set (753 sentences), keeping the tuning process accurate.",
+        "Some statistics about each set can be found in Table 1.",
+        "Motivated by the idea of addressing WCE as a sequence labeling task, we employ the Conditional Random Fields (CRF) model (Lafferty et al., 2001) and the corresponding WAPITI toolkit (Lavergne et al., 2010) to train our classifier.",
+        "First, we experiment with the combination of all features.",
+        "For the multi-class system, WAPITI's default configuration is applied to determine the label, i.e. label which has the highest score is assigned to word.",
+        "In case of the binary system, the classification task is then conducted multiple times, corresponding to a threshold increase from",
+        "0.300 to 0.975 (step = 0.025).",
+        "When threshold = ?, all words in the test set which the probability of ?K?",
+        "class > ?",
+        "will be labelled as ?K?, and otherwise, ?C?.",
+        "The values of Precision (Pr), Recall (Rc) and F-score (F) for K and C label are tracked along this threshold variation, allowing us to select the optimal threshold that yields the highest",
+        "Results for the all-feature binary system (ALL BIN) at the optimal threshold (0.500) and the multi-class one (ALL MULT) at the default threshold, obtained on our dev set, are shown in Table 2.",
+        "We can notice that with ALL BIN, ?K?",
+        "label scores are very promising and ?C?",
+        "label reaches acceptable performance.",
+        "In case of ALL MULT we obtain the almost similar above performance for ?K?",
+        "and ?S?, respectively, except the disappointing scores for ?D?",
+        "(which can be explained by the fact that very few instances of ?D?",
+        "words (4%) are observed in the training corpus)."
+      ]
+    },
+    {
+      "heading": "4 Feature Selection",
+      "text": [
+        "In order to improve the preliminary scores of all-feature systems, we conduct a feature selection which is based on the hypothesis that some features may convey ?noise?",
+        "rather than ?information?",
+        "and might be the obstacles weakening the other ones.",
+        "In order to prevent this drawback, we propose a method to filter the best features",
+        "based on the ?Sequential Backward Selection?",
+        "algorithm6.",
+        "We start from the full set of N features, and in each step sequentially remove the most useless one.",
+        "To do that, all subsets of (N-1) features are considered and the subset that leads to the best performance gives us the weakest feature (not involved in the considered set).",
+        "This procedure is also called ?leave one out?",
+        "in the literature.",
+        "Obviously, the discarded feature is not considered in the following steps.",
+        "We iterate the process until there is only one remaining feature in the set, and use the following score for compar",
+        "for K and C label, respectively, when threshold varies from 0.300 to 0.975.",
+        "This strategy enables us to sort the features in descending order of importance, as displayed in Table 3.",
+        "Figure 1 shows the evolution of the performance as more and more features are removed.",
+        "fulness) in the set.",
+        "The symbol ?*?",
+        "indicates our proposed features.",
+        "Observations in 10-best and 10-worst performing features in Table 3 suggest that numerous features extracted directly from SMT system itself (source and target POS, alignment context information, WPP, lexical properties: numeric, punctuation) perform very well.",
+        "Meanwhile, opposite from what we expected, those from word statistical knowledge sources (target and source language models) are likely to be much less beneficial.",
+        "Besides, three of our proposed features appear in top 10-best.",
+        "More noticeable, among them, the first-time-experimented feature ?Occurrence in Google Translation hypothesis?",
+        "is the most prominent (rank 2), implying that such an on-line MT system can be a reliable reference channel for predicting word quality.",
+        "tained on dev set The above selection process also brings us the best-performing feature set (Top 20 in Table 3).",
+        "The binary classifier built using this optimal subset of features (FS BIN) reaches the optimal performance at the threshold value of 0.475, and slightly outperforms ALL BIN in terms of F scores (0.46% better for ?K?",
+        "and 0.69% better for ?C?).",
+        "We then use this set to build the multi-class one (FS MULT) and the results are shown to be a bit more effective compare to ALL MULT (0.37% better for ?K?, 0.80% better for ?S?",
+        "and 0.15% better for ?D?).",
+        "Detailed results of these two systems can be found in Table 4.",
+        "In addition, in Figure 1, when the size of feature set is small (from 1 to 7), we can observe sharply the growth of system scores for both labels.",
+        "Nevertheless the scores seem to saturate as the feature set increases from the 8 up to 25.",
+        "This phenomenon raises a hypothesis about the learning capability of our classifier when coping with a large number of features, hence drives us to an idea for improving the classification scores.",
+        "This idea is detailed in the next section.",
+        "multi-class system built from Top 20 features, at the optimal threshold value, obtained on dev set"
+      ]
+    },
+    {
+      "heading": "5 Using Boosting technique to improve",
+      "text": [
+        "the system's performance In this section, we try to answer to the following question: if we build a number of ?weak?",
+        "(or ?basic?)",
+        "classifiers by using subsets of our features and a machine learning algorithm (such as Boosting), would we get a single ?strong?",
+        "classifier?",
+        "When deploying this idea, our hope is that multiple models can complement each other as one feature set might be specialized in a part of the data where the others do not perform very well.",
+        "First, we prepare 23 feature subsets (F1, F2, ..., F23) to train 23 basic classifiers, in which: F1 contains all features, F2 is the Top 20 in Table 3 and Fi (i = 3..23) contains 9 randomly chosen features.",
+        "Next, a 7-fold cross validation is applied on our training set.",
+        "We divide it into 7 subsets (S1, S2, .",
+        ".",
+        ".",
+        ", S7).",
+        "Each Si (i = 1..6) contains 100 sentences, and the remaining 153 sentences constitute S7.",
+        "In the loop i (i = 1..7), Si is used as the test set and the remaining data is trained with 23 feature subsets.",
+        "After each loop, we obtain the results from 23 classifiers for each word in Si.",
+        "Finally, the concatenation of these results after 7 loops gives us the training data for Boosting.",
+        "Therefore, the Boosting training file has 23 columns, each represents the output of one basic classifier for our training set.",
+        "The detail of this algorithm is described below: Algorithm to build Boosting training data for i :=1 to 7 do",
+        "Boosting training set D := ?Di (i = 1..7) Next, the Bonzaiboost toolkit7 (which implements Boosting algorithm) is used for building Boosting model.",
+        "In the training command, we invoked: algorithm = ?AdaBoost?, and number of iterations = 300.",
+        "The Boosting test set is prepared as follows: we train 23 feature subsets with the training set to obtain 23 classifiers, then use them",
+        "to test our dev set, finally extract the 23 probability columns (like in the above pseudo code).",
+        "In the testing phase, similar to what we did in Section 4, the Pr, Rc and F scores against threshold variation for ?K?",
+        "and ?C?",
+        "labels are tracked, and those corresponding to the optimal threshold (0.575 in this case) are represented in Table 5.",
+        "binary classifier (BOOST BIN) The scores suggest that using Boosting algorithm on our CRF classifiers?",
+        "output accounts for an efficient way to make them predict better: on the one side, we maintain the already good achievement on K class (only 0.15% lost), on the other side we gain 1.42% the performance in C class.",
+        "It is likely that Boosting enables different models to better complement each other, in terms of the later model becomes experts for instances handled wrongly by the previous ones.",
+        "Another advantage is that Boosting algorithm weights each model by its performance (rather than treating them equally), so the strong models (come from all features, top 20, etc.)",
+        "can make more dominant impacts than the rest."
+      ]
+    },
+    {
+      "heading": "6 Submissions and Official Results",
+      "text": [
+        "After deploying several techniques to improve the system's prediction capability, we select two bests of each variant (binary and multi-class) to submit.",
+        "For the binary task, the submissions include: the Boosting (BOOST BIN) and the Top 20 (FS BIN) system.",
+        "For the multi-class task, we submit: the Top 20 (FS MULT) and the all-feature (ALL MULT) one.",
+        "Before the submission, the training and dev sets were combined to retrain the prediction models for FS BIN, FS MULT and ALL MULT.",
+        "Table 6 reports the official results obtained by LIG at WMT 2013, task 2.",
+        "We obtained the best performance among 3 participants.",
+        "These results confirm that the feature selection strategy is efficient (FS MULT slightly better than ALL MULT) while the contribution of Boosting is unclear (BOOST BIN better than FS BIN if F-measure is considered but worse if Accuracy is considered - the difference is not significant)."
+      ]
+    },
+    {
+      "heading": "7 Discussion and Conclusion",
+      "text": [
+        "In this paper, we describe the systems submitted for Task 2 of WMT13 Quality Estimation campaign.",
+        "We cope with the prediction of quality at word level, determining whether each word is ?good?",
+        "or ?bad?",
+        "(in the binary variant), or is ?good?, or should be ?substitute?",
+        "or ?delete?",
+        "(in the multi-class variant).",
+        "Starting with the existing word features, we propose and add various of novel ones to build the binary and multi-class baseline classifier.",
+        "The first experiment's results show that precision and recall obtained in ?K?",
+        "label (both in binary and multi-class systems) are very encouraging, and ?C?",
+        "(or ?S?)",
+        "label reaches acceptable performance.",
+        "A feature selection strategy is then deployed to enlighten the valuable features, find out the best performing subset.",
+        "One more contribution we made is the protocol of applying Boosting algorithm, training multiple ?weak?",
+        "classifiers, taking advantage of their complementarity to get a ?stronger?",
+        "one.",
+        "These techniques improve gradually the system scores (measure with F score) and help us to choose the most effective systems to classify the test set.",
+        "In the future, this work can be extended in the following ways.",
+        "Firstly, we take a deeper look into linguistic features of word, such as the grammar checker, dependency tree, semantic similarity, etc.",
+        "Besides, we would like to reinforce the segment-level confidence assessment, which exploits the context relation between surrounding words to make the prediction more accurate.",
+        "Moreover, a methodology to evaluate the sentence confidence relied on the word-and segment-level confidence will be also deeply considered."
+      ]
+    }
+  ]
+}

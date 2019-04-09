@@ -1,0 +1,210 @@
+{
+  "info": {
+    "authors": [
+      "Remi Zajac"
+    ],
+    "book": "Workshop on Reversible Grammar in Natural Language Processing",
+    "id": "acl-W91-0110",
+    "title": "A Uniform Architecture for Parsing, Generation and Transfer",
+    "url": "https://aclweb.org/anthology/W91-0110",
+    "year": 1991
+  },
+  "references": [
+    "acl-C88-1053",
+    "acl-C88-2128",
+    "acl-C88-2150",
+    "acl-C90-2051",
+    "acl-C90-2052",
+    "acl-C90-2060",
+    "acl-C90-3017",
+    "acl-C90-3019",
+    "acl-C90-3052",
+    "acl-E89-1032",
+    "acl-E89-1037",
+    "acl-P83-1021",
+    "acl-P89-1001",
+    "acl-P90-1026",
+    "acl-P91-1042",
+    "acl-W91-0110"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We present a uniform computational architecture for developing reversible grammars for parsing and generation, and for bidirectional transfer in MT.",
+        "We sketch the principles of a general reversible architecture and show how they are realized in the rewriting system for typed feature structures developed at the University of Stuttgart.",
+        "The reversibility of parsing and generation, and the bidirectionality of transfer rules fall out of general properties of the uniform architecture."
+      ]
+    },
+    {
+      "heading": "1 PRINCIPLES FOR A UNIFORM ARCHITECTURE",
+      "text": [
+        "The principles for a uniform architecture for parsing/generation and bidirectional transfer are already contained in some PROLOG implementations of logic grammars like DCGs.",
+        "For example, [Shieber 881 proposes to apply the idea of Earley deduction [Pereira/Warren 83] to generation.",
+        "With the noticeable exception of [Dymetman et al.",
+        "90], all of these approaches use a context-free based mapping to relate a string of words with a semantic structure.",
+        "Almost all of these approaches also rely on some specific properties of the grammars intended to be processed (semantic heads, guides, leading features, specific representation of subcategorization, etc.).",
+        "They are also dependent on the direction in which they are used: even if the grammar specification is the same, two different compilers generate two different programs for parsing and generation.",
+        "Using the PROLOG deduction mechanism to have a simple and direct implementation of a parser/generator, one has to solve some problems due to the PROLOG evaluation method, for example termination on uninstantiated goals: goals have to be evaluated in a different order for parsing and generation.",
+        "A reordering of goals performed by a rule compiler can be based on a direct specification of the ordering by the grammar writer [Dymetman/Isabelle 881, or can be derived •Research reported in this paper is partly supported by the German Ministry of Research and Technology (BMFT, Bundesminister fiir Forschung und Technologie), under grant No.",
+        "08 B3116 3.",
+        "The views and conclusions contained herein are those of the author and should not be interpreted as representing official policies.",
+        "by a compiler by analysing the dataflow using only input/output specifications [Strzalkowski 90].",
+        "But if we regard the grammar as a set of constraints to be satisfied, parsing and generation differ only in the nature of the \"input\", and there is no reason to use two different programs.",
+        "An interesting approach which uses only one program is described in [Dymetman/Isabelle 88].",
+        "Within this approach, a lazy evaluation mechanism, based on the specification of input/output arguments, is implemented, and the evaluation is completly data-driven: the same program parses or generates depending only on the form of the input term.",
+        "Furthermore, a reversible grammar need not to be based only on constituency.",
+        "[Dymetman et al.",
+        "90] describes a class of reversible grammars (\"Lexical Grammars\") based on a few composition rules which are very reminiscent of categorial grammars.",
+        "Other kinds of approaches can also be envisaged, e.g. using a dependency structure and linear precedence relations [Reape 90] (see also [Pollard/Sag 87]).",
+        "From these experiments, we can outline desirable properties of a computational framework for implementing reversible grammars:",
+        "• A unique general deductive mechanism is used.",
+        "Grammars define constraints on the set of acceptable structures, and there is no distinction between \"input\" and \"output\".",
+        "• To abolish the input/output distinction, the same kind of data structure is used to encode both the string and the linguistic structure, and they are embedded into one data structure that represents the relation between the string and the associated linguistic structure (c.f.",
+        "the HPSG sign [Pollard/Sag 87]).",
+        "• Specific mapping properties, based on constituency, linear precedence or functional composition, are not part of the formalism itself but are encoded explicitly using the formalism.",
+        "• The deductive mechanism should be computationally well-behaved, especially with respect to completeness.",
+        "In the next section, we show how these properties are realized in the Typed Feature Structure rewriting system implemented at the University of Stuttgartl.",
+        "We then discuss the parsing and generation problem, and bidirectionality of transfer in MT.",
+        "Assuming that we have the proper machinery, problems in parsing or generation can arise only because of a deficiency in the grammar2: in the last section, the termination problem and efficiency issues are addressed."
+      ]
+    },
+    {
+      "heading": "2 A REWRITE MACHINE FOR TYPED FEATURE STRUCTURES",
+      "text": [
+        "The basic motivation behind the Typed Feature Structure rewriting system is to provide a language which has the same deductive and logical properties of logic programming languages such as PROLOG, but which is based on feature terms instead of first order terms [Ait-Kaci 84, Aft-Kaci 86, Emele/Zajac 904 Such a language has a different semantics than the Herbrand semantics: this semantics is based on the notion of approximation, which captures in a computational 'The TFS system has been implemented by Martin Emele and the author as part of the POLYGLOSS project.",
+        "'As it is often the case in generation when using a grammar built initially for parsing.",
+        "'See also [Emele/Zajac 90a] for a fixed-point semantics.",
+        "framework the idea that feature structures represent partial information [Zajac 90b]3.",
+        "Of course, as in PROLOG,, problems of completeness and efficiency have to be addressed.",
+        "The universe of feature terms is structured in an inheritance hierarchy which defines a partial ordering on kinds of available information.",
+        "The backbone of the hierarchy is defined by a partial order < on 'a set of type symbols T. To this set, we add two more symbols: T which represents completly underspecified information, and 1 which represents inconsistent information.",
+        "Two type symbols have a common most general subtype (Greatest Lower Bound – GLB): this subtype inherits all information associated with all its super-types.",
+        "We define a meet operation on two type symbols A and B as A A B = glb(A, B).",
+        "Formally, a type hierarchy defined as a tuple (T,<, A) is a meet semi-lattice.",
+        "A technicality arises when two types A and B have more than one GLB: in that case, the set of GLBs is interpreted as a disjunction.",
+        "As different sets of attribute-value pairs make sense for different kind of objects, we divide our feature terms into different types.",
+        "Terms are closed in the sense that each type defines a specific association of features (and restrictions on their possible values) which are appropriate for it, expressed as a feature structure .",
+        "(the definition of the type).",
+        "Since types are organized in an inheritance hierarchy, a type inherits all the features and value restrictions from all its super-types.",
+        "This type-discipline for feature structures enforces the following two constraints: a term cannot have a feature which",
+        "is not appropriate for its type' and conversely, a pair of feature and value should always be defined for some type.",
+        "Thus a feature term is always typed and it is not possible to introduce an arbitrary feature in a term (by unification): all features added to some term should be appropriate for its type.",
+        "We use the attribute-value matrix (AVM) notation for feature terms and we write the type symbol for each feature term in front of the opening square bracket of the AVM.",
+        "A type symbol which does not have any feature defined for it is atomic.",
+        "All others types are complex.",
+        "A type definition has the following form: the type symbol to be defined appears on the left-hand side of the equation.",
+        "The right-hand side is an expression of conjunctions and disjunctions of typed feature terms (Figure 1).",
+        "Conjunctions are interpreted as meets on typed feature terms (implemented using a typed unification algorithm [Emele 91]).",
+        "The definition may have conditional constraints expressed as a logical conjunction of feature terms and introduced by ': -'.",
+        "The right-hand side feature term may contain the left-hand side type symbol in a subterm (or in the condition), thus defining a recursive type equation which gives the system the expressive power needed to describe complex linguistic structures.",
+        "A subtype inherits all constraints of its super-types monotonically: the constraints expressed as an expression of feature terms are conjoined using unification; the conditions are conjoined using the logical and operation.",
+        "A set of type definitions defines an inheritance hierarchy of feature terms which specifies the available approximations.",
+        "Such a hierarchy is compiled into a rewriting system as follows: each direct link between a type A and a subtype B generates a rewrite rule of the form A[a] --+ B[b] where [a] and [b] are the definitions of A and B, respectively.",
+        "The interpreter is given a \"query\" (a feature term) to evaluate: this input term is already an approximation of the final solution, though a very rough approximation.",
+        "The idea is to incrementally add more information to that term using the rewrite rules in order to get step by step closer to the solution: we stop when we have the best Possible approximation.",
+        "A rewrite step for a term t is defined as follows: if u is a subterm of t of type A and there exists a rewrite rule A[a] B[b] such that A[a] n u J_, the right-hand side B[b] is unified with the subterm u, giving a new term t' which is more specific than t. This rewrite step is applied non-deterministically everywhere in the term until no further rule is applicable5.",
+        "Actually, the rewriting process stops either when all types are minimal types or when all subterms in a term correspond exactly to some approximation defined by a type in the hierarchy.",
+        "A term is \"solved\" when any subterm is either more specific than the definition of a minimal type, or does not give more information than the definition of its type.",
+        "This defines an if and only if condition for a term to be a solved-form, where any addition of information will not bring anything new and is implemented using a lazy rewriting strategy: the application of a rule A[a] – > B[b] at a subterm it is actually triggered only when A[a] n 71 c A[a].",
+        "This lazy rewriting strategy implements a fully data-driven computation scheme and avoids useless branches of computation.",
+        "Thus, there is no 5Conditions do not change this general scheme and are omitted from the presentation for the sake of simplicity.",
+        "See for example [Dershowitz/Plaisted 88], and [Klop 90] for a survey.",
+        "need to have a special treatment to avoid what corresponds to the evaluation of uninstantiated goals in PROLOG, since a general treatment based on the semantics of the formalism itself is built in the evaluation strategy of the interpreter.",
+        "The choice of which subterm to rewrite is only partly driven by the availability of information (using the lazy rewriting scheme).",
+        "When there are several subterms that could be rewritten, the computation rule is to choose the outermost ones (inner-most strategies are usually non-terminating)6.",
+        "Such an outermost rewriting strategy has interesting termination properties, since there are problems where a TFS program will terminate when the corresponding PROLOG program will not7.",
+        "For a given subterm, the choice of which rule to apply is done non-deterministically, and the search space is explored depth-first using a backtracking scheme.",
+        "This strategy is not complete, though in association with the outermost rule and with the lazy evaluation scheme, it seems to terminate on any \"well-defined\" problem, i.e. when terms introduced by recursive definitions during execution are strictly decreasing according to some mesure (for example, see the definition of guides in [Dymetman et al.",
+        "90] for the parsing and generation problems).",
+        "A complete breadth-first search strategy is planned for debugging purposes.",
+        "The interpreter described above is implemented8 and has been used to test several models such as LFG, HPSG, or DCG on toy examples [Emele/Zajac 90b, Emele et al.",
+        "90, Zajac 90a]."
+      ]
+    },
+    {
+      "heading": "3 PARSING, GENERATION, AND BIDIRECTIONAL TRANSFER",
+      "text": []
+    },
+    {
+      "heading": "3.1 Parsing/generation",
+      "text": [
+        "A grammar describes the relation between strings of words and linguistic structures.",
+        "In order to implement a reversible grammar, we have to encode both kinds of structure using the same kind of data structure provided by the TFS language: typed feature structures.",
+        "A linguistic structure will be encoded using features and values, and the set of valid linguistic structures has to be declared explicitly.",
+        "A string of words will be encoded as a list of word forms, using the same kind of definitions as in Figure 1.",
+        "To abolish the distinction between \"input\" and \"output\", the relation between a string and a linguistic structure will be encoded in a single term with, for example, two features, string and syn and we can call the type of such a structure S1GN9.",
+        "The type SIGN is divided into several subtypes corresponding to different mappings between a string and a linguistic structure.",
+        "We will have at least the classification bewteen phrases and words.",
+        "The definition of a phrase will recursively relate subphrases and substrings, and define the phrase as a composition of subphrases and the string as the concatenation of substrings.",
+        "The formalism does not impose constraints on how the relations between phrases and strings are defined, and the grammar writer has to define them explicitly.",
+        "One possibility is to use context-free like mappings, using for example the same kind of encoding as in DCGs for PATR-like gramars or HPSG [Emele/Zajac 90b].",
+        "But other possibilities are available as well: using a kind of functional composition reminiscent of categorial grammars as in [Dymetman et al.",
+        "90], or linear precedence rules [Pollard/Sag 87, Reape 90].",
+        "For example, a rule like [Shieber 86]1°",
+        "is encoded in TFS using a type S for the sentence type with two features np and vp for encoding the constituent structure, and similarly for NPs and VPs.",
+        "The string associated with each constituent is encoded under the feature string.",
+        "The string associated with the sentence is simply the concatenation of the string associated with the VP and the string associated with the NP: this constraint is expressed in a condition using the APPEND relation on lists (Figure 4).",
+        "The difference between the parsing and the generation problem is then only in the form of the term given to the interpreter for evaluation.",
+        "An underspecified term where only the string is given defines the parsing problem: S[string: (TJther storms Cornwall)] An underspecified term where only the semantic form is given defines the generation problem:",
+        "In both cases, the same interpreter uses the same set of rewrite rules to fill in \"missing in-formation\" according to the grammar definitions.",
+        "The result in both cases is exactly the same: a fully specified term containing the string, the semantic form, and also all other syntactic information like the constituent structure (Figure 5)."
+      ]
+    },
+    {
+      "heading": "3.2 Bi-directiOnal transfer in MT",
+      "text": [
+        "We have sketched above a very general framework for specifying mappings between a linguistic structure, en'coded as a feature structure and a string, also encoded as a feature structure.",
+        "We apply a similar technique for specifying MT transfer rules, which we prefer to call \"contrastive rules\" since there is no directionality involved [Zajac 89, Zajac, 90a].",
+        "The idea is rather simple: assume we are working with linguistic structures similar to LFG's functional structures for English and French [Kaplan et al.",
+        "891.",
+        "We define a translation relation as a type TAU-LEX with two features, eng for the English structure and fr for the French structure.",
+        "This \"bilingual sign\" is defined on the lexical structure: each subtype of TAU-LEX defines a lexical correspondence between a partial English lexical structure and a partial French lexical structure for a given lexical equivalence.",
+        "Such a lexical contrastive definition also has to pair the arguments recursively, and this is expressed in the condition part of the definition (Figure 6).",
+        "The translation of syntactic features, like tense or determination, is also specified in the condition part, and these contrastive definitions are defined separately from the lexical definitions.",
+        "The transfer problem for one direction or the other is stated in the same way as for parsing or generation: the input term is an underspecified \"bilingual sign\" where only one structure for one language is given.",
+        "Using the contrastive grammar, the interpreter fills in missing information and builds a completely specified bilingual signil."
+      ]
+    },
+    {
+      "heading": "4 THE TERMINATION PROBLEM AND EFFICIENCY ISSUES",
+      "text": [
+        "For parsing and generation, since no constraint is imposed on the kind of mapping between the string and the semantic form, termination has to be proved for each class of grammar and the for the particular evaluation mechanism used for either parsing or generation with this grammar.",
+        "If we restrict ourselves to class of grammars for which terminating evaluation algorithms are known, we can implement those directly in TFS.",
+        "However, the TFS evaluation strategy allows more naive implementations of grammars and the outermost evaluation of \"sub-goals\" terminates on a strictly larger class of programs than for corresponding logic programs implemented in a conventional PROLOG.",
+        "Furthermore, the grammar writer does not need, and actually should not, be aware of the control which follows the shape of the input rather than a fixed strategy, thanks to the lazy evaluation mechanism.",
+        "IIPSG-style grammars do not cause ally problem: completeness and coherence as defined for LFG, and extended to the general case \"See also [Reape 90] for a \"Shake'n'Bake\" approach to MT (Whitelock).",
+        "by [Wedekind 88], are implemented in HPSG using the \"subcategorization feature principle\" [Johnson 87].",
+        "Termination conditions for parsing are well understood in the framework of context-free grammars.",
+        "For generation using feature structures, one of the problems is that the input could be \"extended\" during processing, i.e. arbitrary feature structures could be introduced in the semantic part of the input by unification with the semantic part of a rule.",
+        "However, if the semantic part of the input is fully speficied according to a set of type definitions describing the set of well-formed semantic structures (and this condition is easy to check), this cannot arise in a type-based system.",
+        "A more general approach is described in [Dymetman et al.",
+        "90] who define sufficient properties for termination for parsing and generation for the class of \"Lexical Grammars\" implemented in PROLOG.",
+        "These properties seem generalizable to other classes of grammars as well, and are also applicable to TFS implementations.",
+        "The idea is relatively simple and says that for parsing, each rule must consume a non empty part of the string, and for generation, each rule must consume a non empty part of the semantic form.",
+        "Since Lexical Grammars are implemented in PROLOG, left-recursion must be eliminated for parsing and for generation, but this does not apply to TFS implementations.",
+        "Termination for reversible transfer grammars is discussed in [van Noord 90].",
+        "One of the problems mentioned is the extension of the \"input\", as in generation, and the answer is similar (see above).",
+        "however, properties similar to the \"conservative guides\" of [Dymetman et al.",
+        "90] have to hold in order to ensure termination.",
+        "The lazy evaluation mechanism has an almost optimal behavior on the class of problems that have an exponential complexity when using the \"generate and test\" method [van Hentenryck/Dincbas 87, Ait-Kaci/Meyer 90].",
+        "It is driven by the availability of information: as soon as some piece of information is available, the evaluation of constraints in which this information appears is triggered.",
+        "Thus, the search space is explored \"intelligently\", never following branches of computation that would correspond to uninstan-ciated PROLOG goals.",
+        "The lazy evaluation mechanism is not yet fully implemented in the current version of TFS, but with the partial implementation we have, a gain of 50% for parsing has already been achieved (in comparison with the previous implementation using only the outermost rewriting strategy).",
+        "The major drawback of the current implementation is the lack of an efficient indexing scheme for objects.",
+        "Since the dictionaries are accessed using unification only, each entry is tried one after the other, leading to an extremely inefficient behavior with large dictionaries.",
+        "However, we think that a general indexing scheme based on a combination of methods used in PROLOG implementations and in object-oriented database systems is feasible."
+      ]
+    },
+    {
+      "heading": "CONCLUSION",
+      "text": [
+        "We have described a uniform constraint-based architecture for the implementation of reversible unification grammars.",
+        "The advantages of this architecture in comparison of more traditional logic (i.e. PROLOG) based architectures are: the input/output distinction is truly abolished; the evaluation terminates on a strictly larger class of problems; it is directly based on typed feature structures, not first order terms; a single fully data-driven constraint evaluation scheme is used; the",
+        "constraint evaluation scheme is directly derived from the semantics of typed feature structures.",
+        "Thus, the TFS' language allows a direct implementation of reversible unification grammars.",
+        "Of course, it does not dispense the grammar designer with the proof of general formal properties that any well-behaved grammar should have, but it does allow the grammar writer to develop grammars without thinking about any notion of control or input/output distinction."
+      ]
+    }
+  ]
+}

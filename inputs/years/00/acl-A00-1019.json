@@ -1,0 +1,232 @@
+{
+  "info": {
+    "authors": [
+      "Philippe Langlais",
+      "George Foster",
+      "Guy Lapalme"
+    ],
+    "book": "Applied Natural Language Processing Conference and Meeting of the North American Association for Computational Linguistics",
+    "id": "acl-A00-1019",
+    "title": "Unit Completion for a Computer-Aided Translation Typing System",
+    "url": "https://aclweb.org/anthology/A00-1019",
+    "year": 2000
+  },
+  "references": [
+    "acl-C94-1101",
+    "acl-C96-1070",
+    "acl-C96-1089",
+    "acl-C96-1097",
+    "acl-J93-1003",
+    "acl-J93-2003",
+    "acl-J96-1002",
+    "acl-P93-1003",
+    "acl-P94-1032",
+    "acl-P94-1033",
+    "acl-P95-1032",
+    "acl-P96-1003",
+    "acl-P97-1061",
+    "acl-P98-2162",
+    "acl-P98-2221",
+    "acl-P98-2230",
+    "acl-P99-1041",
+    "acl-W97-0311"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This work is in the context of TRANSTYPE, a system that observes its user as he or she types a translation and repeatedly suggests completions for the text already entered.",
+        "The user may either accept, modify, or ignore these suggestions.",
+        "We describe the design, implementation, and performance of a prototype which suggests completions of units of texts that are longer than one word."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "TRANSTYPE is part of a project set up to explore an appealing solution to Interactive Machine Translation (IMT).",
+        "In constrast to classical IMT systems, where the user's role consists mainly of assisting the computer to analyse the source text (by answering questions about word sense, ellipses, phrasal attachments, etc), in TRANSTYPE the interaction is directly concerned with establishing the target text.",
+        "Our interactive translation system works as follows: a translator selects a sentence and begins typing its translation.",
+        "After each character typed by the translator, the system displays a proposed completion, which may either be accepted using a special key or rejected by continuing to type.",
+        "Thus the translator remains in control of the translation process and the machine must continually adapt its suggestions in response to his or her input.",
+        "We are currently undertaking a study to measure the extent to which our word-completion prototype can improve translator productivity.",
+        "The conclusions of this study will be presented elsewhere.",
+        "The first version of TRANSTYPE (Foster et al., 1997) only proposed completions for the current word.",
+        "This paper deals with predictions which extend to the next several words in the text.",
+        "The potential gain from multiple-word predictions can be appreciated in the one-sentence translation task reported in table 1, where a hypothetical user saves over 60% of the keystrokes needed to produce a translation in a word completion scenario, and about 85% in a \"unit\" completion scenario.",
+        "In all the figures that follow, we use different fonts to differentiate the various input and output: italics are used for the source text, sans-serif for characters typed by the user and typewriter-like for characters completed by the system.",
+        "The first few lines of the table 1 give an idea of how TransType functions.",
+        "Let us assume the unit scenario (see column 2 of the table) and suppose that the user wants to produce the sentence \"Ce projet de Ioi est examine a la chambre des communes\" as a translation for the source sentence \"This bill is examined in the house of commons\".",
+        "The first hypothesis that the system produces before the user enters a character is loi (law).",
+        "As this is not a good guess from TRANSTYPE the user types the first character (c) of the words he or she wants as a translation.",
+        "Taking this new input into account, TRANSTYPE then modifies its proposal so that it is compatible whith what the translator has typed.",
+        "It suggests the desired sequence ce projet de Ioi, which the user can simply validate by typing a dedicated key.",
+        "Continuing in this way, the user and TRANSTYPE alternately contribute to the final translation.",
+        "A screen copy of this prototype is provided in figure 1."
+      ]
+    },
+    {
+      "heading": "2 The Core Engine",
+      "text": [
+        "The core of TRANSTYPE is a completion engine which comprises two main parts: an evaluator which assigns probabilistic scores to completion hypotheses and a generator which uses the evaluation function to select the best candidate for completion."
+      ]
+    },
+    {
+      "heading": "2.1 The Evaluator",
+      "text": [
+        "The evaluator is a function p(tIt' , s) which assigns to each target-text unit t an estimate of its probability given a source text s and the tokens t' which precede t in the current translation of s.1 Our approach to modeling this distribution is based to a large extent on that of the IBM group (Brown et al., 1993), but it differs in one significant aspect: whereas the IBM model involves a \"noisy channel\" decomposition, we use a linear combination of separate predictions from a language model p(tlt') and a translation model p(t1s).",
+        "Although the noisy channel technique",
+        "the target words the user is expected to produce.",
+        "The next two columns indicate respectively the prefixes typed by the user and the completions proposed by the system in a word-completion task.",
+        "The last two columns provide the same information for the unit-completion task.",
+        "The total number of keystrokes for both tasks is reported in the last line.",
+        "+ indicates the acceptance key typed by the user.",
+        "A completion is denoted by a/13 where a is the typed prefix and 0 the completed part.",
+        "Completions for different prefixes are separated by • .",
+        "is powerful, it has the disadvantage that p(sit' , t) is more expensive to compute than p(tls) when using IBM-style translation models.",
+        "Since speed is crucial for our application, we chose to forego the noisy channel approach in the work described here.",
+        "Our linear combination model is described as follows: p(tit' , s) = p(tlt') a(t' , s) + p(t1s) [1 – a(t', s)] (1) ....--,--....../ language translation where a (t' , s) E [0,1] are context-dependent interpolation coefficients.",
+        "For example, the translation model could have a higher weight at the start of a sentence but the contribution of the language model might become more important in the middle or the end of the sentence.",
+        "A study of the weightings for these two models is described elsewhere.",
+        "In the work described here we did not use the contribution of the language model (that is, a(t', s) = 0, V t', s) .",
+        "Techniques for weakening the independence assumptions made by the IBM models 1 and 2 have been proposed in recent work (Brown et al., 1993; Berger et al., 1996; Och and Weber, 98; Wang and Waibel, 98; Wu and Wong, 98).",
+        "These studies report improvements on some specific tasks (task-oriented limited vocabulary) which by nature are very different from the task TRANSTYPE is devoted to.",
+        "Furthermore, the underlying decoding strategies are too time consuming for our application.",
+        "We therefore use a translation model based on the simple linear interpolation given in equation 2 which combines predictions of two translation models – M, and Mu both based on IBM-like model 2(Brown et al., 1993).",
+        "M, was trained on single words and Mu, described in section 3, was trained on both words and units.",
+        "where ps and pu stand for the probabilities given respectively by M„ and Mu.",
+        "g(s) represents the new sequence of tokens obtained after grouping the tokens of s into units.",
+        "The grouping operator 0 is illustrated in table 2 and is described in section 3."
+      ]
+    },
+    {
+      "heading": "2.2 The Generator",
+      "text": [
+        "The task of the generator is to identify units that match the current prefix typed by the user, and pick the best candidate according to the evaluator.",
+        "Due to time considerations, the generator introduces a division of the target vocabulary into two parts: a small active component whose contents are always searched for a match to the current prefix, and a much larger passive part over (380,000 word forms) which comes into play only when no candidates are found in the active vocabulary.",
+        "The active part is computed dynamically when a new sentence is selected by the translator.",
+        "It is composed of a few entities (tokens and units) that are likely to appear in the translation.",
+        "It is a union of the best candidates provided by each model M8 and Mu over the set of all possible target tokens (resp.",
+        "units) that have a non-null translation probability of being translated by any of the current source tokens (resp.",
+        "units).",
+        "Table 2 shows the 10 most likely tokens and units in the active vocabulary for an example source sentence.",
+        "• have outlined • what has happened • since then • .",
+        "A3 , .",
+        "• est • ce • ministre que • et • a • premier • le",
+        "Au ce qui s' est produit • et je • c' est ce que • voila ce que • qu' est • c' est • , et • le premier ministre disait Table 2: Role of the generator for a sample pair of sentences (t is the translation of s in our corpus).",
+        "Cc(s) is the sequence of source tokens recasted by the grouping operator G. A. indicates the 10 best tokens according to the word model, Au the 10 best units according to the unit model."
+      ]
+    },
+    {
+      "heading": "3 Modeling Unit Associations",
+      "text": [
+        "Automatically identifying which source words or groups of words will give rise to which target words or groups of words is a fundamental problem which remains open.",
+        "In this work, we decided to proceed in two steps: a) monolingually identifying groups of words that would be better handled as units in a given context, and b) mapping the resulting source and target units.",
+        "To train our unit models, we used a segment of the Hansard corpus consisting of 15,377 pairs of sentences, totaling 278,127 english tokens (13,543 forms) and 292,865 french tokens (16,399 forms)."
+      ]
+    },
+    {
+      "heading": "3.1 Finding Monolingual Units",
+      "text": [
+        "Finding relevant units in a text has been explored in many areas of natural language processing.",
+        "Our approach relies on distributional and frequency statistics computed on each sequence of words found in a training corpus.",
+        "For sake of efficiency, we used the suffix array technique to get a compact representation of our training corpus.",
+        "This method allows the efficient retrieval of arbitrary length n-grams (Nagao and Mori, 94; Haruno et al., 96; Ikehara et al., 96; Shimohata et al., 1997; Russell, 1998).",
+        "The literature abounds in measures that can help to decide whether words that co-occur are linguistically significant or not.",
+        "In this work, the strength of association of a sequence of words wr = w1, , is computed by two measures: a likelihood-based one p(wr) (where P is the likelihood ratio given in (Dunning, 93)) and an entropy-based one e(wn (Shimohata et al., 1997).",
+        "Letting T stand for the training text and m a token:",
+        "Intuitively, the first measurement accounts for the fact that parts of a sequence of words that should be considered as a whole should not appear often by themselves.",
+        "The second one reflects the fact that a salient unit should appear in various contexts (i.e. should have a high entropy score).",
+        "We implemented a cascade filtering strategy based on the likelihood score p, the frequency f , the length 1 and the entropy value e of the sequences.",
+        "A first filter (Fi (imin 5 fmin, Pmin, emin)) removes any sequence s for which 1(s) < /min or p(s) < Amin or e(s) < emin or f (s) < fmin• A second filter (F2) removes sequences that are included in preferred ones.",
+        "In terms of sequence reduction, applying F1(2, 2, 5.0, 0.2) on the 81,974 English sequences of at least two tokens seen at least twice in our training corpus, less than 50% of them (39,093) were filtered: 17,063 (21%) were removed because of their low entropy value, 25,818 (31%) because of their low likelihood value."
+      ]
+    },
+    {
+      "heading": "3.2 Mapping",
+      "text": [
+        "Mapping the identified units (tokens or sequences) to their equivalents in the other language was achieved by training a new translation model (IBM 2) using the EM algorithm as described in (Brown et al., 1993).",
+        "This required grouping the tokens in our training corpus into sequences, on the basis of the unit lexicons identified in the previous step (we will refer to the results of this grouping as the sequence-based corpus).",
+        "To deal with overlapping possibilities, we used a dynamic programming scheme which optimized a criterion C given by equation 4 over a set S of all units collected for a given language plus all single words.",
+        "g(wr) is obtained by returning the path that maximized B(n).",
+        "We investigated several C-criteria and we found C1--a length-based measure – to be the most satisfactory.",
+        "Table 2 shows an output of the grouping function.",
+        "training corpus.",
+        "The third column reports its 3-best ranked target associations (a being a token or a unit, p being the translation probability).",
+        "The second half of the table reports NP-associations obtained after the filter described in the text.",
+        "We investigated three ways of estimating the parameters of the unit model.",
+        "In the first one, el, the translation parameters are estimated by applying the EM algorithm in a straightforward fashion over all entities (tokens and units) present at least twice in the sequence-based corpus 2.",
+        "The two next methods filter the probabilities obtained with the £1 method.",
+        "In E2 all probabilities p(tls) are set to 0 whenever s is a token (not a unit), thus forcing the model to contain only associations between source units and target entities (tokens or units).",
+        "In E3 any parameter of the model that involves a token is removed (that is, p(tls) = 0 if t or s is a token).",
+        "The resulting model will thus contain only unit associations.",
+        "In both cases, the final probabilities are renormalized.",
+        "Table 3 shows a few entries from a unit model (Ma) obtained after 15 iterations of the EM-algorithm on a sequence corpus resulting from the application of the length-grouping criterion (C1) over a lexicon of units whose likelihood score is above 5.0.",
+        "The probabilities have been obtained by application of the method E2 We found many partially correct associations (over the years/au fils des, we have/nous, etc) that illustrate the weakness of decoupling the unit identification from the mapping problem.",
+        "In most cas",
+        "es however, these associations have a lower probability than the good ones.",
+        "We also found few erratic associations (the first time/ c Wait, some hon.",
+        "members/!, etc) due to distributional artifacts.",
+        "It is also interesting to note that the good associations we found are not necessary compositional in nature (we must/il faut, people of canada/les canadiens, of course/ividemment, etc)."
+      ]
+    },
+    {
+      "heading": "3.3 Filtering",
+      "text": [
+        "One way to increase the precision of the mapping process is to impose some linguistic constraints on the sequences such as simple noun-phrase contraints (Gaussier, 1995; Kupiec, 1993; hua Chen and Chen, 94; Fong, 1995; Evans and Zhai, 1996).",
+        "It is also possible to focus on non-compositional compounds, a key point in bilingual applications (Su et al., 1994; Melamed, 1997; Lin, 99).",
+        "Another interesting approach is to restrict sequences to those that do not cross constituent boundary patterns (Wu, 1995; Fu-ruse and Iida, 96).",
+        "In this study, we filtered for potential sequences that are likely to be noun phrases, using simple regular expressions over the associated part-of-speech tags.",
+        "An excerpt of the association probabilities of a unit model trained considering only the NP-sequences is given in table 3.",
+        "Applying this filter (referred to as .7.Np in the following) to the 39,093 english sequences still surviving after previous filters .7.1 and .F2 removes 35,939 of them (92%).",
+        "More than half of the 3,154 remaining NP-sequences contain only two words."
+      ]
+    },
+    {
+      "heading": "4 Results",
+      "text": [
+        "We collected completion results on a test corpus of 747 sentences (13,386 english tokens and 14,506 french ones) taken from the Hansard corpus.",
+        "These sentences have been selected randomly among sentences that have not been used for the training.",
+        "Around 18% of the source and target words are not known by the translation model.",
+        "The baseline models (line 1 and 2) are obtained without any unit model (i.e. 13 = 1 in equation 2).",
+        "The first one is obtained with an IBM-like model 1 while the second is an IBM-like model 2.",
+        "We observe that for the pair of languages we considered, model 2 improves the amount of saved keystrokes of almost 3% compared to model 1.",
+        "Therefore we made use of alignment probabilities for the other models.",
+        "The three next blocks in table 4 show how the parameter estimation method affects performance.",
+        "Training models under the Ei method gives the worst results.",
+        "This results from the fact that the word-to-word probabilities trained on the sequence based corpus (predicted by M. in equation 2) are less accurate than the ones learned from the token based corpus.",
+        "The reason is simply that there are less occurrences of each token, especially if many units are identified by the grouping operator.",
+        "In methods £2 and £3 the unit model of equation 2 only makes predictions pit(tis) when s is a source unit, thus lowering the noise compared to method Si.",
+        "We also observe in these three blocks the influence of sequence filtering: the more we filter, the better the results.",
+        "This holds true for all estimation methods tried.",
+        "In the fifth block of table 4 we observe the positive influence of the NP-filtering, especially when using the third estimation method.",
+        "The best combination we found is reported in line 15.",
+        "It outperforms the baseline by around 1.5%.",
+        "This model has been obtained by retaining all sequences seen at least two times in the training corpus for which the likelihood test value was above 5 and the entropy score above 0.2 (.7.1(2, 2, 5, 0.2)).",
+        "In terms of the coverage of this unit model, it is interesting to note that among the 747 sentences of the test session, there were 228 for which the model did not propose any units at all.",
+        "For 425 of the remaining sentences, the model proposed at least one helpful (good or partially good) unit.",
+        "The active vocabulary for these sentences contained an average of around 2.5 good units per sentence, of which only half (495) were proposed during the session.",
+        "The fact that this model outperforms others despite its relatively poor coverage (compared to the others) may be explained by the fact that it also removes part of the noise introduced by decoupling the identification of the salient units from the training procedure.",
+        "Furthermore, as we mentionned earlier, the more we filter, the less the grouping scheeme presented in equation 4 remains necessary, thus reducing a possible source of noise.",
+        "The fact that this model outperforms others, despite its relatively poor coverage, is due to the fact",
+        "that it also removes part of the noise that is introduced by dissociating the identification of the salient units from the training procedure.",
+        "Furthermore, as we mentioned earlier, the more we filter, the less the grouping scheme presented in equation 4 remains necessary, thus further reducing an other possible source of noise."
+      ]
+    },
+    {
+      "heading": "5 Conclusion",
+      "text": [
+        "We have described a prototype system called TRANSTYPE which embodies an innovative approach to interactive machine translation in which the interaction is directly concerned with establishing the target text.",
+        "We proposed and tested a mechanism to enhance TRANSTYPE by having it predict sequences of words rather than just completions for the current word.",
+        "The results show a modest improvement in prediction performance which will serve as a baseline for our future investigations.",
+        "One obvious direction for future research is to revise our current strategy of decoupling the selection of units from their bilingual context."
+      ]
+    },
+    {
+      "heading": "Acknowlegments",
+      "text": [
+        "TRANSTYPE is a project funded by the Natural Sciences and Engineering Research Council of Canada.",
+        "We are undebted to Elliott Macklovitch and Pierre Isabelle for the fruitful orientations they gave to this work."
+      ]
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 from lib.elasticsearch.esexporter import ElasticsearchExporter
 from lib.techknacq.corpus import Corpus
 from lib.constantvalues import ConstantValues
-import random_selection_corpus as ransel
+import selection_corpus as ransel
 import random
 
 def getRandomDocs(listdocs=[], MAXSIZE=50):

@@ -1,0 +1,226 @@
+{
+  "info": {
+    "authors": [
+      "Daniel Gildea",
+      "Daniel Jurafsky"
+    ],
+    "book": "Annual Meeting of the Association for Computational Linguistics",
+    "id": "acl-P00-1065",
+    "title": "Automatic Labeling of Semantic Roles",
+    "url": "https://aclweb.org/anthology/P00-1065",
+    "year": 2000
+  },
+  "references": [
+    "acl-A00-2031",
+    "acl-P96-1008",
+    "acl-P97-1003",
+    "acl-P98-1013",
+    "acl-P98-2127",
+    "acl-P99-1001",
+    "acl-W98-1106",
+    "acl-W99-0632"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We present a system for identifying the semantic relationships, or semantic roles, filled by constituents of a sentence within a semantic frame.",
+        "Various lexical and syntactic features are derived from parse trees and used to derive statistical classifiers from hand-annotated training data."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Identifying the semantic roles filled by constituents of a sentence can provide a level of shallow semantic analysis useful in solving a number of natural language processing tasks.",
+        "Semantic roles represent the participants in an action or relationship captured by a semantic frame.",
+        "For example, the frame for one sense of the verb \"crash\" includes the roles Agent, VEHICLE and To-Location.",
+        "This shallow semantic level of interpretation can be used for many purposes.",
+        "Current information extraction systems often use domain-specific frame-and-slot templates to extract facts about, for example, financial news or interesting political events.",
+        "A shallow semantic level of representation is a more domain-independent, robust level of representation.",
+        "Identifying these roles, for example, could allow a system to determine that in the sentence \"The first one crashed\" the subject is the vehicle, but in the sentence \"The first one crashed it\" the subject is the agent, which would help in information extraction in this domain.",
+        "Another application is in word-sense disambiguation, where the roles associated with a word can be cues to its sense.",
+        "For example, Lapata and Brew (1999) and others have shown that the different syntactic sub-catgorization frames of a verb like \"serve\" can be used to help disambiguate a particular instance of the word \"serve\".",
+        "Adding semantic role sub categorization information to this syntactic information could extend this idea to use richer semantic knowledge.",
+        "Semantic roles could also act as an important intermediate representation in statistical machine translation or automatic text summarization and in the emerging field of Text Data Mining (TDM) (Hearst, 1999).",
+        "Finally, incorporating semantic roles into probabilistic models of language should yield more accurate parsers and better language models for speech recognition.",
+        "This paper proposes an algorithm for automatic semantic analysis, assigning a semantic role to constituents in a sentence.",
+        "Our approach to semantic analysis is to treat the problem of semantic role labeling like the similar problems of parsing, part of speech tagging, and word sense disambiguation.",
+        "We apply statistical techniques that have been successful for these tasks, including probabilistic parsing and statistical classification.",
+        "Our statistical algorithms are trained on a hand-labeled dataset: the FrameNet database (Baker et al., 1998).",
+        "The FrameNet database defines a tagset of semantic roles called frame elements, and includes roughly 50,000 sentences from the British National Corpus which have been hand-labeled with these frame elements.",
+        "The next section describes the set of frame elements/ semantic roles used by our system.",
+        "In the rest of this paper we report on our current system, as well as a number of preliminary experiments on extensions to the system.",
+        "2 Semantic Roles Historically, two types of semantic roles have been studied: abstract roles such as AGENT and Patient, and roles specific to individual verbs such as EATER and EATEN for \"eat\".",
+        "The FrameNet project proposes roles at an intermediate level, that of the semantic frame.",
+        "Frames are defined as schematic representations of situations involving various participants, props, and other conceptual roles (Fillmore, 1976).",
+        "For example, the frame \"conversation\", shown in Figure 1, is invoked by the semantically related verbs \"argue\", \"banter\", \"debate\", \"converse\", and \"gossip\" as well as the nouns \"argument\", \"dispute\", \"discussion\" and \"tiff\".",
+        "The roles defined for this frame, and shared by all its lexical entries, include ProtagonistI and Protagonist2 or simply PROTAGONISTS for the participants in the conversation, as well as Medium, and Topic.",
+        "Example sentences are shown in Table 1.",
+        "Defining semantic roles at the frame level avoids some of the difficulties of attempting to find a small set of universal, abstract thematic roles, or case roles such as Agent, Patient, etc (as in, among many others, (Fillmore, 1968) (Jackendoff, 1972)).",
+        "Abstract thematic roles can be thought of as being frame elements defined in abstract frames such as \"action\" and \"motion\" which are at the top of in inheritance hierarchy of semantic frames (Fillmore and Baker, 2000).",
+        "The preliminary version of the FrameNet corpus used for our experiments contained 67 frames from 12 general semantic domains chosen for annotation.",
+        "Examples of domains (see Figure 1) include \"motion\", \"cognition\" and \"communication\".",
+        "Within these frames, examples of a total of 1462 distinct lexical predicates, or target words, were annotated: 927 verbs, 339 nouns, and 175 adjectives.",
+        "There are a total of 49,013 annotated sentences, and 99,232 annotated frame elements (which do not include the target words themselves)."
+      ]
+    },
+    {
+      "heading": "3 Related Work",
+      "text": [
+        "Assignment of semantic roles is an important part of language understanding, and has been attacked by many computational systems.",
+        "Traditional parsing and understanding systems, including implementations of unification-based grammars such as HPSG (Pollard and Sag, 1994), rely on hand-developed grammars which must anticipate each way in which semantic roles may be realized syntactically.",
+        "Writing such grammars is time-consuming, and typically such systems have limited coverage.",
+        "Data-driven techniques have recently been applied to template-based semantic interpretation in limited domains by \"shallow\" systems that avoid complex feature structures, and often perform only shallow syntactic analysis.",
+        "For example, in the context of the Air Traveler Information System (ATIS) for spoken dialogue, Miller et al.",
+        "(1996) computed the probability that a constituent such as \"Atlanta\" filled a semantic slot such as DESTINATION in a semantic frame for air travel.",
+        "In a data-driven approach to information extraction, Riloff (1993) builds a dictionary of patterns for filling slots in a specific domain such as terrorist attacks, and Riloff and Schmelzenbach (1998) extend this technique to automatically derive entire case frames for words in the domain.",
+        "These last systems make use of a limited amount of hand labor to accept or reject automatically generated hypotheses.",
+        "They show promise for a more sophisticated approach to generalize beyond the relatively small number of frames considered in the tasks.",
+        "More recently, a domain independent system has been trained on general function tags such as MANNER and TEMPORAL by Blaheta and Charniak (2000)."
+      ]
+    },
+    {
+      "heading": "4 Methodology",
+      "text": [
+        "We divide the task of labeling frame elements into two subtasks: that of identifying the boundaries of the frame elements in the sentences, and that of labeling each frame element, given its boundaries, with the correct role.",
+        "We first give results for a system which",
+        "Frame Element Protagonist 1 Protagonist 2 Protagonists Topic Medium Example (in italics) with target verb Kim argued with Pat Kim argued with Pat Kim and Pat argued Kim and Pat argued about politics Kim and Pat argued in French Example (in italics) with target noun Kim had an argument with Pat Kim had an argument with Pat Kim and Pat had an argument Kim and Pat had an argument about politics Kim and pat had an argument in French",
+        "labels roles using human-annotated boundaries, returning to the question of automatically identifying the boundaries in Section 5.3."
+      ]
+    },
+    {
+      "heading": "4.1 Features Used in Assigning Semantic Roles",
+      "text": [
+        "The system is a statistical one, based on training a classifier on a labeled training set, and testing on an unlabeled test set.",
+        "The system is trained by first using the Collins parser (Collins, 1997) to parse the 36,995 training sentences, matching annotated frame elements to parse constituents, and extracting various features from the string of words and the parse tree.",
+        "During testing, the parser is run on the test sentences and the same features extracted.",
+        "Probabilities for each possible semantic role r are then computed from the features.",
+        "The probability computation will be described in the next section; the features include: Phrase Type: This feature indicates the syntactic type of the phrase expressing the semantic roles: examples include noun phrase (NP), verb phrase (VP), and clause (S).",
+        "Phrase types were derived automatically from parse trees generated by the parser, as shown in Figure 2.",
+        "The parse constituent spanning each set of words annotated as a frame element was found, and the constituent's nonterminal label was taken as the phrase type.",
+        "As an example of how this feature is useful, in communication frames, the SPEAKER is likely appear a a noun phrase, Topic as a prepositional phrase or noun phrase, and MEDIUM as a prepostional phrase, as in: \"We talked about the proposal over the phone.\"",
+        "When no parse constituent was found with boundaries matching those of a frame element during testing, the largest constituent beginning at the frame element's left boundary and lying entirely within the element was used to calculate the features.",
+        "Grammatical Function: This feature attempts to indicate a constituent's syntactic relation to the rest of the sentence,",
+        "He heard the sound of liquid slurping in a metal container",
+        "as Farrell approached him from behind for example as a subject or object of a verb.",
+        "As with phrase type, this feature was read from parse trees returned by the parser.",
+        "After experimentation with various versions of this feature, we restricted it to apply only to NPs, as it was found to have little effect on other phrase types.",
+        "Each NP's nearest S or VP ancestor was found in the parse tree; NPs with an S ancestor were given the grammatical function subject and those with a VP ancestor were labeled object.",
+        "In general, agenthood is closely correlated with sub-jecthood.",
+        "For example, in the sentence \"He drove the car over the cliff\", the first NP is more likely to fill the AGENT role than the second or third.",
+        "Position: This feature simply indicates whether the constituent to be labeled occurs before or after the predicate defining the semantic frame.",
+        "We expected this feature to be highly correlated with grammatical function, since subjects will generally appear before a verb, and objects after.",
+        "Moreover, this feature may overcome the shortcomings of reading grammatical function from a constituent's ancestors in the parse tree, as well as errors in the parser output.",
+        "Voice: The distinction between active and passive verbs plays an important role in the connection between semantic role and grammatical function, since direct objects of active verbs correspond to subjects of passive verbs.",
+        "From the parser output, verbs were classified as active or passive by building a set of 10 passive-identifying patterns.",
+        "Each of the patterns requires both a passive auxiliary (some form of \"to be\" or \"to get\") and a past participle.",
+        "Head Word: As previously noted, we expected lexical dependencies to be extremely important in labeling semantic roles, as indicated by their importance in related tasks such as parsing.",
+        "Since the parser used assigns each constituent a head word as an integral part of the parsing model, we were able to read the head words of the constituents from the parser output.",
+        "For example, in a communication frame, noun phrases headed by \"Bill\", \"brother\", or \"he\" are more likely to be the Speaker, while those headed by \"proposal\", \"story\", or \"question\" are more likely to be the Topic.",
+        "For our experiments, we divided the FrameNet corpus as follows: one-tenth of the annotated sentences for each target word were reserved as a test set, and another one-tenth were set aside as a tuning set for developing our system.",
+        "A few target words with fewer than ten examples were removed from the corpus.",
+        "In our corpus, the average number of sentences per target word is only 34, and the number of sentences per frame is 732 – both relatively small amounts of data on which to train frame element classifiers.",
+        "Although we expect our features to interact in various ways, the data are too sparse to calculate probabilities directly on the full set of features.",
+        "For this reason, we built our classifier by combining probabilities from distributions conditioned on a variety of combinations of features.",
+        "An important caveat in using the FrameNet database is that sentences are not chosen for annotation at random, and therefore are not necessarily statistically representative of the corpus as a whole.",
+        "Rather, examples are chosen to illustrate typical usage patterns for each word.",
+        "We intend to remedy this in future versions of this work by bootstrapping our statistics using unannotated text.",
+        "Table 2 shows the probability distributions used in the final version of the system.",
+        "Coverage indicates the percentage of the test data for which the conditioning event had been seen in training data.",
+        "Accuracy is the proportion of covered test data for which the correct role is predicted, and Performance, simply the product of coverage and accuracy, is the overall percentage of test data for which the correct role is predicted.",
+        "Accuracy is somewhat similar to the familiar metric of precision in that it is calculated over cases for which a decision is made, and performance is similar to recall in that it is calculated over all true frame elements.",
+        "However, unlike a traditional precision/recall trade-off, these results have no threshold to adjust, and the task is a multi-way classification rather than a binary decision.",
+        "The distributions calculated were simply the empirical distributions from the training data.",
+        "That is, occurrences of each role and each set of conditioning events were counted in a table, and probabilities calculated by dividing the counts for each role by the total number of observations for each conditioning event.",
+        "For example, the distribution P(rl pt, t) was calculated sas follows:",
+        "Some sample probabilities calculated from the training are shown in Table 3."
+      ]
+    },
+    {
+      "heading": "5 Results",
+      "text": [
+        "Results for different methods of combining the probability distributions described in the previous section are shown in Table 4.",
+        "The linear interpolation method simply averages the probabilities given by each of the distributions in Table 2:",
+        "where Ei Ai = 1.",
+        "The geometric mean, expressed in the log domain, is similar: P(r I constituent) = Zexp{A1logP(rlt) + A2logP(rl pt, t) + A3logP(rl pt, g f , t0 + A4logP(rl pt, position, voice) + A5logP(rl pt, position, voice, t) + A6logP(rl h) + A7logP(rl h, t) + A$logP(rl h, pt, t)} where Z is a normalizing constant ensuring that Er P(rI constituent) = 1.",
+        "The results shown in Table 4 reflect equal values of A for each distribution defined for the relevant conditioning event (but excluding distributions for which the conditioning event was not seen in the training data).",
+        "The variable gf is only defined for noun phrases.",
+        "The roles defined for the removing frame in the motion domain are: Agent, Theme, CoTheme (\"... had been abducted with him\") and Manner.",
+        "Other schemes for choosing values of A, including giving more weight to distributions for which more training data was available, were found to have relatively little effect.",
+        "We attribute this to the fact that the evaluation depends only the the ranking of the probabilities rather than their exact values.",
+        "In the \"backoff\" combination method, a lattice was constructed over the distributions in Table 2 from more specific conditioning events to less specific, as shown in Figure 3.",
+        "The less specific distributions were used only when no data was present for any more specific distribution.",
+        "As before, probabilities were combined with both linear interpolation and a geometric mean.",
+        "The final system performed at 80.4% accuracy, which can be compared to the 40.9% achieved by always choosing the most probable role for each target word, essentially chance performance on this task.",
+        "Results for this system on test data, held out during development of the system, are shown in Table",
+        "correct, without use of any of the syntactic features."
+      ]
+    },
+    {
+      "heading": "5.",
+      "text": []
+    },
+    {
+      "heading": "5.1 Discussion",
+      "text": [
+        "It is interesting to note that looking at a constituent's position relative to the target word along with active/passive information performed as well as reading grammatical function off the parse tree.",
+        "A system using grammatical function, along with the head word, phrase type, and target word, but no passive information, scored 79.2%.",
+        "A similar system using position rather than grammatical function scored 78.8% – nearly identical performance.",
+        "However, using head word, phrase type, and target word without either position or grammatical function yielded only 76.3%, indicating that while the two features accomplish a similar goal, it is important to include some measure of the constituent's syntactic relationship to the target word.",
+        "Our final system incorporated both features, giving a further, though not significant, improvement.",
+        "As a guideline for interpreting these results, with 8176 observations, the threshold for statistical signifance with p < .05 is a 1.0% absolute difference in performance.",
+        "Use of the active/passive feature made a further improvement: our system using position but no grammatical function or passive information scored 78.8%; adding passive information brought performance to 80.5%.",
+        "Roughly 5% of the examples were identified as passive uses.",
+        "Head words proved to be very accurate indicators of a constituent's semantic role when data was available for a given head word, confirming the importance of lexicalization shown in various other tasks.",
+        "While the distribution P(rlh, t) can only be evaluated for 56.0% of the data, of those cases it gets 86.7%"
+      ]
+    },
+    {
+      "heading": "5.2 Lexical Clustering",
+      "text": [
+        "In order to address the sparse coverage of lexical head word statistics, an experiment was carried out using an automatic clustering of head words of the type described in (Lin, 1998).",
+        "A soft clustering of nouns was performed by applying the co-occurrence model of (Hofmann and Puzicha, 1998) to a large corpus of observed direct object relationships between verbs and nouns.",
+        "The clustering was computed from an automatically parsed version of the British National Corpus, using the parser of (Carroll and Rooth, 1998).",
+        "The experiment was performed using only frame elements with a noun as head word.",
+        "This allowed a smoothed estimate of P(rIh, nt, t) to be computed as & P(rJc, nt, t)P(cJh), summing over the automatically derived clusters c to which a nominal head word h might belong.",
+        "This allows the use of head word statistics even when the headword h has not been seen in conjunction was the target word t in the training data.",
+        "While the unclustered nominal head word feature is correct for 87.6% of cases where data for P(rlh, nt, t) is available, such data was available for only 43.7% of nominal head words.",
+        "The clustered head word alone correctly classified 79.7% of the cases where the head word was in the vocabulary used for clustering; 97.9% of instances of nominal head words were in the vocabulary.",
+        "Adding clustering statistics for NP constituents into the full system increased overall performance from 80.4% to 81.2%."
+      ]
+    },
+    {
+      "heading": "5.3 Automatic Identification of Frame Element Boundaries",
+      "text": [
+        "The experiments described above have used human annotated frame element boundaries – here we address how well the frame elements can be found automatically.",
+        "Experiments were conducted using features similar to those described above to identify constituents in a sentence's parse tree that were likely to be frame elements.",
+        "The system was given the human-annotated target word",
+        "and the frame as inputs, whereas a full language understanding system would also identify which frames come into play in a sentence – essentially the task of word sense disambiguation.",
+        "The main feature used was the path from the target word through the parse tree to the constituent in question, represented as a string of parse tree nonterminals",
+        "frame element \"He\" to the target word \"ate\" can be represented as NP T S , VP , V, with T indicating upward movement in the parse tree and � downward movement.",
+        "The other features used were the identity of the target word and the identity of the constituent's head word.",
+        "The probability distributions calculated from the training data were P(f ej path), P(f ej path, t), and P(f ej h, t), where f e indicates an event where the parse constituent in question is a frame element, path the path through the parse tree from the target word to the parse constituent, t the identity of the target word, and h the head word of the parse constituent.",
+        "By varying the probability threshold at which a decision is made, one can plot a precision/recall curve as shown in Figure 5.",
+        "P(f ej path, t) performs relatively poorly due to fragmentation of the training data (recall only about 30 sentences are available for each target word).",
+        "While the lexical statistic P(f ej h, t) alone is not useful as a classifier, using it in linear interpolation with the path statistics improves results.",
+        "Note that this method can only identify frame elements that have a corresponding constituent in the automatically generated parse tree.",
+        "For this reason, it is interesting to calculate how many true frame elements overlap with the results of the system, relaxing the criterion that the boundaries must match exactly.",
+        "Results for partial matching are shown in Table 6.",
+        "When the automatically identified constituents were fed through the role labeling system described above, 79.6% of the constituents which had been correctly identified in the first stage were assigned the correct role in the second, roughly equivalent to the performance when assigning roles to constituents identified by hand."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "Our preliminary system is able to automatically label semantic roles with fairly high accuracy, indicating promise for applications in various natural language tasks.",
+        "Lexical statistics computed on constituent head words were found to be the most important of the features used.",
+        "While lexical statistics are quite accurate on the data covered by observations in the training set, the sparsity of the data when conditioned on lexical items meant that combining features was the key to high overall performance.",
+        "While the combined system was far more accurate than any feature",
+        "obtained using P(f elpath) with threshold at .5.",
+        "A total of 7681 constituents were identified as FEs, 8167 FEs were present in hand annotations, of which matching parse constituents were present for 7053 (86%).",
+        "taken alone, the specific method of combination used was less important.",
+        "We plan to continue this work by integrating semantic role identification with parsing, by bootstrapping the system on larger, and more representative, amounts of data, and by attempting to generalize from the set of predicates chosen by FrameNet for annotation to general text."
+      ]
+    }
+  ]
+}

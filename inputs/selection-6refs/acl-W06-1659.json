@@ -1,0 +1,285 @@
+{
+  "info": {
+    "authors": [
+      "Hany Hassan",
+      "Ahmed Hassan",
+      "Ossama Emam"
+    ],
+    "book": "Conference on Empirical Methods in Natural Language Processing",
+    "id": "acl-W06-1659",
+    "title": "Unsupervised Information Extraction Approach Using Graph Mutual Reinforcement",
+    "url": "https://aclweb.org/anthology/W06-1659",
+    "year": 2006
+  },
+  "references": [
+    "acl-N04-1001",
+    "acl-N04-3012",
+    "acl-P04-1053",
+    "acl-P04-3022",
+    "acl-P94-1019",
+    "acl-W02-1028"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Information Extraction (IE) is the task of extracting knowledge from unstructured text.",
+        "We present a novel unsupervised approach for information extraction based on graph mutual reinforcement.",
+        "The proposed approach does not require any seed patterns or examples.",
+        "Instead, it depends on redundancy in large data sets and graph based mutual reinforcement to induce generalized “extraction patterns”.",
+        "The proposed approach has been used to acquire extraction patterns for the ACE (Automatic Content Extraction) Relation Detection and Characterization (RDC) task.",
+        "ACE RDC is considered a hard task in information extraction due to the absence of large amounts of training data and inconsistencies in the available data.",
+        "The proposed approach achieves superior performance which could be compared to supervised techniques with reasonable training data."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "In this paper we propose a novel, and completely unsupervised approach for information extraction.",
+        "We present a general technique; however we focus on relation extraction as an important task of Information Extraction.",
+        "The approach depends on constructing generalized extraction patterns, which could match many instances, and deploys graph based mutual reinforcement to weight the importance of these patterns.",
+        "The mutual reinforcement is used to automatically identify the most informative patterns, where patterns that match many instances tend to be correct.",
+        "Similarly, instances matched by many patterns tend to be correct.",
+        "The intuition is that large unsupervised data is redundant, i.e. different instances of information could be found many times in different contexts and by different representation.",
+        "The problem can therefore be seen as hubs (instances) and authorities (patterns) problem which can be solved using the Hypertext Induced Topic Selection (HITS) algorithm (Kleinberg, 1998).",
+        "HITS is an algorithmic formulation of the notion of authority in web pages link analysis, based on a relationship between a set of relevant “authoritative pages” and a set of “hub pages”.",
+        "The HITS algorithm benefits from the following observation: when a page (hub) links to another page (authority), the former confers authority over the latter.",
+        "By analogy to the authoritative web pages problem, we could represent the patterns as authorities and instances as hubs, and use mutual reinforcement between patterns and instances to weight the most authoritative patterns.",
+        "Highly weighted patterns are then used in extracting information.",
+        "The proposed approach does not need any seeds or examples.",
+        "Human involvement is only needed in determining the entities of interest; the entities among which we are seeking relations.",
+        "The paper proceeds as follows: in Section 2 we discuss previous work followed by a brief definition of our general notation in Section 3.",
+        "A detailed description of the proposed approach then follows in Section 4.",
+        "Section 5 discusses the application of the proposed approach to the prob",
+        "lem of detecting semantic relations from text.",
+        "Section 6 discusses experimental results while the conclusion is presented in Section 7."
+      ]
+    },
+    {
+      "heading": "2 Previous Work",
+      "text": [
+        "Most of the previous work on Information Extraction (IE) focused on supervised learning.",
+        "Relation Detection and Characterization (RDC) was introduced in the Automatic Content Extraction Program (ACE) (ACE, 2004).",
+        "The approaches proposed to the ACE RDC task such as kernel methods (Zelenko et al., 2002) and Maximum Entropy methods (Kambhatla, 2004) required the availability of large set of human annotated corpora which are tagged with relation instances.",
+        "However human annotated instances are limited, expensive, and time consuming to obtain, due to the lack of experienced human annotators and the low inter-annotator agreements.",
+        "Some previous work adopted weakly supervised or unsupervised learning approaches.",
+        "These approaches have the advantage of not needing large tagged corpora but need seed examples or seed extraction patterns.",
+        "The major drawback of these approaches is their dependency on seed examples or seed patterns which may lead to limited generalization due to dependency on handcrafted examples.",
+        "Some of these approaches are briefed here: (Brin,98) presented an approach for extracting the authorship information as found in books description on the World Wide Web.",
+        "This technique is based on dual iterative pattern relation extraction wherein a relation and pattern set is iteratively constructed.",
+        "This approach has two major drawbacks: the use of handcrafted seed examples to extract more examples similar to these handcrafted seed examples and the use of a lexicon as the main source for extracting information.",
+        "(Blum and Mitchell, 1998) proposed an approach based on co-training that uses unlabeled data in a particular setting.",
+        "They exploit the fact that, for some problems, each example can be described by multiple representations.",
+        "(Riloff & Jones, 1999) presented the Meta-Bootstrapping algorithm that uses an unannotated training data set and a set of seeds to learn a dictionary of extraction patterns and a domain specific semantic lexicon.",
+        "Other works tried to exploit the duality of patterns and their extractions for the purpose of inferring the semantic class of words like (Thelen & Riloff, 2002) and (Lin et al., 2003).",
+        "(Muslea et al., 1999) introduced an inductive algorithm to generate extraction rules based on user labeled training examples.",
+        "This approach suffers from the labeled data bottleneck.",
+        "(Agichtein et.",
+        "al, 2000) presented an approach using seed examples to generate initial patterns and to iteratively obtain further patterns.",
+        "Then ad-hoc measures were deployed to estimate the relevancy of the patterns that have been newly obtained.",
+        "The major drawbacks of this approach are: its dependency on seed examples leads to limited capability of generalization, and the estimation of patterns relevancy requires the deployment of ad-hoc measures.",
+        "(Hasegawa et.",
+        "al.",
+        "2004) introduced unsupervised approach for relation extraction depending on clustering context words between named entities; this approach depends on ad-hoc context similarity between phrases in the context and focused on certain types of relations.",
+        "(Etzioni et al., 2005) proposed a system for building lists of named entities found on the web.",
+        "Their system uses a set of eight domain-independent extraction patterns to generate candidate facts.",
+        "All approaches, proposed so far, suffer from either requiring large amount of labeled data or the dependency on seed patterns (or examples) that result in limited generalization."
+      ]
+    },
+    {
+      "heading": "3 General Notation",
+      "text": [
+        "In graph theory, a graph is a set of objects called vertices joined by links called edges.",
+        "A bipartite graph, also called a bigraph, is a special graph where the set of vertices can be divided into two disjoint sets with no two vertices of the same set sharing an edge.",
+        "The Hypertext Induced Topic Selection (HITS) algorithm is an algorithm for rating, and therefore ranking, web pages.",
+        "The HITS algorithm makes use of the following observation: when a page (hub) links to another page (authority), the former confers authority over the latter.",
+        "HITS uses two values for each page, the \"authority value\" and the \"hub value\".",
+        "\"Authority value\" and \"hub value\" are defined in terms of one another in a mutual recursion.",
+        "An authority value is computed as the sum of the scaled hub values that point to that authority.",
+        "A hub value is the sum of the scaled authority values of the authorities it points to.",
+        "A template, as we define for this work, is a sequence of generic forms that could generalize",
+        "over the given instances.",
+        "An example template is:",
+        "This template could match the sentence: “France’s President Jacque Chirac...”.",
+        "This template is derived from the representation of the Named Entity tags, Part-of-Speech (POS) tags and semantic tags.",
+        "The choice of the template representation here is for illustration purpose only; any combination of tags, representations and tagging styles might be used.",
+        "A pattern is more specific than a template.",
+        "A pattern specifies the role played by the tags (first entity, second entity, or relation).",
+        "An example of a pattern is:",
+        "This pattern indicates that the word(s) with the tag GPE in the sentence represents the second entity (Entity 2) in the relation, while the word(s) tagged PERSON represents the first entity (Entity 1) in this relation, the “+” symbol means that the (PERSON) entity is repetitive (i.e. may consist of several tokens).",
+        "A tuple, in our notation during this paper, is the result of the application of a pattern to unstructured text.",
+        "In the above example, one result of applying the pattern to some raw text is the following tuple:"
+      ]
+    },
+    {
+      "heading": "4 The Approach",
+      "text": [
+        "The unsupervised graph-based mutual reinforcement approach, we propose, depends on the construction of generalized “extraction patterns” that could match many instances.",
+        "The patterns are then weighted according to their importance by deploying graph based mutual reinforcement techniques.",
+        "This duality in patterns and extracted information (tuples) could be stated that patterns could match different tuples, and tuples in turn could be matched by different patterns.",
+        "The proposed approach is composed of two main steps namely, initial patterns construction and pattern weighting or induction.",
+        "Both steps are detailed in the next subsections."
+      ]
+    },
+    {
+      "heading": "4.1 Initial Patterns Construction",
+      "text": [
+        "As shown in Figure 1, several syntactic, lexical, and semantic analyzers could be applied to the unstructured text.",
+        "The resulting analyses could be employed in the construction of extraction patterns.",
+        "It is worth mentioning that the proposed approach is general enough to accommodate any pattern design; the introduced pattern design is for illustration purposes only.",
+        "American vice President Al Gore said today...",
+        "Initially, we need to start with some templates and patterns to proceed with the induction process.",
+        "Relatively large amount of text data is tagged with different taggers to produce the previously mentioned patterns styles.",
+        "An n-gram language model is built on this data and used to construct weighted finite state machines.",
+        "Paths with low cost (high language model probabilities) are chosen to construct the initial set of templates; the intuition is that paths with low cost (high probability) are frequent and could represent potential candidate patterns.",
+        "The resulting initial set of templates is applied to a very large text data to produce all possible patterns.",
+        "The number of candidate initial patterns could be reduced significantly by specifying the candidate types of entities; for example we might specify that the first entity could be PEROSN or PEOPLE while the second entity could be ORGANIZATION, LOCATION, COUNTRY and etc...",
+        "The candidate patterns are then applied to the tagged stream and the unstructured text to collect a set of patterns and matched tuples pairs.",
+        "The following procedure briefs the Initial Pattern Construction Step:",
+        "• Select a random set of text data.",
+        "• Apply various taggers on text data and construct templates style.",
+        "• Build n-gram language model on template style data.",
+        "• Construct weighted finite state machines from the n-gram language model.",
+        "• Choose n-best paths in the finite state machines.",
+        "• Use best paths as initial templates.",
+        "• Apply initial templates on large text data.",
+        "• Construct initial patterns and associated tu",
+        "ples sets."
+      ]
+    },
+    {
+      "heading": "4.2 Pattern Induction",
+      "text": [
+        "The inherent duality in the patterns and tuples relation suggests that the problem could be interpreted as a hub authority problem.",
+        "This problem could be solved by applying the HITS algorithm to iteratively assign authority and hub scores to patterns and tuples respectively."
+      ]
+    },
+    {
+      "heading": "Patterns Tuples",
+      "text": [
+        "Patterns and tuples are represented by a bipartite graph as illustrated in figure 2.",
+        "Each pattern or tuple is represented by a node in the graph.",
+        "Edges represent matching between patterns and tuples.",
+        "The pattern induction problem can be formulated as follows: Given a very large set of data D containing a large set of patterns P which match a large set of tuples T, the problem is to ~ identify P , the set of patterns that match the set ~ of the most correct tuples T .",
+        "The intuition is that the tuples matched by many different patterns tend to be correct and the patterns matching many different tuples tend to be good patterns.",
+        "In other words; we want to choose, among the large space of patterns in the data, the most informative, highest confidence patterns that could identify correct tuples; i.e. choosing the most “authoritative ” patterns in analogy with the hub au~ thority problem.",
+        "However, both P known.",
+        "The induction process proceeds as follows: each pattern p in P is associated with a numerical authority weight av which expresses how many tuples match that pattern.",
+        "Similarly, each tuple t in T has a numerical hub weight ht which expresses how many patterns were matched by this tuple.",
+        "The weights are calculated iteratively as follows:",
+        "where T(p) is the set of tuples matched by p, P(t) is the set of patterns matching t, a(i+1)(p) is the authoritative weight of pattern p at iteration (i + 1), and h(i+1)(t) is the hub weight of tuple t",
+        "Highly weighted patterns are identified and used for extracting relations."
+      ]
+    },
+    {
+      "heading": "4.3 Tuple Clustering",
+      "text": [
+        "The tuple space should be reduced to allow more matching between pattern-tuple pairs.",
+        "This space reduction could be accomplished by seeking a tuple similarity measure, and constructing a weighted undirected graph of tuples.",
+        "Two tuples are linked with an edge if their similarity measure exceeds a certain threshold.",
+        "Graph clustering algorithms could be deployed to partition the graph into a set of homogeneous communities or clusters.",
+        "To reduce the space of tuples, we seek a matching criterion that group similar tuples together.",
+        "Using WordNet, we can measure the semantic similarity or relatedness between a pair of concepts (or word senses), and by extension, between a pair of sentences.",
+        "We use the similarity",
+        "measure described in (Wu and Palmer, 1994) which finds the path length to the root node from the least common subsumer (LCS) of the two word senses which is the most specific word sense they share as an ancestor.",
+        "The similarity score of two tuples, ST, is calculated as follows: where SE1, and SE2 are the similarity scores of the first entities in the two tuples, and their second entitles respectively.",
+        "The tuple matching procedure assigns a similarity measure to each pair of tuples in the dataset.",
+        "Using this measure we can construct an undirected graph G. The vertices of G are the tuples.",
+        "Two vertices are connected with an edge if the similarity measure between their underlying tuples exceeds a certain threshold.",
+        "It was noticed that the constructed graph consists of a set of semi isolated groups as shown in figure 3.",
+        "Those groups have a very large number of intergroup edges and meanwhile a rather small number of intra-group edges.",
+        "This implies that using a graph clustering algorithm would eliminate those weak intra-group edges and produce separate groups or clusters representing similar tuples.",
+        "We used Markov Cluster Algorithm (MCL) for graph clustering (Dongen, 2000).",
+        "MCL is a fast and scalable unsupervised clustering algorithm for graphs based on simulation of stochastic flow."
+      ]
+    },
+    {
+      "heading": "Before Clustering After Clustering",
+      "text": [
+        "An example of a couple of tuples that could be matched by this technique is:",
+        "A bipartite graph of patterns and tuple clusters is constructed.",
+        "Weights are assigned to patterns and tuple clusters by iteratively applying the HITS algorithm and the highly ranked patterns are then used for relation extraction."
+      ]
+    },
+    {
+      "heading": "5 Experimental Setup",
+      "text": []
+    },
+    {
+      "heading": "5.1 ACE Relation Detection and Characterization",
+      "text": [
+        "In this section, we describe Automatic Content Extraction (ACE).",
+        "ACE is an evaluation conducted by NIST to measure Entity Detection and Tracking (EDT) and Relation Detection and Characterization (RDC).",
+        "The EDT task is concerned with the detection of mentions of entities, and grouping them together by identifying their coreference.",
+        "The RDC task detects relations between entities identified by the EDT task.",
+        "We choose the RDC task to show the performance of the graph based unsupervised approach we propose.",
+        "To this end we need to introduce the notion of mentions and entities.",
+        "Mentions are any instances of textual references to objects like people, organizations, geopolitical entities (countries, cities ...etc), locations, or facilities.",
+        "On the other hand, entities are objects containing all mentions to the same object.",
+        "Here, we present some examples of ACE entities and relations: Spain’s Interior Minister announced this evening the arrest of separatist organization Eta’s presumed leader Ignacio Garcia Arregui.",
+        "Arregui, who is considered to be the Eta organization’s top man, was arrested at 17h45 Greenwich.",
+        "The Spanish judiciary suspects Arregui of ordering a failed attack on King Juan Carlos in 1995.",
+        "In this fragment, all the underlined phrases are mentions to “Eta” organization, or to “Garcia Arregui”.",
+        "There is a management relation between “leader” which references to “Garcia Arregui” and “Eta”."
+      ]
+    },
+    {
+      "heading": "5.2 Patterns Construction and Induction",
+      "text": [
+        "We used the LDC English Gigaword Corpus, AFE source from January to August 1996 as a source for unstructured text.",
+        "This provides a total of 99475 documents containing 36 M words.",
+        "In the performed experiments, we focus on two types of relations EMP-ORG relations and GPE-AFF relations which represent almost 50% of all relations in RDC – ACE task.",
+        "POS (part of speech) tagger and mention tagger were applied to the data, the used pattern design consists of a mix between the part of speech (POS) tags and the mention tags for the words in the unsupervised data.",
+        "We use the mention tag, if it exists; otherwise we use the part of speech tag.",
+        "An example of the analyzed text and the presumed associated pattern is shown: Text: Eta’s presumed leader Arregui ...",
+        "An n-gram language model, 5-gram model and back off to lower order n-grams, was built on the data tagged with the described patterns’ style.",
+        "Weighted finite states machines were constructed with the language model probabilities.",
+        "The n-best paths, 20 k paths, were identified and deployed as the initial template set.",
+        "Sequences that do not contain the entities of interest, and hence cannot represent relations, were automatically filtered out.",
+        "This resulted in an initial templates set of around 3000 element.",
+        "This initial templates set was applied on the text data to establish initial patterns and tuples pairs.",
+        "Graph based mutual reinforcement technique was deployed with 10 iterations on the patterns and tuples pairs to weight the patterns.",
+        "We conducted two groups of experiments, the first with simple syntactic tuple matching, and the second with semantic tuple clustering as described in section 4.3"
+      ]
+    },
+    {
+      "heading": "6 Results and Discussion",
+      "text": [
+        "We compare our results to a state-of-the-art supervised system similar to the system described in (Kambhatla, 2004).",
+        "Although it is unfair to make a comparison between a supervised system and a completely unsupervised system, we chose to make this comparison to test the performance of the proposed unsupervised approach on a real task with defined test set and state-of-the-art performance.",
+        "The supervised system was trained on 145 K words which contain 2368 instances of the two relation types we are considering.",
+        "The system performance is measured using precision, recall and F-Measure with various amounts of induced patterns.",
+        "Table 1 presents the precision, recall and F-measure for the two relations using the presented approach with the utilization of different amount of highly weighted patterns.",
+        "Table 2 presents the same results using semantic tuple matching and clustering, as described in section 4.3.",
+        "Best F-Measure is achieved using relatively small number of induced patterns (400 and 500 patterns) while using more patterns increases the recall but degrades the precision.",
+        "Table 2 indicates that the semantic clustering of tuples did not provide significant improve",
+        "ment; although better performance was achieved with less number of patterns (400 patterns).",
+        "We think that the deployed similarity measure and it needs further investigation to figure out the reason for that.",
+        "Figure 4 presents the comparison between the proposed unsupervised systems and the reference supervised system.",
+        "The unsupervised systems achieves good results even in comparison to a state-of-the-art supervised system.",
+        "Sample patterns and corresponding matching text are introduced in Table 3 and Table 4.",
+        "Table"
+      ]
+    },
+    {
+      "heading": "7 Conclusion and Future Work",
+      "text": [
+        "In this work, a general framework for unsupervised information extraction based on mutual reinforcement in graphs has been introduced.",
+        "We construct generalized extraction patterns and deploy graph based mutual reinforcement to automatically identify the most informative patterns.",
+        "We provide motivation for our approach from a graph theory and graph link analysis perspective.",
+        "Experimental results have been presented supporting the applicability of the proposed approach to ACE Relation Detection and Characterization (RDC) task, demonstrating its applicability to hard information extraction problems.",
+        "The proposed approach achieves remarkable results comparable to a state-of-the-art supervised system, achieving 51.94 F-measure compared to 59.96 F-measure of the state-of-the-art supervised system which requires huge amount of human annotated data.",
+        "The proposed approach represents a powerful unsupervised technique for information extraction in general and particularly for relations extraction that requires no seed patterns or examples and achieves significant performance.",
+        "In our future work, we plan to focus on generalizing the approach for targeting more NLP problems."
+      ]
+    },
+    {
+      "heading": "8 Acknowledgements",
+      "text": [
+        "We would like to thank Salim Roukos for his invaluable suggestions and support.",
+        "We would also like to thank Hala Mostafa for helping with the early investigation of this work.",
+        "Finally we would like to thank the anonymous reviewers for their constructive criticism and helpful comments."
+      ]
+    }
+  ]
+}

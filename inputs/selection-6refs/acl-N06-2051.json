@@ -1,0 +1,129 @@
+{
+  "info": {
+    "authors": [
+      "Andreas Zollmann",
+      "Ashish Venugopal",
+      "Stephan Vogel"
+    ],
+    "book": "Human Language Technology Conference and Meeting of the North American Association for Computational Linguistics – Short Papers",
+    "id": "acl-N06-2051",
+    "title": "Bridging the Inflection Morphology Gap for Arabic Statistical Machine Translation",
+    "url": "https://aclweb.org/anthology/N06-2051",
+    "year": 2006
+  },
+  "references": [
+    "acl-C00-2162",
+    "acl-C04-1045",
+    "acl-J04-2003",
+    "acl-J93-2003",
+    "acl-N04-4015",
+    "acl-P02-1040",
+    "acl-P03-1051"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Statistical machine translation (SMT) is based on the ability to effectively learn word and phrase relationships from parallel corpora, a process which is considerably more difficult when the extent of morphological expression differs significantly across the source and target languages.",
+        "We present techniques that select appropriate word segmentations in the morphologically rich source language based on contextual relationships in the target language.",
+        "Our results take advantage of existing word level morphological analysis components to improve translation quality above state-of-the-art on a limited-data Arabic to English speech translation task."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "The problem of translating from a language exhibiting rich inflectional morphology to a language exhibiting relatively poor inflectional morphology presents several challenges to the existing components of the statistical machine translation (SMT) process.",
+        "This inflection gap causes an abundance of surface word forms 1 in the source language compared with relatively few forms in the target language.",
+        "This mismatch aggravates several issues",
+        "found in natural language processing: more unknown words forms in unseen data, more words occurring only once, more distinct words and lower token-to-type ratios (mean number of occurrences over all distinct words) in the source language than in the target language.",
+        "Lexical relationships under the standard IBM models (Brown et al., 1993) do not account for many-to-many mappings, and phrase extraction relies heavily on the accuracy of the IBM word-to-word alignment.",
+        "In this work, we propose an approach to bridge the inflectional gap that addresses the issues described above through a series of preprocessing steps based on the Buckwalter Arabic Morphological Analyzer (BAMA) tool (Buckwalter, 2004).",
+        "While (Lee et al., 2003) develop accurate segmentation models of Arabic surface word forms using manually segmented data, we rely instead on the translated context in the target language, leveraging the manually constructed lexical gloss from BAMA to select the appropriate segmented sense for each Arabic source word.",
+        "Our technique, applied as preprocessing to the source corpus, splits and normalizes surface words based on the target sentence context.",
+        "In contrast to (Popovic and Ney, 2004) and (Nießen and Ney, 2004), we do not modify the IBM models, and we leave reordering effects to the decoder.",
+        "Statistically significant improvements (Zhang and Vogel, 2004) in BLEU and NIST translation score over a lightly stemmed baseline are reported on the available and well known BTEC IWSLT’05 Arabic-English corpus (Eck and Hori, 2005)."
+      ]
+    },
+    {
+      "heading": "2 Arabic Morphology in Recent Work",
+      "text": [
+        "Arabic-to-English machine translation exemplifies some of the issues caused by the inflection gap.",
+        "Refer to (Buckwalter, 2005) and (Larkey et al., 2002) for examples that highlight morphological inflection for a simple Modern Standard Arabic (MSA) word and basic stemming operations that we use as our baseline system.",
+        "(Nießen and Ney, 2000) tackle the inflection gap for German-to-English word alignment by performing a series of morphological operations on the German text.",
+        "They fragment words based on a full morphological analysis of the sentence, but need to use domain specific and hand written rules to deal with ambiguous fragmentation.",
+        "(Nießen and Ney, 2004) also extend the corpus by annotating each source word with morphological information and building a hierarchical lexicon.",
+        "The experimental results show dramatic improvements from sentence-level restructuring (question inversion, separated verb prefixes and merging phrases), but limited improvement from the hierarchical lexicon, especially as the size of the training data increases.",
+        "We conduct our morphological analysis at the word level, using Buckwalter Arabic Morphological Analyzer (BAMA) version 2.0 (Buckwalter, 2004).",
+        "BAMA analyzes a given surface word, returning a set of potential segmentations (order of a dozen) for the source word into prefixes, stems, and suffixes.",
+        "Our techniques select the appropriate splitting from that set by taking into account the target sides (full sentences) of that word’s occurrences in the training corpus.",
+        "We now describe each splitting technique that we apply.",
+        "2.1 BAMA: Simple fragment splitting We begin by simply replacing each Arabic word with the fragments representing the first of the possible splittings returned by the BAMA tool.",
+        "BAMA uses simple word-based heuristics to rank the splitting alternatives."
+      ]
+    },
+    {
+      "heading": "2.2 CONTEXT: Single Sense selection",
+      "text": [
+        "In the step CONTEXT, we take advantage of the gloss information provided in BAMA’s lexicon.",
+        "Each potential splitting corresponds to a particular choice of prefix, stem and suffix, all of which exist in the manually constructed lexicon, along with a set of possible translations (glosses) for each fragment.",
+        "We select a fragmentation (choice of splitting for the source word) whose corresponding glosses have the most target side matches in the parallel translation (of the full sentence).",
+        "The choice of fragmentation is saved and used for all occurrences of the surface form word in training and testing, introducing context sensitivity without parsing solutions.",
+        "In case of unseen words during testing, we segment it simply using the first alternative from the BAMA tool.",
+        "This allows us to still translate an unseen test word correctly even if the surface form was never seen during training."
+      ]
+    },
+    {
+      "heading": "2.3 CORRMATCH: Correspondence matching",
+      "text": [
+        "The Arabic language often encodes linguistic information within the surface word form that is not present in English.",
+        "Word fragments that represent this missing information are misleading in the translation process unless explicitly aligned to the NULL word on the target side.",
+        "In this step we explicitly remove fragments that correspond to lexical information that is not represented in English.",
+        "While (Lee, 2004) builds part of speech models to recognize such elements, we use the fact that their corresponding English translations in the BAMA lexicon are empty.",
+        "Examples of such fragments are case and gender markers.",
+        "As an example of CORRMATCH removal, we present the Arabic sentence ” h‘*A lA ya zAl u gayor naZiyf ” (after BAMA only) which becomes ”h‘*A lA ya zAl gayor naZiyf ”after the CORRMATCH stage.",
+        "The ”u” has been removed."
+      ]
+    },
+    {
+      "heading": "3 Experimental Framework",
+      "text": [
+        "We evaluate the impact of inflectional splitting on the BTEC (Takezawa et al., 2002) IWSLT05 Arabic language data track.",
+        "The “Supplied” data track includes a 20K Arabic/English sentence pair training set, as well as a development (“DevSet”) and test (“Test05”) set of 500 Arabic sentences each and 16 reference translations per Arabic sentence.",
+        "Details regarding the IWSLT evaluation criteria and data topic and collection methods are available in (Eck and Hori, 2005).",
+        "We also evaluate on test and development data randomly sampled from the complete supplied dev and test data, due to considera",
+        "tions noted by (Josep M.Crego, 2005) regarding the similarity of the development and test data sets."
+      ]
+    },
+    {
+      "heading": "3.1 System description",
+      "text": [
+        "Translation experiments were conducted using the (Vogel et al., 2003) system with reordering and future cost estimation.",
+        "We trained translation parameters for 10 scores (language model, word and phrase count, and 6 translation model scores from (Vogel, 2005) ) with Minimum Error Rate training on the development set.",
+        "We optimized separately for both the NIST (Doddington, 2002) and the BLEU metrics (Papineni et al., 2002)."
+      ]
+    },
+    {
+      "heading": "4 Translation Results",
+      "text": [
+        "Table 1 and 2 shows the results of each stage of inflectional splitting on the BLEU and NIST metrics.",
+        "Basic orthographic normalization serves as a baseline (merging all Alif, tar marbuta, ee forms to the base form).",
+        "The test set NIST scores show steady improvements of up to 5 percent relative, as more sophisticated splitting techniques are used, ie BAMA+CONTEXT+CORRMATCH.",
+        "These improvements are statistically significant over the baseline in both metrics as measured by the techniques in (Zhang and Vogel, 2004).",
+        "Our NIST results for all the final stages of inflectional splitting would place us above the top NIST scores from the ISWLT evaluation on the supplied test set.2 On both DevSet/Test05 and the randomly split data, we see more dramatic improvements in the NIST scores than in BLEU.",
+        "This might be due to the NIST metric’s sensitivity to correctly translating certain high gain words in the test corpus.",
+        "Inflectional splitting techniques that cause previously unknown surface form words to be translated correctly after splitting can significantly impact the overall score."
+      ]
+    },
+    {
+      "heading": "5 Conclusion and Future Work",
+      "text": [
+        "This work shows the potential for significant improvements in machine translation quality by directly bridging the inflectional gap across language pairs.",
+        "Our method takes advantage of source and",
+        "target language context when conducting morphological analysis of each surface word form, while avoiding complex parsing engines or refinements to the alignment training process.",
+        "Our results are presented on moderately sized corpora rather than the scarce resource domain that has been traditionally employed to highlight the impact of detailed morphological analysis.",
+        "By showing the impact of simple processing steps we encourage the creation of simple word and gloss level analysis tools for new languages and show that small investments in this direction (compared to high octane context sensitive parsing tools) can yield dramatic improvements, especially when rapid development of machine translation tools becomes increasingly relevant to the research community.",
+        "While our work focused on processing the morphologically rich language and then translating ”down” into the morphologically poor language, we plan to use the analysis tools developed here to model the reverse translation process as well, the harder task of translating ”up” into a highly inflected space."
+      ]
+    }
+  ]
+}

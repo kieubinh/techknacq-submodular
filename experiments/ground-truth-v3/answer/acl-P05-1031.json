@@ -1,0 +1,252 @@
+{
+  "info": {
+    "authors": [
+      "David Schlangen"
+    ],
+    "book": "Annual Meeting of the Association for Computational Linguistics",
+    "id": "acl-P05-1031",
+    "title": "Towards Finding and Fixing Fragments: Using ML to Identify Non-Sentential Utterances and Their Antecedents in Multi-Party Dialogue",
+    "url": "https://aclweb.org/anthology/P05-1031",
+    "year": 2005
+  },
+  "references": [
+    "acl-C04-1035",
+    "acl-J96-1002",
+    "acl-J96-2004",
+    "acl-P03-1022",
+    "acl-P04-1019",
+    "acl-W02-0203"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Non-sentential utterances (e.g., short-answers as in “Who came to the party?” – “Peter.”) are pervasive in dialogue.",
+        "As with other forms of ellipsis, the elided material is typically present in the context (e.g., the question that a short answer answers).",
+        "We present a machine learning approach to the novel task of identifying fragments and their antecedents in multi-party dialogue.",
+        "We compare the performance of several learning algorithms, using a mixture of structural and lexical features, and show that the task of identifying antecedents given a fragment can be learnt successfully (f (0.5) = .76); we discuss why the task of identifying fragments is harder (f (0.5) = .41) and finally report on a combined task (f (0.5) = .38)."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Non-sentential utterances (NSUs) as in (1) are pervasive in dialogue: recent studies put the proportion of such utterances at around 10% across different types of dialogue (Fern´andez and Ginzburg, 2002; Schlangen and Lascarides, 2003).",
+        "(1) a.",
+        "A: Who came to the party?",
+        "B: Peter.",
+        "(= Peter came to the party.)",
+        "b.",
+        "A: I talked to Peter.",
+        "B: Peter Miller?",
+        "(= Was it Peter Miller you talked to?)",
+        "c. A: Who was this?",
+        "Peter Miller?",
+        "(= Was this Peter Miller?",
+        "Such utterances pose an obvious problem for natural language processing applications, namely that the intended information (in (1-a)-B a proposition) has to be recovered from the uttered information (here, an NP meaning) with the help of information from the context.",
+        "While some systems that automatically resolve such fragments have recently been developed (Schlangen and Lascarides, 2002; Fern´andez et al., 2004a), they have the drawback that they require “deep” linguistic processing (full parses, and also information about discourse structure) and hence are not very robust.",
+        "We have defined a well-defined subtask of this problem, namely identifying fragments (certain kinds of NSUs, see below) and their antecedents (in multi-party dialogue, in our case), and present a novel machine learning approach to it, which we hypothesise will be useful for tasks such as automatic meeting summarisation.",
+        "The remainder of this paper is structured as follows.",
+        "In the next section we further specify the task and different possible approaches to it.",
+        "We then describe the corpus we used, some of its characteristics with respect to fragments, and the features we extracted from it for machine learning.",
+        "Section 4 describes our experimental settings and reports the results.",
+        "After a comparison to related work in Section 5, we close with a conclusion and some further 1(Zechner and Lavie, 2001) describe a related task, linking questions and answers, and evaluate its usefulness in the context of automatic summarisation; see Section 5."
+      ]
+    },
+    {
+      "heading": "2 The Tasks",
+      "text": [
+        "As we said in the introduction, the main task we want to tackle is to align (certain kinds of) NSUs and their antecedents.",
+        "Now, what characterises this kind of NSU, and what are their antecedents?",
+        "In the examples from the introduction, the NSUs can be resolved simply by looking at the previous utterance, which provides the material that is elided in them.",
+        "In reality, however, the situation is not that simple, for three reasons: First, it is of course not always the previous utterance that provides this material (as illustrated by (2), where utterance 7 is resolved by utterance 1); in our data the average distance in fact is 2.5 utterances (see below).",
+        "(2) 1 B: [... ] What else should be done ?",
+        "2 C: More intelligence.",
+        "3 D: More good intelligence.",
+        "4 B: Right.",
+        "5 C: Intelligent intelligence.",
+        "6 Better application of face and voice 7 recognition .",
+        "More [ ... ] intermingling of the agencies, you know.",
+        "[ from NSI 20011115 ]",
+        "Second, it’s not even necessarily a single utterance that does this–it might very well be a span of utterances, or something that has to be inferred from such spans (parallel to the situation with pronouns, as discussed empirically e.g. in (Strube and M¨uller, 2003)).",
+        "(3) shows an example where a new topic is broached by using an NSU.",
+        "It is possible to analyse this as an answer to the question under discussion “what shall we organise for the party?”, as (Fern´andez et al., 2004a) would do; a question, however, which is only implicitly posed by the previous discourse, and hence this is an example of an NSU that does not have an overt antecedent.",
+        "(3) [after discussing a number of different topics] 1 D: So, equipment.",
+        "2 I can bring [...] [ from NSI 20011211]",
+        "Lastly, not all NSUs should be analysed as being the result of ellipsis: backchannels for example (like the “Right” in utterance 4 in (2) above) seem to directly fulfil their discourse function without any need for reconstruction.2 To keep matters simple, we concentrate in this paper on NSUs of a certain kind, namely those that a) do not predominantly have a discourse-management function (like for example backchannels), but rather convey messages (i.e., propositions, questions or requests) – this is what distinguishes fragments from other NSUs – and b) have individual utterances as antecedents.",
+        "In the terminology of (Schlangen and Lascarides, 2003), fragments of the latter type are resolution-via-identity-fragments, where the elided information can be identified in the context and need not be inferred (as opposed to resolution-via-inference-fragments).",
+        "Choosing only this special kind of NSUs poses the question whether this subgroup is distinguished from the general group of fragments by criteria that can be learnt; we will return to this below when we analyse the errors made by the classifier.",
+        "We have defined two approaches to this task.",
+        "One is to split the task into two sub-tasks: identifying fragments in a corpus, and identifying antecedents for fragments.",
+        "These steps are naturally performed sequentially to handle our main task, but they also allow the fragment classification decision to come from another source – a language-model used in an automatic speech recognition system, for example – and to use only the antecedent-classifier.",
+        "The other approach is to do both at the same time, i.e. to classify pairs of utterances into those that combine a fragment and its antecedent and those that don’t.",
+        "We report the results of our experiments with these tasks below, after describing the data we used."
+      ]
+    },
+    {
+      "heading": "3 Corpus, Features, and Data Creation",
+      "text": []
+    },
+    {
+      "heading": "3.1 Corpus",
+      "text": [
+        "As material we have used six transcripts from the “NIST Meeting Room Pilot Corpus” (Garofolo et al., 2004), a corpus of recordings and transcriptions of multi-party meetings.3 Those six transcripts con",
+        "sist of 5,999 utterances, among which we identified 307 fragment–antecedent pairs.",
+        "4,5 With 5.1% this is a lower rate than that reported for NSUs in other corpora (see above); but note that as explained above, we are actually only looking at a subclass of all NSUs here.",
+        "For these pairs we also annotated some more attributes, which are summarised in Table 1.",
+        "Note that the average distance is slightly higher than that reported in (Schlangen and Lascarides, 2003) for (2-party) dialogue (1.8); this is presumably due to the presence of more speakers who are able to reply to an utterance.",
+        "Finally, we automatically annotated all utterances with part-of-speech tags, using TreeTagger (Schmid, 1994), which we’ve trained on the switchboard corpus of spoken language (Godfrey et al., 1992), because it contains, just like our corpus, speech disfluencies.6 We now describe the creation of the data we used for training.",
+        "We first describe the datasets for the different tasks, and then the features used to represent the events that are to be classified."
+      ]
+    },
+    {
+      "heading": "3.2 Data Sets",
+      "text": [
+        "Data creation for the fragment-identification task (henceforth simply fragment-task) was straightfor-speakers are discussed below.",
+        "4W e have used the MMAX tool (M¨uller and Strube, 2001)) for the annotation.",
+        "5To test the reliability of the annotation scheme, we had a subset of the data annotated by two annotators and found a satisfactory r-agreement (Carletta, 1996) of r, = 0.81.",
+        "ward: for each utterance, a number of features was derived automatically (see next section) and the correct class (fragment / other) was added.",
+        "(Note that none of the manually annotated attributes were used.)",
+        "This resulted in a file with 5,999 data points for classification.",
+        "Given that there were 307 fragments, this means that in this dataset there is a ratio positives (fragments) vs. negatives (non-fragments) for the classifier of 1:20.",
+        "To address this imbalance, we also ran the experiments with balanced datasets with a ratio of 1:5.",
+        "The other tasks, antecedent-identification (antecedent-task) and antecedent-fragment-identification (combined-task) required the creation of datasets containing pairs.",
+        "For this we created an “accessibility window” going back from each utterance.",
+        "Specifically, we included for each utterance a) all previous utterances of the same speaker from the same turn; and b) the three last utterances of every speaker, but only until one speaker took the turn again and up to a maximum of 6 previous utterances.",
+        "To illustrate this method, given example (2) it would form pairs with utterance 7 as fragment-candidate and all of utterances 6–2, but not 1, because that violates condition b) (it is the second turn of speaker B).",
+        "In the case of (2), this exclusion would be a wrong decision, since 1 is in fact the antecedent for 7.",
+        "In general, however, this dynamic method proved good at capturing as many antecedents as possible while keeping the number of data points manageable.",
+        "It captured 269 antecedent-fragment pairs, which had an average distance of 1.84 utterances.",
+        "The remaining 38 pairs which it missed had an average distance of 7.27 utterances, which means that to capture those we would have had to widen the window considerably.",
+        "E.g., considering all previous 8 utterances would capture an additional 25 pairs, but at the cost of doubling the number of data points.",
+        "We hence chose the approach described here, being aware of the introduction of a certain bias.",
+        "As we have said, we are trying to link utterances, one a fragment, the other its antecedent.",
+        "The notion of utterance is however less well-defined than one might expect, and the segmentation of continuous speech into utterances is a veritable research problem on its own (see e.g. (Traum and Heeman, 1997)).",
+        "Often it is arguable whether a prepositional"
+      ]
+    },
+    {
+      "heading": "Structuralfeatures",
+      "text": [
+        "dis distance a–,Q, in utterances sspk same speaker yes/no",
+        "phrase for example should be analysed as an adjunct (and hence as not being an utterance on its own) or as a fragment.",
+        "In our experiments, we have followed the decision made by the transcribers of the original corpus, since they had information (e.g. about pauses) which was not available to us.",
+        "For the antecedent-task, we include only pairs where β (the second utterance in the pair) is a fragment – since the task is to identify an antecedent for already identified fragments.",
+        "This results in a dataset with 1318 data points (i.e., we created on average 4 pairs per fragment).",
+        "This dataset is sufficiently balanced between positives and negatives, and so we did not create another version of it.",
+        "The data for the combined-task, however, is much bigger, as it contains pairs for all utterances.",
+        "It consists of 26,340 pairs, i.e. a ratio of roughly 1:90.",
+        "For this reason we also used balanced datasets for training, where the ratio was adjusted to 1:25."
+      ]
+    },
+    {
+      "heading": "3.3 Features",
+      "text": [
+        "Table 2 lists the features we have used to represent the utterances.",
+        "(In this table, and in this section, we denote the candidate for being a fragment with β and the candidate for being β’s antecedent with α.)",
+        "We have defined a number of structural features, which give information about the (discourse-)structural relation between α and β.",
+        "The rationale behind choosing them should be clear; i qu for example indicates in a weak way whether there might have been a topic change, and high nspk should presumably make an antecedent relation between α and β less likely.",
+        "We have also used some lexical or utterance-based features, which describe lexical properties of the individual utterances and lexical relations between them which could be relevant for the tasks.",
+        "For example, the presence of a verb in β is presumably predictive for its being a fragment or not, as is the length.",
+        "To capture a possible semantic relationship between the utterances, we defined two features.",
+        "The more direct one, rab, looks at verbatim re-occurrences of nouns from α in β, which occur for example in check-questions as in (4) below.",
+        "(4) A: I saw Peter.",
+        "B: Peter?",
+        "(= Who is this Peter you saw?)",
+        "Less direct semantic relations are intended to be captured by god, the second semantic feature we use.7 It is computed as follows: for each pair (x, y) of nouns from α and β, Google is called (via the Google API) with a query for x, for y, and for x and y together.",
+        "The similarity then is the average ratio of pair vs. individual term:",
+        "We now describe the experiments we performed and their results."
+      ]
+    },
+    {
+      "heading": "4 Experiments and Results",
+      "text": []
+    },
+    {
+      "heading": "4.1 Experimental Setup",
+      "text": [
+        "For the learning experiments, we used three classifiers on all datasets for the the three tasks:",
+        "• SLIPPER (Simple Learner with Iterative Pruning to Produce Error Reduction), (Cohen and Singer, 1999), which is a rule learner which combines the separate-and-conquer approach with confidence-rated boosting.",
+        "It is unique among the classifiers that",
+        "we have used in that it can make use of “set-valued” features, e.g. strings; we have run this learner both with only the features listed above and with the utterances (and POS-tags) as an additional feature.",
+        "• TIMBL (Tilburg Memory-Based Learner), (Daelemans et al., 2003), which implements a memory-based learning algorithm (IB 1) which predicts the class of a test data point by looking at its distance to all examples from the training data, using some distance metric.",
+        "In our experiments, we have used the weighted-overlap method, which assigns weights to all features.",
+        "• MAXENT, Zhang Le’s C++ implementation8 of",
+        "maximum entropy modelling (Berger et al., 1996).",
+        "In our experiments, we used L-BFGS parameter estimation.",
+        "We also implemented a na¨ıve bayes classifier and ran it on the fragment-task, with a dataset consisting only of the strings and POS-tags.",
+        "To determine the contribution of all features, we used an iterative process similar to the one described in (Kohavi and John, 1997; Strube and M¨uller, 2003): we start with training a model using a baseline set of features, and then add each remaining feature individually, recording the gain (w.r.t.",
+        "the f-measure (f (0.5), to be precise)), and choosing the best-performing feature, incrementally until no further gain is recorded.",
+        "All individual training and evaluation-steps are performed using 8-fold cross-validation (given the small number of positive instances, more folds would have made the number of instances in the test set set too small).",
+        "The baselines were as follows: for the fragment-task, we used bvb and lbe as baseline, i.e. we let the classifier know the length of the candidate and whether the candidate contains a verb or not.",
+        "For the antecedent-task we tested a very simple baseline, containing only of one feature, the distance between α and β (d i s ).",
+        "The baseline for the combined-task, finally, was a combination of those two baselines, i.e. bvb+lbe+dis.",
+        "The full feature-set for the fragment-task was lbe, bvb, bpr, nrb, bft, bds (since for this task there was no α to compute features of), for the two other tasks it was the complete set shown in Table 2."
+      ]
+    },
+    {
+      "heading": "4.2 Results",
+      "text": [
+        "The Tables 3–5 show the results of the experiments.",
+        "The entries are roughly sorted by performance of the classifier used; for most of the classifiers and datasets for each task we show the performance for baseline, intermediate feature set(s), and full feature-set, for the rest we only show the best-performing setting.",
+        "We also indicate whether a balanced or unbalanced data set was used.",
+        "I.e., the first three lines in Table 3 report on MaxEnt on a balanced data set for the fragment-task, giving results for the baseline, baseline+n rb+b f t, and the full feature-set.",
+        "We begin with discussing the fragment task.",
+        "As Table 3 shows, the three main classifiers perform roughly equivalently.",
+        "Rebalancing the data, as expected, boosts recall at the cost of precision.",
+        "For all settings (i.e., combinations of data-sets, feature-sets and classifier), except rebalanced maxent, the baseline (verb in β yes/no, and length of β) already has some success in identifying fragments, but adding the remaining features still boosts the performance.",
+        "Having available the string (condition s.s; slipper with set valued features) interestingly does not help SLIPPER much.",
+        "Overall the performance on this task is not great.",
+        "Why is that?",
+        "An analysis of the errors made shows two problems.",
+        "Among the false negatives, there is a high number of fragments like “yeah” and “mhm”, which in their particular context were answers to questions, but that however occur much more often as backchannels (true negatives).",
+        "The classifier, without having information about the context, can of course not distinguish between these cases, and goes for the majority decision.",
+        "Among the false positives, we find utterances that are indeed non-sentential, but for which no antecedent was marked (as in (3) above), i.e., which are not fragments in our narrow sense.",
+        "It seems, thus, that the required distinctions are not ones that can be reliably learnt from looking at the fragments alone.",
+        "The antecedent-task was handled more satisfactorily, as Table 4 shows.",
+        "For this task, a na¨ıve baseline (“always take previous utterance”) preforms relatively well already; however, all classifiers were able to improve on this, with a slight advantage for the maxent model (f (0.5) = 0.76).",
+        "As the entry for MaxEnt shows, adding to the baseline-features",
+        "information about whether a is a question or not already boost the performance considerably.",
+        "An analysis of the predictions of this model then indeed shows that it already captures cases of question and answer pairs quite well.",
+        "Adding the similarity feature god then gives the model information about semantic relatedness, which, as hypothesised, captures elaboration-type relations (as in (1-b) and (1-c) above).",
+        "Structural information (iqu) further improves the model; however, the remaining features only seem to add interfering information, for performance using the full feature-set is worse.",
+        "If one of the problems of the fragment-task was that information about the context is required to distinguish fragments and backchannels, then the hope could be that in the combined-task the classifier would able to capture these cases.",
+        "However, the performance of all classifiers on this task is not satisfactory, as Table 5 shows; in fact, it is even slightly worse than the performance on the fragment task alone.",
+        "We speculate that instead of of cancelling out mistakes in the other part of the task, the two goals (let Q be a fragment, and a a typical antecedent) interfere during optimisation of the rules.",
+        "To summarise, we have shown that the task of identifying the antecedent of a given fragment is learnable, using a feature-set that combines structural and lexical features; in particular, the inclusion of a measure of semantic relatedness, which was computed via queries to an internet search engine, proved helpful.",
+        "The task of identifying (resolution-via-identity) fragments, however, is hindered by the high number of non-sentential utterances which can be confused with the kinds of fragments we are interested in.",
+        "Here it could be helpful to have a method that identifies and filters out backchannels, presumably using a much more local mechanism (as for example proposed in (Traum, 1994)).",
+        "Similarly, the performance on the combined task is low, also due to a high number of confusions of backchannels and fragments.",
+        "We discuss an alternative set-up below."
+      ]
+    },
+    {
+      "heading": "5 Related Work",
+      "text": [
+        "To our knowledge, the tasks presented here have so far not been studied with a machine learning approach.",
+        "The closest to our problem is (Fern´andez et al., 2004b), which discusses classifying certain types of fragments, namely questions of the type “Who?”, “When?”, etc.",
+        "(sluices).",
+        "However, that paper does not address the task of identifying those in a corpus (which in any case should be easier than our fragment-task, since those fragments cannot be confused with backchannels).",
+        "Overlapping from another direction is the work presented in (Zechner and Lavie, 2001), where the task of aligning questions and answers is tackled.",
+        "This subsumes the task of identifying question-antecedents for short-answers, but again is presumably somewhat simpler than our general task, because questions are easier to identify.",
+        "The authors also evaluate the use of the alignment of questions and answers in a summarisation system, and report an increase in summary fluency, without a compromise in informativeness.",
+        "This is something we hope to be able to show for our tasks as well.",
+        "There are also similarities, especially of the antecedent task, to the pronoun resolution task (see e.g. (Strube and M¨uller, 2003; Poesio et al., 2004)).",
+        "Interestingly, our results for the antecedent task are close to those reported for that task.",
+        "The problem of identifying the units in need of an antecedent, however, is harder for us, due to the problem of there being a large number of non-sentential utterances that cannot be linked to a single utterance as antecedent.",
+        "In general, this seems to be the main difference between our task and the ones mentioned here, which concentrate on more easily identified mark-ables (questions, sluices, and pronouns)."
+      ]
+    },
+    {
+      "heading": "6 Conclusions and Further Work",
+      "text": [
+        "We have presented a machine learning approach to the task of identifying fragments and their antecedents in multi-party dialogue.",
+        "This represents a well-defined subtask of computing discourse structure, which to our knowledge has not been studied so far.",
+        "We have shown that the task of identifying the antecedent of a given fragment is learnable, using features that provide information about the structure of the discourse between antecedent and fragment, and about semantic closeness.",
+        "The other tasks, identifying fragments and the combined tasks, however, did not perform as well, mainly because of a high rate of confusions between general non-sentential utterances and frag",
+        "ments (in our sense).",
+        "In future work, we will try a modified approach, where the detection of fragments is integrated with a classification of utterances as backchannels, fragments, or full sentences, and where the antecedent task only ranks pairs, leaving open the possibility of excluding a supposed fragment by using contextual information.",
+        "Lastly, we are planning to integrate our classifier into a processing pipeline after the pronoun resolution step, to see whether this would improve both our performance and the quality of automatic meeting sum-marisations.9"
+      ]
+    }
+  ]
+}

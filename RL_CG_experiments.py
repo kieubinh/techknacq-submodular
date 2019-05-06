@@ -118,7 +118,7 @@ def recommendRLByCGS(concept_graph="concept-graph-standard.json", corpusInputPat
 @click.command()
 @click.argument('resultpath', type=click.Path())
 @click.argument('parameters', nargs=-1)
-def main(concept_graph="concept-graph-standard.json", resultpath="results/acl-cg/", parameters="cg qfr mmr mcr std", corpusInputPath="inputs/"):
+def main(concept_graph="concept-graph-standard.json", resultpath="results/acl-cg/", parameters="cg qfr mmr mcr std", corpusInputPath="inputs/selection-6refs/"):
     print(resultpath)
     print(parameters)
     #mmr

@@ -1,0 +1,182 @@
+{
+  "info": {
+    "authors": [
+      "Philippe Langlais",
+      "Fabrizio Gotti",
+      "Guihong Cao"
+    ],
+    "book": "Workshop on Building and Using Parallel Texts",
+    "id": "acl-W05-0810",
+    "title": "NUKTI: English-Inuktitut Word Alignment System Description",
+    "url": "https://aclweb.org/anthology/W05-0810",
+    "year": 2005
+  },
+  "references": [
+    "acl-J03-1002",
+    "acl-J93-1003",
+    "acl-J93-1004",
+    "acl-J93-2003",
+    "acl-P98-1117",
+    "acl-W03-0320"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Machine Translation (MT) as well as other bilingual applications strongly rely on word alignment.",
+        "Efficient alignment techniques have been proposed but are mainly evaluated on pairs of languages where the notion of word is mostly clear.",
+        "We concentrated our effort on the English-Inuktitut word alignment shared task and report on two approaches we implemented and a combination of both."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Word alignment is an important step in exploiting parallel corpora.",
+        "When efficient techniques have been proposed (Brown et al., 1993; Och and Ney, 2003), they have been mostly evaluated on ”safe” pairs of languages where the notion of word is rather clear.",
+        "We devoted two weeks to the intriguing task of aligning at the word level pairs of sentences of English and Inuktitut.",
+        "We experimented with two different approaches.",
+        "For the first one, we relied on an in-house sentence alignment program (JAPA) where English and Inuktitut tokens were considered as sentences.",
+        "The second approach we propose takes advantage of associations computed between any English word and roughly any subsequence of Inuktitut characters seen in the training corpus.",
+        "We also investigated the combination of both approaches."
+      ]
+    },
+    {
+      "heading": "2 JAPA: Word Alignment as a Sentence Alignment Task",
+      "text": [
+        "To adjust our systems, the organizers made available to the participants a set of 25 pairs of sentences where words had been manually aligned.",
+        "A fast inspection of this material reveals that in most of the cases, the alignment produced are monotonic and involve cepts of n adjacent English words aligned to a single Inuktitut word.",
+        "Many sentence alignment techniques strongly rely on the monotonic nature of the inherent alignment.",
+        "Therefore, we conducted a first experiment using an in-house sentence alignment program called JAPA that we developed within the framework of the Arcade evaluation campaign (Langlais et al., 1998).",
+        "The implementation details of this aligner can be found in (Langlais, 1997), but in a few words, JAPA aligns pairs of sentences by first grossly aligning their words (making use of either cognate-like tokens, or a specified bilingual dictionary).",
+        "A second pass aligns the sentences in a way similar1 to the algorithm described by Gale and Church (1993), but where the search space is constrained to be close to the one delimited by the word alignment.",
+        "This technique happened to be among the most accurate of the ones tested during the Arcade exercise.",
+        "To adapt JAPA to our needs, we only did two things.",
+        "First, we considered single sentences as documents, and tokens as sentences (we define a token as a sequence of characters delimited by",
+        "patterns observed on the development set.",
+        "A total of 24 different patterns have been observed.",
+        "white space).",
+        "Second, since in its default setting, JAPA only considers nm sentence-alignment patterns with n, m E [0, 2], we provided it with a new pattern distribution we computed from the development corpus (see Table 1).",
+        "It is interesting to note that although English and Inuktitut have very different word systems, the length ratio (in characters) of the two sides of the TRAIN corpus is 1.05.",
+        "Each pair of documents (sentences) were then aligned separately with JAPA.",
+        "1-n and n-1 alignments identified by JAPA where output without further processing.",
+        "Since the word alignment format of the shared task do not account directly for nm alignments (n, m > 1) we generated the cartesian product of the two sets of words for all these nm alignments produced by JAPA.",
+        "The performance of this approach is reported in Table 2.",
+        "Clearly, the precision is poor.",
+        "This is partly explained by the cartesian product we resorted to when nm alignments were produced by JAPA.",
+        "We provide in section 4 a way of improving upon this scenario.",
+        "Prec.",
+        "Rec.",
+        "F-meas.",
+        "AER 22.34 78.17 34.75 74.59 Table 2: Performance of the JAPA alignment technique on the DEV corpus."
+      ]
+    },
+    {
+      "heading": "3 NUKTI: Word and Substring Alignment",
+      "text": [
+        "Martin et al.",
+        "(2003) documented a study in building and using an English-Inuktitut bitext.",
+        "They described a sentence alignment technique tuned for the specificity of the Inuktitut language, and described as well a technique for acquiring correspondent pairs of English tokens and Inuktitut substrings.",
+        "The motivation behind their work was to populate a glossary with reliable such pairs.",
+        "We extended this line of work in order to achieve word alignment."
+      ]
+    },
+    {
+      "heading": "3.1 Association Score",
+      "text": [
+        "As Martin et al.",
+        "(2003) pointed out, the strong agglutinative nature of Inuktitut makes it necessary to consider subunits of Inuktitut tokens.",
+        "This is reflected by the large proportion of token types and hapax words observed on the Inuktitut side of the training corpus, compared to the ratios observed on the English side (see table 3).",
+        "The main idea presented in (Martin et al., 2003) is to compute an association score between any English word seen in the training corpus and all the Inuktitut substrings of those tokens that were seen in the same region.",
+        "In our case, we computed a likelihood ratio score (Dunning, 1993) for all pairs of English tokens and Inuktitut substrings of length ranging from 3 to 10 characters.",
+        "A maximum of 25 000 associations were kept for each English word (the top ranked ones).",
+        "To reduce the computation load, we used a suffix tree structure and computed the association scores only for the English words belonging to the test corpus we had to align.",
+        "We also filtered out Inuktitut substrings we observed less than three times in the training corpus.",
+        "Altogether, it takes about one hour for a good desktop computer to produce the association scores for one hundred English words.",
+        "We normalize the association scores such that for each English word e, we have a distribution of likely Inuktitut substrings s: Ps pllr(sIe) = 1."
+      ]
+    },
+    {
+      "heading": "3.2 Word Alignment Strategy",
+      "text": [
+        "Our approach for aligning an Inuktitut sentence of K tokens IK with an English sentence of N tokens EN1 (where K G N)2 consists of finding",
+        "K – 1 cuttingpoints ckE[1,K_1] (ck E [1, N – 1]) on the English side.",
+        "A frontier ck delimits adjacent English words Eckck-1+1 that are translation of the single Inuktitut word Ik.",
+        "With the convention that c0 = 0, cK = N and ck_1 < ck, we can formulate our alignment problem as seeking the best word alignment A = A(IK1 IE�1 ) by maximizing:",
+        "where dk = ck – ck_1 is the number of English words associated to Ik; p(dk) is the prior probability that dk English words are aligned to a single Inuktitut word, which we computed directly from Table 1; and a1 and a2 are two weighting coefficients.",
+        "We tried the following two approximations to compute p(IkIECk 1+1).",
+        "The second one led to better results.",
+        "We considered several ways of computing the probability that an Inuktitut token I is the translation of an English one E; the best one we found being:",
+        "where the summation is carried over all substrings s of I of 3 characters or more.",
+        "pllr (s IE) is the normalized log-likelihood ratio score described above and pibm2 (sIE) is the probability obtained from an IBM model 2 we trained after the Inuktitut side of the training corpus was segmented using a recursive procedure optimizing a frequency-based criterion.",
+        "A is a weighting coefficient.",
+        "We tried to directly embed a model trained on whole (unsegmented) Inuktitut tokens, but noticed a degradation in performance (line 2 of Table 4)."
+      ]
+    },
+    {
+      "heading": "3.3 A Greedy Search Strategy",
+      "text": [
+        "Due to its combinatorial nature, the maximization of equation 1 was barely tractable.",
+        "Therefore we adopted a greedy strategy to reduce the search space.",
+        "We first computed a split of the English sentence into K adjacent regions cK1 by virtually drawing a diagonal line we would observe if a character in one language was producing a constant number of characters in the other one.",
+        "An initial word alignment was then found by simply tracking this diagonal at the word granularity level.",
+        "Having this split in hand (line 1 of Table 4), we move each cutting point around its initial value starting from the leftmost cutting point and going rightward.",
+        "Once a locally optimal cutting point has been found (that is, maximizing the score of equation 1), we proceed to the next one directly to its right."
+      ]
+    },
+    {
+      "heading": "3.4 Results",
+      "text": [
+        "We report in Table 4 the performance of different variants we tried as measured on the development set.",
+        "We used these performances to select the best configuration we eventually submitted.",
+        "It is interesting to note that the starting point of the greedy search (line 1) does better than our first approach.",
+        "However, moving from this initial split clearly improves the performance (line 3).",
+        "Among the greedy variants we tested, we noticed that putting much of the weight A on the IBM model 2 yielded the best results.",
+        "We also noticed that p(dk) in equation 1 did not help (a2 was close to zero).",
+        "A character-based model might have been more appropriate to the case."
+      ]
+    },
+    {
+      "heading": "4 Combination of JAPA and NUKTI",
+      "text": [
+        "One important weakness of our first approach lies in the cartesian product we generate when JAPA produces a nm (n, m > 1) alignment.",
+        "Thus, we tried a third approach: we apply NUKTI on any nm alignment JAPA produces as if this initial alignment were in fact two (small) sentences to align, n and m-word long respectively.",
+        "We can",
+        "therefore avoid the cartesian product and select word alignments more discerningly.",
+        "As can be seen in Table 5, this combination improved over JAPA alone, while being worse than NUKTI alone."
+      ]
+    },
+    {
+      "heading": "5 Results",
+      "text": [
+        "We submitted 3 variants to the organizers.",
+        "The performances for each method are gathered in Table 5.",
+        "The order of merit of each approach was consistent with the performance we measured on the DEV corpus, the best method being the NUKTI one.",
+        "Curiously, we did not try to propose any Sure alignment but did receive a credit for it for two of the variants we submitted."
+      ]
+    },
+    {
+      "heading": "6 Discussion",
+      "text": [
+        "We proposed two methods for aligning an English-Inuktitut bitext at the word level and a combination of both.",
+        "The best of these methods involves computing an association score between English tokens and Inuktitut substrings.",
+        "It relies on a greedy algorithm we specifically devised for the task and which seeks a local optimum of a cumulative function of log-likelihood ratio scores.",
+        "This method obtained a precision and a recall above 63% and 65% respectively.",
+        "We believe this method could easily be improved.",
+        "First, it has some intrinsic limitations, as for instance, the fact that NUKTI only recognizes 1-n cepts and do not handle at all unaligned words.",
+        "Indeed, our method is not even suited to aligning English sentences with fewer words than their respective Inuktitut counterpart.",
+        "Second, the greedy search we devised is fairly aggressive and only explores a tiny bit of the full search.",
+        "Last, the computation of the association scores is fairly time-consuming.",
+        "Our idea of redefining word alignment as a sentence alignment task did not work well; but at the same time, we adapted poorly JAPA to this task.",
+        "In particular, JAPA does not benefit here from all the potential of the underlying cognate system because of the scarcity of these cognates in very small sequences (words).",
+        "If we had to work on this task again, we would consider the use of a morphological analyzer.",
+        "Unfortunately, it is only after the submission deadline that we learned of the existence of such a tool for Inuktitut3."
+      ]
+    },
+    {
+      "heading": "Acknowledgement",
+      "text": [
+        "We are grateful to Alexandre Patry who turned the JAPA aligner into a nicely written and efficient C++ program."
+      ]
+    }
+  ]
+}

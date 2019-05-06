@@ -7,6 +7,8 @@ import json
 import sys
 from pathlib import Path
 from lib.constantvalues import ConstantValues
+from lib.techknacq.corpus import Corpus
+from lib.elasticsearch.esexporter import ElasticsearchExporter
 
 answer = []
 # from pathlib import Path
@@ -317,6 +319,17 @@ def makeInputsByYears(corpusPath="data/acl/", inputPath="inputs/years/"):
                     os.mkdir(new_file_folder)
                 shutil.copy(file_path, new_file_folder+"/"+name_file)
 
+def getHighReferences(path="inputs/candidate/", selectedPath="inputs/selection/"):
+    corpus = Corpus(path=path)
+    ese = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)
+    docIds = ese.getAllDocsByIndex()
+    # print(len(docIds))
+    selectedDocs = corpus.getHighReference(threshold=6, v=docIds)
+    # print(len(selectedDocs))
+    print(selectedDocs)
+    selectFiles(path, selectedPath, selectedDocs, method="copy")
+
 if __name__ == '__main__':
     # makeCorpus("data/acl/", "data/acl-select/", "sample-high/")
-    makeInputsByYears(corpusPath="../data/acl/", inputPath="inputs/years/")
+    # makeInputsByYears(corpusPath="../data/acl/", inputPath="inputs/years/")
+    getHighReferences(path="inputs/candidate/", selectedPath="inputs/selection/")

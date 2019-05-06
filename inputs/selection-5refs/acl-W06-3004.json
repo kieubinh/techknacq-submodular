@@ -1,0 +1,214 @@
+{
+  "info": {
+    "authors": [
+      "Andrew Hickl",
+      "Sanda M. Harabagiu"
+    ],
+    "book": "Interactive Question Answering Workshop",
+    "id": "acl-W06-3004",
+    "title": "Enhanced Interactive Question-Answering With Conditional Random Fields",
+    "url": "https://aclweb.org/anthology/W06-3004",
+    "year": 2006
+  },
+  "references": [
+    "acl-C00-1072",
+    "acl-C04-1084",
+    "acl-C04-1189",
+    "acl-J05-1004",
+    "acl-N03-1028",
+    "acl-P05-1026",
+    "acl-W04-2508"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper describes a new methodology for enhancing the quality and relevance of suggestions provided to users of interactive Q/A systems.",
+        "We show that by using Conditional Random Fields to combine relevance feedback gathered from users along with information derived from discourse structure and coherence, we can accurately identify irrelevant suggestions with nearly 90% F-measure."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Today’s interactive question-answering (Q/A) systems enable users to pose questions in the context of extended dialogues in order to obtain information relevant to complex research scenarios.",
+        "When working with an interactive Q/A system, users formulate sequences of questions which they believe will return answers that will let them reach certain information goals.",
+        "Users need more than answers, however: while they might be cognizant of many of the different types of information that they need, few – if any – users are capable of identifying all of the questions that must be asked and answered for a particular scenario.",
+        "In order to take full advantage of the Q/A capabilities of current systems, users need access to sources of domain-specific knowledge that will expose them to new concepts and ideas and will allow them to ask better questions.",
+        "In previous work (Hickl et al., 2004; Harabagiu et al., 2005a), we have argued that interactive question-answering systems should be based on a predictive dialogue architecture which can be used to provide users with both precise answers to their questions as well as suggestions of relevant research topics that could be explored throughout the course of an interactive Q/A dialogue.",
+        "Typically, the quality of interactive Q/A dialogues has been measured in three ways: (1) efficiency, defined as the number of questions that the user must pose to find particular information, (2) effectiveness, defined by the relevance of the answer returned, and (3) user satisfaction (Scholtz and Morse, 2003).",
+        "In our experiments with an interactive Q/A system, (known as FERRET), we found that performance in each of these areas improves as users are provided with suggestions that are relevant to their domain of interest.",
+        "In FERRET, suggestions are made to users in the form of predictive question-answer pairs (known as QUABs) which are either generated automatically from the set of documents returned for a query (using techniques first described in (Harabagiu et al., 2005a)), or are selected from a large database of questions-answer pairs created off-line (prior to a dialogue) by human annotators.",
+        "Figure 1 presents an example of ten QUABs that were returned by FERRET in response to the question “How are EU countries responding to the worldwide increase ofjob outsourcing to India?”.",
+        "While FERRET’s QUABs are intended to provide users with relevant information about a domain of interest, we can see from Figure 1 that users do not always agree on which QUAB suggestions are relevant.",
+        "For example, while someone unfamiliar to the notion of “job outsourcing” could benefit from",
+        "a QUAB like QUAB3: “What is job outsourcing?”, we expect that a more experienced researcher would find this definition to be uninformative and potentially irrelevant to his or her particular information needs.",
+        "In contrast, a complex QUAB like QUAB6: “How could the anti-globalization movements in EU countries impact the likelihood that the EU Parliament will take steps to prevent job outsourcing to India?” could provide a domain expert with relevant information, but would not provide enough background information to satisfy a novice user who might not be able to interpret this information in the appropriate context.",
+        "In this paper, we present results of a new set of experiments that seek to combine feedback gathered from users with a relevance classifier based on conditional random fields (CRF) in order to provide suggestions to users that are not only related to the topic of their interactive Q/A dialogue, but provide them with the new types of information they need to know.",
+        "Section 2 presents the functionality of several of FERRET’s modules and describes the NLP techniques for processing questions as well as the framework for acquiring domain knowledge.",
+        "In Section 3 we present two case studies that highlight the impact of user background.",
+        "Section 4 describes a new class of user interaction models for interactive Q/A and presents details of our CRF-based classifier.",
+        "Section 5 presents results from experiments which demonstrate that user modeling can enhance the quality of suggestions provided to both expert and novice users.",
+        "Section 6 summarizes the conclusions."
+      ]
+    },
+    {
+      "heading": "2 The FERRET Interactive",
+      "text": []
+    },
+    {
+      "heading": "Question-Answering System",
+      "text": [
+        "We believe that the quality of interactions produced by an interactive Q/A system can be enhanced by predicting the range of questions that a user might ask while researching a particular topic.",
+        "By providing suggestions from a large database of question-answer pairs related to a user’s particular area of interest, interactive Q/A systems can help users gather the information they need most – without the need for complex, mixed-initiative clarification dialogues.",
+        "FERRET uses a large collection of QUAB question-answer pairs in order to provide users with suggestions of new research topics that could be explored over the course of a dialogue.",
+        "For example, when a user asks a question like What is the result of the European debate on outsourcing to India?",
+        "(as illustrated in (Q1) in Table 1), FERRET returns a set of answers (including (A1) and proposes the questions in (Q2), (Q3), and (Q4) as suggestions of possible continuations of the dialogue.",
+        "Users then have the freedom to choose how the dialogue should be continued, either by (1) ignoring the suggestions made by the system, (2) selecting one of the proposed QUAB questions and examining its associated answer, or (3) resubmitting the text of the QUAB question to FERRET’s automatic Q/A system in order to retrieve a brand-new set of answers.",
+        "(Q1) What is the result of the European debate on outsourcing to India?",
+        "(A1) Supporters of economic openness understand how outsourcing can strengthen the competitiveness of European companies, as well as beneli t jobs and growth in India.",
+        "(Q2) Has the number of customer service jobs outsourced to India increased since 1990?",
+        "(Q3) How many telecom jobs were outsourced to India from EU-based companies in the last 10 years?",
+        "(Q4) Which European Union countries have experienced the most job losses due to outsourcing over the past 10 years?",
+        "FERRET was designed to evaluate how databases of topic-relevant suggestions could be used to enhance the overall quality of Q/A dialogues.",
+        "Figure 2 illustrates the architecture of the FERRET system.",
+        "Questions submitted to FERRET are initially processed by a dialogue shell which (1) decomposes complex questions into sets of simpler questions (using techniques first described in (Harabagiu et al., 2005a)), (2) establishes discourse-level relations between the current question and the set of questions",
+        "already entered into the discourse, and (3) identifies a set of basic dialogue acts that are used to manage the overall course of the interaction with a user.",
+        "Output from FERRET’s dialogue shell is sent to an automatic question-answering system which is used to find answers to the user’s question(s).",
+        "FERRET uses a version of LCC’s PALANTIR question-answering system (Harabagiu et al., 2005b) in order to provide answers to questions in documents.",
+        "Before being returned to users, answer passages are submitted to an answer fusion module, which filters redundant answers and combines answers with compatible information content into single coherent answers.",
+        "Questions and relational information extracted by the dialogue shell are also sent to a predictive dialogue module, which identifies the QUAB s that best meet the user’s expected information requirements.",
+        "At the core of the FERRET’s predictive dialogue module is the Predictive Dialogue Network (PQN), a large database of QUABs that were either generated off-line by human annotators or created on-line by FERRET (either during the current dialogue or during some previous dialogue)'.",
+        "In order to generate QUABs automatically, documents identified from FERRET’s automatic Q/A system are first submitted to a Topic Representation module, which computes both topic signatures (Lin and Hovy, 2000) and enhanced topic signatures (Harabagiu, 2004) in order to identify a set of topic-relevant passages.",
+        "Passages are then submitted to an Information Extraction module, which annotates texts with a wide 'Techniques used by human annotators for creating QUABs were ft rst described in (Hickl et al., 2004); full details of FER-RET’s automatic QUAB generation components are provided in (Harabagiu et al., 2005a).",
+        "range of lexical, semantic, and syntactic information, including (1) morphological information, (2) named entity information from LCC’s CICEROLITE named entity recognition system, (3) semantic dependencies extracted from LCC’s PropBank-style semantic parser, and (4) syntactic parse information.",
+        "Passages are then transformed into natural language questions using a set of question formation heuristics; the resultant QUABs are then stored in the PQN.",
+        "Since we believe that the same set of relations that hold between questions in a dialogue should also hold between pairs of individual questions taken in isolation, discourse relations are discovered between each newly-generated QUAB and the set of QUABs stored in the PQN.",
+        "FERRET’s Question Similarity module then uses the similarity function described in (Harabagiu et al., 2005a) – along with relational information stored in the PQN – in order to identify the QUABs that represent the most informative possible continuations of the dialogue.",
+        "QUABs are then ranked in terms of their relevance to the user’s submitted question and returned to the user."
+      ]
+    },
+    {
+      "heading": "3 Two Types of Users of Interactive Q/A Systems",
+      "text": [
+        "In order to return answers that are responsive to users’ information needs, interactive Q/A systems need to be sensitive to the different questioning strategies that users employ over the course of a dialogue.",
+        "Since users gathering information on the same topic can have significantly different information needs, interactive Q/A systems need to be able to accommodate a wide range of question types in order to help users find the specific information that",
+        "In past experiments with users of interactive Q/A systems (Hickl et al., 2004), we have found that a user’s access to sources of domain-specific knowledge significantly affects the types of questions that a user is likely to submit to a Q/A system.",
+        "Users participate in information-seeking dialogues with Q/A systems in order to learn “new” things – that is, to acquire information that they do not currently possess.",
+        "Users initiate a set of speech acts which allow them to maximize the amount of new information they obtain from the system while simultaneously minimizing the amount of redundant (or previously-acquired) information they encounter.",
+        "Our experiments have shown that Q/A systems need to be sensitive to two kinds of users: (1) expert users, who interact with a system based on a working knowledge of the conceptual structure of a domain, and (2) novice users, who are presumed to have limited to no foreknowledge of the concepts associated with the domain.",
+        "We have found that novice users that possess little or no familiarity with a domain employ markedly different questioning strategies than expert users who possess extensive knowledge of a domain: while novices focus their attention in queries that will allow them to discover basic domain concepts, experts spend their time asking questions that enable them to evaluate their hypotheses in the context of a the currently available information.",
+        "The experts tend to ask questions that refer to the more abstract domain concepts or the complex relations between concepts.",
+        "In a similar fashion, we have discovered that users who have access to structured sources of domain-specific knowledge (e.g. knowledge bases, conceptual networks or ontologies, or mixed-initiative dialogues) can end up employing more “expert-like” questioning strategies, despite the amount of domain-specific knowledge they possess.",
+        "In real-world settings, the knowledge that expert users possess enables them to formulate a set of hypotheses – or belief states – that correspond to each of their perceived information needs at a given moment in the dialogue context.",
+        "As can be seen in the dialogues presented in Figure 3, expert users generally formulate questions which seek to validate these belief states in the context of a document collection.",
+        "Given the global information need in 51, it seems reasonable to presume that questions like EQ1 and EQ2 are motivated by a user’s expectation that protectionist policies or public opposition to globalization could impact a European Union country’s willingness to take steps to stem job outsourcing to India.",
+        "Likewise, questions like EQ5 are designed to provide the user with information that can decide between two competing belief states: in this case, the user wants to know whether the European Union is more likely to model the United States or Japan in its policies towards job outsourcing.",
+        "In contrast, without a preexisting body of domain-specific knowledge to derive reasonable hypotheses from, novice users ask questions that enable them to discover the concepts (and the relations between concepts) needed to formulate new, more specific hypotheses and questions.",
+        "Returning again to Figure 3, we can see that questions like NQ1 and NQ3 are designed to discover new knowledge that the user does not currently possess, while questions like NQ6 try to"
+      ]
+    },
+    {
+      "heading": "4.1 User Interaction Models",
+      "text": [
+        "establish whether or not the user’s hypothesis (i.e. namely, that EU countries view job outsourcing to India as an problem) is valid and deserves further consideration.",
+        "We have experimented with three models that we have used to gather feedback from users of FERRET.",
+        "The models are illustrated in Figure 4."
+      ]
+    },
+    {
+      "heading": "4 User Interaction Models for Relevance Estimation",
+      "text": [
+        "Unlike systems that utilize mixed initiative dialogues in order to determine a user’s information needs (Small and Strzalkowski, 2004), systems (like FERRET) which rely on interactions based on predictive questioning have traditionally not incorporated techniques that allow them to gather relevance feedback from users.",
+        "In this section, we describe how we have used a new set of user interaction models (UIM) in conjunction with a relevance classifier based on conditional random fields (CRF) (McCal-lum, 2003; Sha and Pereira, 2003) in order to improve the relevance of the QUAB suggestions that FERRET returns in response to a user’s query.",
+        "We believe that systems based on predictive questioning can derive feedback from users in three ways.",
+        "First, systems can learn which suggestions or answers are relevant to a user’s domain of interest by tracking which elements users select throughout the course of a dialogue.",
+        "With FERRET, each answer or suggestion presented to a user is associated with a hyperlink that links to the original text that the answer or QUAB was derived from.",
+        "While users do not always follow links associated with passages they deem to be relevant to their query, we expect that the set of selected elements are generally more likely to be relevant to the user’s interests than unselected elements.",
+        "Second, since interactive Q/A systems are often used to gather information for inclusion in written reports, systems can identify relevant content by tracking the text passages that users copy to other applications, such as text editors or word processors.",
+        "Finally, predictive Q/A systems can gather explicit feedback from users through the graphical user interface itself.",
+        "In a recent version of FERRET, we experimented with adding a “relevance checkbox” to each answer or QUAB element presented to a user; users were then asked to provide feedback to the system by selecting the checkboxes associated with answers that they deemed to be particularly relevant to the topic they were researching.",
+        "UIM1 : Under this model, the set of QUABs that users copied from were selected as relevant; all QUABs not copied from were annotated as irrelevant.",
+        "UIM2: Under this model, QUABs that users viewed were considered to be relevant; QUABs that remained unviewed were annotated as irrelevant.",
+        "UIM3: Under this model, QUABs that were either viewed or copied from were marked as relevant; all other QUABs were annotated as irrelevant.",
+        "With FERRET, users are presented with as many as ten QUABs for every question they submit to the system.",
+        "QUABs – whether they be generated automatically by FERRET’s QUAB generation module, or selected from FERRET’s knowledge base of over 10,000 manually-generated question/answer pairs – are presented in terms of their conceptual similarity to the original question.",
+        "Conceptual similarity (as first described in (Harabagiu et al., 2005a)) is calculated using the version of the cosine similarity formula presented in Figure 5.",
+        "In the three models from Figure 4, we allowed users to perform research as they normally would.",
+        "Instead of requiring users to provide explicit forms of feedback, features were derived from the set of hyper-links that users selected and the text passages that users copied to the system clipboard.",
+        "Following (Kristjansson et al., 2004) we analyzed the performance of each of these three models using a new metric derived from the number of relevant QUABs that were predicted to be returned for each model.",
+        "We calculated this metric – which we refer to as the Expected Number of Irrelevant QUABs – using the formula:",
+        "where pm(n) is equal to the probability of finding n irrelevant QUABs in a set of 10 suggestions returned to the user given m rounds of interaction.",
+        "p0 (n) (equation 1) is equal to the probability that all QUABs are relevant initially, while p1 (n) (equation 2) is equal to the probability of finding an irrelevant QUAB after the set of QUABs has been interacted with by a user.",
+        "For the purposes of this paper, we assumed that all of the QUABs initially returned by FERRET were relevant, and that p0(0) = 1.0.",
+        "This enabled us to calculate p1 (n) for each of the three models provided in Figure 4."
+      ]
+    },
+    {
+      "heading": "4.2 Relevance Estimation using Conditional Random Fields",
+      "text": [
+        "Following work done by (Kristjansson et al., 2004), we used the feedback gathered in Section 4.1 to estimate the probability that a QUAB selected from FERRET’S PQN is, in fact, relevant to a user’s original query.",
+        "We assume that humans gauge the relevance of QUAB suggestions returned by the system by evaluating the informativeness of the QUAB with regards to the set of queries and suggestions that have occurred previously in the discourse.",
+        "A QUAB, then, is deemed relevant when it conveys content that is sufficiently informative to the user, given what the user knows (i.e. the user’s level of expertise) and what the user expects to receive as answers from the system.",
+        "Our approach treats a QUAB suggestion as a single node in a sequence of questions (Qn-1, Qn, QUAB) and classifies the QUAB as relevant or irrelevant based on features from the entire sequence.",
+        "We have performed relevance estimation using Conditional Random Fields (CRF).",
+        "Given a random variable x (corresponding to data points {x1, ... , xn}) and another random variable y (corresponding to a set of labels {y1, ... , yn}), CRFs can be used to calculate the conditional probability p(ylx).",
+        "Given a sequence {x 1, ... , xn} and set of labels {y1, ... , yn}, p(ylx) can be defined as:",
+        "where z0 is a normalization factor and Ak is a weight learned for each feature vector fk(yi-1, yi, x, n).",
+        "We trained our CRF model in the following way.",
+        "If we assume that A is a set of feature weights (A0, ... , Ak), then we expect that we can use maximum likelihood to estimate values for A given a set of training data pairs (x, y).",
+        "Training is accomplished by maximizing the log-likelihood of each labeled data point as in the following equation:",
+        "Again, following (Kristjansson et al., 2004), we used the CRF Viterbi algorithm to find the most likely sequence of data points assigned to each label category using the formula:",
+        "Motivated by the types of discourse relations that appear to exist between states in an interactive Q/A dialogue, we introduced a large number of features to estimate relevance for each QUAB suggestion.",
+        "The features we used are presented in Figure 6",
+        "In the next section, we describe how we utilized the user interaction model described in Subsection 4.1 in conjunction with this subsection in order to improve the relevance of QUAB suggestions returned to users."
+      ]
+    },
+    {
+      "heading": "5 Experimental Results",
+      "text": [
+        "In this section, we describe results from two experiments that were conducted using data collected from human interactions with FERRET.",
+        "In order to evaluate the effectiveness of our relevance classifier, we gathered a total of 1000 questions from human dialogues with FERRET.",
+        "500 of",
+        "these came from interactions (41 dialogues) where the user was a self-described “expert” on the topic; another selection of 500 questions came from a total of 23 dialogues resulting from interactions with users who described themselves as “novice” or were otherwise unfamiliar with a topic.",
+        "In order to validate the user’s self-assessment, we selected 5 QUABs at random from the set of manually created QUABs assembled for each topic.",
+        "Users were asked to provide written answers to those questions.",
+        "Users that were judged to have correctly answered three out of five questions were considered “experts” for the purpose of our experiments.",
+        "Table 2 presents the breakdown of questions across these two conditions.",
+        "Each of these experiments were run using a version of FERRET that returned the top 10 most similar QUABs from a database that combined manually-created QUABs with the automatically-generated QUABs created for the user’s question.",
+        "While a total of 10,000 QUABs were returned to users during these experiments, only 3,998 of these QUABs were unique (39.98%).",
+        "We conducted two kinds of experiments with users.",
+        "In the first set of experiments, users were asked to mark all of the relevant QUABs that FERRET returned in response to questions submitted by users.",
+        "After performing research on a particular scenario, expert and novice users were then supplied with as many as 65 questions (and associated QUABs) taken from previously-completed dialogues on the same scenario; users were then asked to select checkboxes associated with QUABs that were relevant.",
+        "In addition, we also had 2 linguists (who were familiar with all of the research scenarios but did not research any of them) perform the same task for all of the collected questions and QUABs.",
+        "Results from these three sets of annotations are found in Table 3.",
+        "As expected, experts believed QUABs to be significantly (p < 0.05) less relevant than novices, who found approximately 38.12% of QUABs to be relevant to the original question submitted by a user.",
+        "In contrast, the two linguists found 44.8% of the QUABs to be relevant.",
+        "This number may be artificially high: since the linguists did not engage in actual Q/A dialogues for each of the scenarios they were annotating, they may not have been appropriately prepared to make a relevance assessment.",
+        "In the second set of experiments, we used the UIM in Figure 4 to train CRF-based relevance classifiers.",
+        "We obtained training data for UIM1 (“copy-and-paste”-based), UIM2 (“click”-based), and UIM3 (“hybrid”) from 16 different dialogue histories collected from 8 different novice users.",
+        "During these dialogues, users were asked to perform research as they normally would; no special instructions were given to users to provide additional relevance feedback to the system.",
+        "After the dialogues were completed, QUABs that were copied from or clicked were annotated as “relevant” examples (according to each UIM); the remaining QUABs were annotated as “irrelevant”.",
+        "Once features (as described in Table 3) were extracted and the classifiers were trained, they were evaluated on a set of 1000 QUABs (500 “relevant”, 500 “irrelevant”) selected at random from the annotations performed in the first experiment.",
+        "Table 4 presents results from these two classifiers.",
+        "Our results suggest that feedback gathered from a user’s ”normal” interactions with FERRET could be used to provide valuable input to a relevance classifier for QUABs When “copy-and-paste” events were used to train the classifier, the system detected instances of irrelevant QUABs with over 80% F. When the much more frequent “clicking” events were used to train the classifier, irrelevant QUABs were detected at over 90%F for both UIM2 and UIM3.",
+        "In each of these three cases, however, detection of rel",
+        "evant QUABs lagged behind significantly: relevant QUABs were detected at 42% F in UIM1 at nearly 33% F under UIM2 and at 39% under UIM3.",
+        "We feel that these results suggest that the detection of relevant QUABs (or the filtering of irrelevant QUABs) may be feasible, even without requiring users to provide additional forms of explicit feedback to the system.",
+        "While we acknowledge that training models on these types of events may not always provide reliable sources of training data – especially as users copy or click on QUAB passages that may not be relevant to their interests in the research scenario, we believe the initial performance of these suggests that accurate forms of relevance feedback can be gathered without the use of mixed-initiative clarification dialogues."
+      ]
+    },
+    {
+      "heading": "6 Conclusions",
+      "text": [
+        "In this paper, we have presented a methodology that combines feedback that was gathered from users in conjunction with a CRF-based classifier in order to enhance the quality of suggestions returned to users of interactive Q/A systems.",
+        "We have shown that the irrelevant QUAB suggestions can be identified at over 90% when systems combine information from a user’s interaction with semantic and pragmatic features derived from the structure and coherence of an interactive Q/A dialogue."
+      ]
+    },
+    {
+      "heading": "7 Acknowledgments",
+      "text": [
+        "This material is based upon work funded in whole or in part by the U.S. Government and any opinions, findings, conclusions, or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of the U.S. Government."
+      ]
+    }
+  ]
+}

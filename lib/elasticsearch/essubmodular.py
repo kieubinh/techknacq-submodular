@@ -149,7 +149,7 @@ class ElasticsearchSubmodularity:
     def calQFR(self, newId, s, v, Lambda, alpha=ConstantValues.Alpha):
 
         delta_fq = self.calDeltaQuery(newId)
-        return alpha * delta_fq
+        # return alpha * delta_fq
         # add coverage subtract penalty
         delta_fc, delta_fp = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v)
         # print(newId+" - "+str(fquery)+" "+str(fcp))

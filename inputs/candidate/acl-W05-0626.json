@@ -1,0 +1,115 @@
+{
+  "info": {
+    "authors": [
+      "Chi-San Althon Lin",
+      "Tony C. Smith"
+    ],
+    "book": "Conference on Computational Natural Language Learning CoNLL",
+    "id": "acl-W05-0626",
+    "title": "Semantic Role Labeling Via Consensus in Pattern-Matching",
+    "url": "https://aclweb.org/anthology/W05-0626",
+    "year": 2005
+  },
+  "references": [
+    "acl-N04-1030",
+    "acl-W04-2415"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper describes a system for semantic role labeling for the CoNLL2005 Shared task.",
+        "We divide the task into two sub-tasks: boundary recognition by a general tree-based predicate-argument recognition algorithm to convert a parse tree into a flat representation of all predicates and their related boundaries, and role labeling by a consensus model using a pattern-matching framework to find suitable roles for core constituents and adjuncts.",
+        "We describe the system architecture and report results for the CoNLL2005 development dataset."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Semantic role labeling is to find all arguments for all predicates in a sentence, and classify them by semantic roles such as A0, A1, AM-TMP and so on.",
+        "The performance of semantic role labeling can play a key role in Natural Language Processing applications, such as Information Extraction, Question Answering, and Summarization (Pradhan et al., 2004).",
+        "Most existing systems separate semantic role labeling into two sub-problems, boundary recognition and role classification, and use feature-based models to address both (Carreras et al., 2004).",
+        "Our strategy is to develop a boundary analyzer by a general tree-based predicate-argument recognition algorithm (GT-PARA) for boundary recognition, and a pattern-matching model for role classification.",
+        "The only information used in our system is Charniak’s annotation with words, which contains all useful syntactic annotations.",
+        "Five features, which are Headword, Phrase type, Voice, Target verb, and Preposition (of the first word), and a Pattern set, which includes numbers and types of roles in a pattern, are used for the pattern-matching approach.",
+        "We develop a Pattern Database, trained by Wall Street Journal section 02 to 21, as our knowledge/Data base.",
+        "The system outline is described in the following section."
+      ]
+    },
+    {
+      "heading": "2 System Description",
+      "text": [
+        "An overview of the system architecture is shown in Figure 1.",
+        "The input is a full parse tree for each sentence.",
+        "We convert a sentence with words, and Charniak’s information into a parsed tree as the input of GT-PARA.",
+        "GT-PARA then converts the parse tree into a flat representation with all predicates and arguments expressed in [GPLVR] format; where G: Grammatical function – 5 denotes subject, 3 object, and 2 others; P: Phrase type of this boundary – 00 denotes ADJP, 01 ADVP, 02 NP, 03 PP, 04 S, 05 SBAR, 06 SBARQ, 07 SINV, 08 SQ, 09 VP, 10 WHADVP, 11 WHNP, 12 WHPP, and 13 Others L: Distance (and position) of the argument with respect to the predicate that follows V: Voice of the predicate, 0: active 1: passive R: Distance (and position) of the argument with respect to the preceding predicate (n.b.",
+        "An example of the output of GT-PARA is shown in Figure 2.",
+        "There is one predicate “take” in the sample input sentence.",
+        "There are 4 arguments for that predicate, denoted as “302110”, “AM-MOD”, “203011”, and “302012” respectively.",
+        "“302110” symbolizes the NP Object of distance 1 prior to the passive predicate.",
+        "“203011” symbolizes an undefined PP argument (which",
+        "means it can be a core argument or an adjunct) with distance 1 after the passive predicate.",
+        "And “302012” symbolizes a NP Object with distance 2 after the passive predicate.",
+        "For all boundaries extracted by GT-PARA, we simply denote all boundaries with noun phrases (NP) or similar phrases, such as WHNP, SBAR, and so on, as core pattern candidates and all boundaries with prepositional phrases (PP), ADJP, ADVP, or similar phrases, such as WHADJP, WHADVP, and so on, as adjunct candidates.",
+        "But there is no exact rule for defining a core role or an adjunct explicitly in a boundary span, for example, given a sentence where",
+        "We can guess P1 might be labeled with “A1”, and P2 with ”A0” if there is no further feature information.",
+        "But if the ”head word” feature of P2 is “hour”, for example, P2 can be labeled with “AM-TMP” instead.",
+        "Because there are some uncertainties between core roles and adjuncts before labeling, we use the Member Generator (in Figure 1) to create all possible combinations, called members, from the output of GT-PARA by changing ANs (Core Role Candidates) into AMs (Adjunct Candidates), or AMs into ANs, except core candidates before predicates.",
+        "All possible combinations (members) for the example in Figure 1 are",
+        "The output from the Member Generator is passed to the Role Classifier, which finds all possible roles for each member with suitable core",
+        "roles and adjuncts according to a Database built up by training data, in which each predicate has different patterns associated with it, each pattern has different semantic roles, and each role has the following format.",
+        "Role {Phrase type} < Head Word> (preposition) There is an additional Boolean voice for a predicate to show if the predicate is passive or active (0: denotes active, 1: denotes passive).",
+        "Each pattern includes a count on the number of the same patterns learned from the training data (denoted as “[statistical figure]”).",
+        "For example, eight patterns for a predicate lemma “take” are",
+        "Role Classifier consists of two parts, AN classifier and AM classifier, which process core argu",
+        "ments and adjuncts respectively.",
+        "AN classifier finds a suitable core pattern for labeled core pattern candidates in each member generated by Member Generator according to",
+        "(1) the same numbers of core roles (2) the same prepositions for each core role (3) the same phrase types for each core role (4) the same voice (active or passive) AM classifier finds a suitable adjunct role for any labeled adjunct candidate in each member generated by Member Generator according to (1) the same Head Word (2) the same Phrase type (3) the highest statistical probability learned from the training data The followings are the results for each member after Role Classification M1: [AN1, AM-MOD, V, AM1<points>(from), AN2] (no pattern applied) M2: [AN1 AM-MOD V AN1 (from) AN2] (no pattern applied) M3: [A] AM-MOD V AM1<point>(from) AM-TMP<week>] ( ANs by pattern 7, AM-TMP by pattern 5) [stat: 6] M4: [A] AM-MOD V A2 (from) AM-TMP<week>] ( ANs by pattern 6, AM-TMP by pattern 5) [stat: 3]",
+        "Decision-making in the Consensus component (see Figure 1) handles the final selection by selecting the highest score using the following formula.",
+        "Scorek = (α 1* Rk + α 2* Vk + α 3* Sk ) for each Xk (k=1 .. K, generated by Member Generator and Role Classifier), where Rk : numbers of all roles being labeled Vk : votes of a pattern with the same roles Sk : statistical figure learned from trained data Xk : different pattern by Member General and Role Classifier α1 ,α2 ,and α3 are weights (α1 >>α2 >>α3) used to rank the relative contribution of Rk , Vk , and Sk.",
+        "Empirical studies led to the use of a so-called Max-labeled-role Heuristic to derive suitable values for these weights.",
+        "The final consensus decision for role classification is determined by calculating",
+        "There are 3 roles labeled in M3, which are AN1 as A1, AM-MOD, AM2 as AM-TMP respectively.",
+        "And there are 4 roles labeled in M4, which are AN1 as A1, AM-MOD, AN3 as A2, and AM2 as AM-TMP respectively.",
+        "Consensus scores for M3, and M4 are",
+        "So the pattern [A1 AM-MOD V A2(from) AM-TMP<week>] in M4 applied by Pattern 6 and Pattern 5 is selected due to the most roles labeled."
+      ]
+    },
+    {
+      "heading": "3 Data and Evaluation",
+      "text": [
+        "We extracted patterns from the training data (WSJ Section 02 to 21) to build up a pattern database.",
+        "Table 1 reveals sparseness of the pattern database.",
+        "Twenty-six percent of predicates contain only one pattern, and fifteen two patterns.",
+        "Seventy-five percents of predicates contain no more than 10 patterns.",
+        "The evaluation software, srl-eval.pl, is available from CoNLL2005 Shared Task1 , which is the official script for evaluation of CoNLL-2005 Shared Task systems.",
+        "In order to test boundary performance of GT-PARA, we simply convert all correct propositional arguments into A0s, except AM-MOD and AM-NEG for both the training dataset (WSJ Sections 15-18) and the development dataset (WSJ Section 24)."
+      ]
+    },
+    {
+      "heading": "4 Experimental Results",
+      "text": [
+        "The results of classification on the development, and test data of the CoNLL2005 shared task are outlined in Table 2.",
+        "The overall results on the Development, Test-WSJ, Test-Brown, and Test-WSJ+Brown datasets for F-score are 65.78, 67.91, 58.58 and 66.72 respectively, which are moderate compared to the best result reported in CoNLL2004 Shared Task (Carreras et al., 2004) using partial trees and the result in (Pradhan et al., 2004).",
+        "The results for boundary recognition via GT-PARA are summarized in Table 3.",
+        "The overall performance (F1: 76.43) on the WSJ Section 24 is not as good as on the WSJ Section 21 (F1: 85.78).",
+        "The poor performance for the development was caused by more parser errors in the WSJ Section 24.",
+        "Most parser errors are brought on by continuous phrases with commas and/or quotation marks.",
+        "One interesting fact is that when we tested our system using the data in CoNLL2004 shared task, we found the result with the train data WSJ 15-18 on the WSJ 21 is 73.48 shown in Table 4, which increases about 7 points in the F1 score, compared to WSJ 24 shown in Table 2.",
+        "We found the labeling accuracy for WSJ 24 is 87.73, which is close to 89.30 for WSJ Section 21.",
+        "But the results of boundary recognition in Table 3 for the two data are 9.14 points different, which leads to the better performance in WSJ Section 21.",
+        "Boundary recognition as mentioned in CoNLL004 does play a very important role in this system as well."
+      ]
+    },
+    {
+      "heading": "5 Conclusion",
+      "text": [
+        "We have described a semantic role labeling architecture via consensus in a pattern-matching system.",
+        "The pattern-matching system is based on linear pattern matching utilising statistical consensus for decision-making.",
+        "A General Tree-based Predicate-Argument Boundary Recognition Algorithm (GT-PARA) handles the conversion process, turning a parse tree into a flat representation with all predicates and their arguments labeled with some useful features, such as phrase types.",
+        "Label accuracy of Consensus model for role classification is stable but performance results of GT-PARA vary on different datasets, which is the key role for the overall results.",
+        "Although the results seem moderate on test data, this system offers a decidedly different approach to the problem of semantic role labeling."
+      ]
+    }
+  ]
+}

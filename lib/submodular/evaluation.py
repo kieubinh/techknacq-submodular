@@ -88,5 +88,8 @@ class Evaluation:
         for name in self.output.keys():
             sumout += len(self.output[name])
             sumans += len(self.answer[name])
+
+        print("# output: %i, #answer: %i, total refs of answer: %i"%(len(self.output), len(self.answer), sumans))
+
         print("# average output: " +str(1.0*sumout / len(self.output)))
         print("# average answer: " + str(1.0 * sumans / len(self.output)))

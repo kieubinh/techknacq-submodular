@@ -1,3 +1,5 @@
+from _ast import Lambda
+
 from lib.constantvalues import ConstantValues
 from lib.document.similarityscore import SimilarityScore
 from lib.elasticsearch.esexporter import ElasticsearchExporter
@@ -144,14 +146,20 @@ class ElasticsearchSubmodularity:
     # delta_fcp(S_(k+1))    =   (1-lambda) * Sum_(x_i in V\{x_(k+1)}) sim(d_x_i, d_x_(k+1))
     #                           - (2-lambda) Sum_(x_i in S_k) sim (d_x_i, d_x_(k+1))
     # delta_fq(S_(k+1))     =   w(q, x_(k+1)) with x_(k+1) in S_(k+1)
-    def calQFR(self, newId, s, v, Lambda, alpha=1.0):
+    def calQFR(self, newId, s, v, Lambda, alpha=ConstantValues.Alpha):
+
+        delta_fq = self.calDeltaQuery(newId)
+        return alpha * delta_fq
         # add coverage subtract penalty
         delta_fc, delta_fp = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v)
-        delta_fq = self.calDeltaQuery(newId)
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
-        return alpha * delta_fq + (1-Lambda) * delta_fc - (2-Lambda) * delta_fp
+        # print(alpha, Lambda)
+        # print(newId+" - coverage: "+str(delta_fc)+" , penalty: "+str(delta_fp)+" , query: "+str(delta_fq))
+        beta = 1.0-Lambda
+        gamma = 2.0-Lambda
+        return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
 
     # submodular algorithm
     def greedyAlgByCardinality(self, Lambda, method):

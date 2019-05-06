@@ -15,7 +15,7 @@ from lib.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
 
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
-lambda_test = [0.9, 0.99]
+lambda_test = [0.0, 1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
 # ------------------------------- LOADING INPUT ----------------------------------------------
 import os
 import io
@@ -75,6 +75,9 @@ def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, r
         # get 5000 relevant documents -> v = 5000
         vDocs = ese.queryByURL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
                                budget=ConstantValues.MAX_SUBMODULARITY)
+
+        # vDocs = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+        #                                                budget=ConstantValues.MAX_SUBMODULARITY)
         # print(len(vDocs))
         # qsim = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=5000)
         essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=vDocs)
@@ -356,7 +359,7 @@ def printResult(articleId, output, Lambda=-1.0, resultPath=""):
 # es: using elasticsearch similarity score
 # corpusInputPath="inputs/survey/selected/"
 # corpusInputPath="inputs/100-random/"
-def main(resultpath="results/acl-cg/", parameters="es au qfr", corpusInputPath="inputs/selection-6refs/"):
+def main(resultpath="results/acl-cg/", parameters="es au qfr", corpusInputPath="inputs/selection-5refs/"):
     print(parameters)
     print(resultpath)
     index = ConstantValues.ACL_CORPUS_INDEX

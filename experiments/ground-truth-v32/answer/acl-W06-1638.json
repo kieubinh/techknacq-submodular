@@ -1,0 +1,353 @@
+{
+  "info": {
+    "authors": [
+      "Markus Dreyer",
+      "Jason M. Eisner"
+    ],
+    "book": "Conference on Empirical Methods in Natural Language Processing",
+    "id": "acl-W06-1638",
+    "title": "Better Informed Training of Latent Syntactic Features",
+    "url": "https://aclweb.org/anthology/W06-1638",
+    "year": 2006
+  },
+  "references": [
+    "acl-C02-1126",
+    "acl-C96-1058",
+    "acl-H05-1036",
+    "acl-H94-1028",
+    "acl-J93-2004",
+    "acl-J98-4004",
+    "acl-P03-1054",
+    "acl-P05-1010",
+    "acl-P06-1072",
+    "acl-P92-1017",
+    "acl-P93-1024",
+    "acl-P95-1037",
+    "acl-P96-1025",
+    "acl-P97-1003",
+    "acl-W01-0714",
+    "acl-W05-1512"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We study unsupervised methods for learning refinements of the nonterminals in a treebank.",
+        "Following Matsuzaki et al.",
+        "(2005) and Prescher (2005), we may for example split NP without supervision into NP [0] and NP [1], which behave differently.",
+        "We first propose to learn a PCFG that adds such features to nonterminals in such a way that they respect patterns of linguistic feature passing: each node’s nonterminal features are either identical to, or independent of, those of its parent.",
+        "This linguistic constraint reduces runtime and the number of parameters to be learned.",
+        "However, it did not yield improvements when training on the Penn Treebank.",
+        "An orthogonal strategy was more successful: to improve the performance of the EM learner by treebank preprocessing and by annealing methods that split nonterminals selectively.",
+        "Using these methods, we can maintain high parsing accuracy while dramatically reducing the model size."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Treebanks never contain enough information; thus PCFGs estimated straightforwardly from the Penn Treebank (Bies et al., 1995) work only moderately well (Charniak, 1996).",
+        "To address this problem, researchers have used heuristics to add more information.",
+        "Eisner (1996), Charniak (1997), Collins (1997), and many subsequent researchers1 annotated every node with lexical features passed up from its “head child,” in order to more precisely reflect the node’s “inside” contents.",
+        "Charniak (1997) and Johnson (1998) annotated each node with its parent and grandparent nonterminals, to more precisely reflect its “outside” context.",
+        "Collins (1996) split the sentence label S into two versions, representing sentences with and without subjects.",
+        "He",
+        "also modified the treebank to contain different labels for standard and for base noun phrases.",
+        "Klein and Manning (2003) identified nonterminals that could valuably be split into fine-grained ones using handwritten linguistic rules.",
+        "Their unlexicalized parser combined several such heuristics with rule markovization and reached a performance similar to early lexicalized parsers.",
+        "In all these cases, choosing which nonterminals to split, and how, was a matter of art.",
+        "Ideally such splits would be learned automatically from the given treebank itself.",
+        "This would be less costly and more portable to treebanks for new domains and languages.",
+        "One might also hope that the automatically learned splits would be more effective.",
+        "Matsuzaki et al.",
+        "(2005) introduced a model for such learning: PCFG-LA.2 They used EM to induce fine-grained versions of a given treebank’s nonterminals and rules.",
+        "We present models that similarly learn to propagate fine-grained features through the tree, but only in certain linguistically motivated ways.",
+        "Our models therefore allocate a supply of free parameters differently, allowing more fine-grained nonterminals but less fine-grained control over the probabilities of rewriting them.",
+        "We also present simple methods for deciding selectively (during training) which nonterminals to split and how.",
+        "Section 2 describes previous work in finding hidden information in treebanks.",
+        "Section 3 describes automatically induced feature grammars.",
+        "We start by describing the PCFG-LA model, then introduce new models that use specific agreement patterns to propagate features through the tree.",
+        "Section 4 describes annealing-like procedures for training latent-annotation models.",
+        "Section 5 describes the motivation and results of our experiments.",
+        "We finish by discussing future work and conclusions in sections 6–7."
+      ]
+    },
+    {
+      "heading": "2 Partially supervised EM learning",
+      "text": [
+        "The parameters of a PCFG can be learned with or without supervision.",
+        "In the supervised case, the complete tree is observed, and the rewrite rule probabilities can be estimated directly from the observed rule counts.",
+        "In the unsupervised case, only the words are observed, and the learning method must induce the whole structure above them.",
+        "(See Table 1.)",
+        "In the partially supervised case we will consider, some part of the tree is observed, and the remaining information has to be induced.",
+        "Pereira and Schabes (1992) estimate PCFG parameters from partially bracketed sentences, using the inside-outside algorithm to induce the missing brackets and the missing node labels.",
+        "Some authors define a complete tree as one that specifies not only a label but also a “head child” for each node.",
+        "Chiang and Bikel (2002) induces the missing head-child information; Prescher (2005) induces both the head-child information and the latent annotations we will now discuss."
+      ]
+    },
+    {
+      "heading": "3 Feature Grammars",
+      "text": []
+    },
+    {
+      "heading": "3.1 The PCFG-LA Model",
+      "text": [
+        "Staying in the partially supervised paradigm, the PCFG-LA model described in Matsuzaki et al.",
+        "(2005) observe whole treebank trees, but learn an “annotation” on each nonterminal token – an unspecified and uninterpreted integer that distinguishes otherwise identical nonterminals.",
+        "Just as Collins manually split the S nonterminal label into S and SG for sentences with and without subjects, Matsuzaki et al.",
+        "(2005) split S into S [1], S [2], ... , S [L] where L is a predefined number – but they do it automatically and systematically, and not only for S but for every nonterminal.",
+        "Their partially supervised learning procedure observes trees that are fully bracketed and fully labeled, except for the integer subscript used to annotate each node.",
+        "After automatically inducing the annotations with EM, their resulting parser performs just as well as one learned from a treebank whose nonterminals were manually refined through linguistic and error analysis (Klein and Manning, 2003).",
+        "In Matsuzaki’s PCFG-LA model, rewrite rules take the form",
+        "in the lexical case.",
+        "The probability of a tree consisting of rules r1, r2.... is given by the probability of its root symbol times the conditional probabilities of the rules.",
+        "The annotated tree T1 in Fig. 1, for example, has the following probability:",
+        "where, to simplify the notation, we use P(X – * Y Z) to denote the conditional probability P(Y Z I X) that a given node with label X will have children Y Z.",
+        "Degrees of freedom.",
+        "We will want to compare models that have about the same size.",
+        "Models with more free parameters have an inherent advantage on modeling copious data because of their greater",
+        "expressiveness.",
+        "Models with fewer free parameters are easier to train accurately on sparse data, as well as being more efficient in space and often in time.",
+        "Our question is therefore what can be accomplished with a given number of parameters.",
+        "How many free parameters in a PCFG-LA model?",
+        "Such a model is created by annotating the nonterminals of a standard PCFG (extracted from the given treebank) with the various integers from 1 to L. If the original, “backbone” grammar has R3 binary rules of the form X – * Y Z, then the resulting PCFG-LA model has L3 x R3 such rules: X[1] – * Y[1] Z[1], X[1] – * Y[1] Z[2], X[1] – * Y[2] Z[1],..., X [L] – * Y[L] Z[L].",
+        "Similarly, if the backbone grammar has R2 rules of the form X – * Y the PCFG-LA model has L2 x R2 such rules.",
+        "The number of R1 terminal rules X – * w is just multiplied by L. The PCFG-LA has as many parameters to learn as rules: one probability per rule.",
+        "However, not all these parameters are free, as there are L x N sum-to-one constraints, where N is the number of backbone nonterminals.",
+        "Thus we have",
+        "degrees of freedom.",
+        "We note that Goodman (1997) mentioned possible ways to factor the probability 1, making independence assumptions in order to reduce the number of parameters.",
+        "Runtime.",
+        "Assuming there are no unary rule cycles in the backbone grammar, bottom-up chart parsing of a length-n sentence at test time takes time proportional to n3L3R3 + n2L2R2 + nLR1, by attempting to apply each rule everywhere in the sentence.",
+        "(The dominating term comes from equation (4) of Table 2: we must loop over all n3 triples i, j, k and all R3 backbone rules X – * YZ and all",
+        "L3 triples a, 0, -y.)",
+        "As a function of n and L only, this is �(n 3L3).",
+        "At training time, to induce the annotations on a given backbone tree with n nodes, one can run a constrained version of this algorithm that loops over only the n triples i, j, k that are consistent with the given tree (and considers only the single consistent backbone rule for each one).",
+        "This takes time 0(nL3), as does the inside-outside version we actually use to collect expected PCFG-LA rule counts for EM training.",
+        "We now introduce a model that is smaller, and has a lower runtime complexity, because it adheres to specified ways of propagating features through the tree."
+      ]
+    },
+    {
+      "heading": "3.2 Feature Passing: The INHERIT Model",
+      "text": [
+        "Many linguistic theories assume that features get passed from the mother node to their children or some of their children.",
+        "In many cases it is the head child that gets passed its feature value from its mother (e.g., Kaplan and Bresnan (1982), Pol-lard and Sag (1994)).",
+        "In some cases the feature is passed to both the head and the non-head child, or perhaps even to the non-head alone.",
+        "In the example in Fig. 2, the tense feature (pres) is always passed to the head child (underlined).",
+        "How the number feature (sg/pl) is passed depends on the rewrite rule: S – * NP VP passes it to both children, to enforce subject-verb agreement, while VP – * V NP only passes it to the head child, since the object NP is free not to agree with the verb.",
+        "A feature grammar can incorporate such patterns of feature passing.",
+        "We introduce additional parameters that define the probability of passing a feature to certain children.",
+        "The head child of each node is given deterministically by the head rules of (Collins, 1996).",
+        "Under the INHERIT model that we propose, the",
+        "stands for “degrees of freedom” (i.e., free parameters).",
+        "The B terms are inside probabilities; to compute Viterbi parse probabilities instead, replace summation by maximization.",
+        "Note the use of the intermediate quantity BX (i, j) to improve runtime complexity by moving some summations out of the inner loop; this is an instance of a “folding transformation” (Blatz and Eisner, 2006).",
+        "Figure 3: Two passpatterns.",
+        "Left: T2.",
+        "The feature is passed to the head child (underlined).",
+        "Right: T3.",
+        "The feature is passed to both children.",
+        "probabilities of tree T2 in Fig. 3 are calculated as follows, with P a.... (1I NP) being the probability of annotating an NP with feature 1 if it does not inherit its parent’s feature.",
+        "The VP is boldfaced to indicate that it is the head child of this rule.",
+        "In T2, the subject NP chose feature 1 or 2 independent of its parent S, according to the distribution Pa....(• I NP).",
+        "In T3, it was constrained to inherit its parent’s feature 2.",
+        "Degrees of freedom.",
+        "The INHERIT model may be regarded as containing all the same rules (see (1)) as the PCFG-LA model.",
+        "However, these rules’ probabilities are now collectively determined by a smaller set of shared parameters .4 That is because the distribution of the child features Q and y no longer depends arbitrarily on the rest of the rule.",
+        "Q is either equal to a, or chosen independently of everything but Y.",
+        "The model needs probabilities for L x R3 binary-rule parameters like P(S[2] – * NP VP) above, as well as L x R2 unary-rule and L x R1 lexical-rule parameters.",
+        "None of these consider the annotations on the children.",
+        "They are subject to L x N sum-to-one constraints.",
+        "The model also needs 4 x R3 passpattern probabilities like P(pass to head I X – * YZ) above, with R3 sum-to-one constraints, and L x N non-inherited annotation parameters Pa.... (a I X), with N sum-to-one constraints.",
+        "Adding these up and canceling the two L x N",
+        "below.",
+        "Like equation (5), it is P(X [a] --+ Y Z) times a sum of up to 4 products, corresponding to the 4 passpattern cases.",
+        "terms, the INHERIT model has",
+        "degrees of freedom.",
+        "Thus for a typical grammar where R3 dominates, we have reduced the number of free parameters from about L3R3 to only about LR3.",
+        "Runtime.",
+        "We may likewise reduce an L3 factor to L in the runtime.",
+        "Table 2 shows dynamic programming equations for the INHERIT model.",
+        "By exercising care, they are able to avoid summing over all possible values of O and y within the inner loop.",
+        "This is possible because when they are not inherited, they do not depend on X, Y, Z, or a."
+      ]
+    },
+    {
+      "heading": "3.3 Multiple Features",
+      "text": [
+        "The INHERIT model described above is linguistically naive in several ways.",
+        "One problem (see section 6 for others) is that each nonterminal has only a single feature to pass.",
+        "Linguists, however, usually annotate each phrase with multiple features.",
+        "Our example tree in Fig. 2 was annotated with both tense and number features, with different inheritance patterns.",
+        "As a step up from INHERIT, we propose an INHERIT2 model where each nonterminal carries two features.",
+        "Thus, we will have L6R3 binary rules instead of L3R3.",
+        "However, we assume that the two features choose their passpatterns independently, and that when a feature is not inherited, it is chosen independently of the other feature.",
+        "This keeps the number of parameters down.",
+        "In effect, we are defining",
+        "where P1 and P2 choose child features as if they were separate single-feature INHERIT models.",
+        "We omit discussion of dynamic programming speedups for INHERIT2.",
+        "Empirically, the hope is that the two features when learned with the EM algorithm will pick out different linguistic properties of the constituents in the treebank tree."
+      ]
+    },
+    {
+      "heading": "4 Annealing-Like Training Approaches",
+      "text": [
+        "Training latent PCFG models, like training most other unsupervised models, requires non-convex optimization.",
+        "To find good parameter values, it is often helpful to train a simpler model first and use its parameters to derive a starting guess for the harder optimization problem.",
+        "A well-known example is the training of the IBM models for statistical machine translation (Berger et al., 1994).",
+        "In this vein, we did an experiment in which we gradually increased L during EM training of the PCFG-LA and INHERIT models.",
+        "Whenever the training likelihood began to converge, we manually and globally increased L, simply doubling or tripling it (see “clone all” in Table 3 and Fig. 5).",
+        "The probability of X[a] – * Y[O]Z[-y] under the new model was initialized to be proportional to the probability of X [a mod L] – * Y [O mod L] Z [-y mod L] (where L refers to the old L),5 times a random”jitter” to break symmetry.",
+        "In a second annealing experiment (“clone some”) we addressed a weakness of the PCFG-LA and INHERIT models: They give every nonterminal the same number of latent annotations.",
+        "It would seem that different coarse-grained nonterminals in the original Penn Treebank have different degrees of impurity (Klein and Manning, 2003).",
+        "There are linguistically many kinds of NP, which are differentially selected for by various contexts and hence are worth distinguishing.",
+        "By contrast, -LRB- is almost always realized as a left parenthesis and may not need further refinement.",
+        "Our “clone some” annealing starts by training a model with L=2 to convergence.",
+        "Then, instead of cloning all nonterminals as in the previous annealing experiments, we clone only those that have seemed to benefit most from their previous refinement.",
+        "This benefit is measured by the Jensen-Shannon divergence of the two distributions P(X [0] – * • • • ) and P(X [1] – * • • • ).",
+        "The 5Notice that as well as cloning X [a], this procedure multiplies by 4, 2, and 1 the number of binary, unary, and lexical rules that rewrite X [a].",
+        "To leave the backbone grammar unchanged, we should have scaled down the probabilities of such rules by 1/4, 1/2, and 1 respectively.",
+        "Instead, we simply scaled them all down by the same proportion.",
+        "While this temporarily changes the balance of probability among the three kinds of rules, EM immediately corrects this balance on the next training iteration to match the observed balance on the treebank trees – hence the one-iteration downtick in Figure 5).",
+        "Jensen-Shannon divergence is defined as D(q, r) = 1 (D (q 11 q /r + D (r11 q2r/ These experiments are a kind of “poor man’s version” of the deterministic annealing clustering algorithm (Pereira et al., 1993; Rose, 1998), which gradually increases the number of clusters during the clustering process.",
+        "In deterministic annealing, one starts in principle with a very large number of clusters, but maximizes likelihood only under a constraint that the joint distribution p(point, cluster) must have very high entropy.",
+        "This drives all of the cluster centroids to coincide exactly, redundantly representing just one effective cluster.",
+        "As the entropy is permitted to decrease, some of the cluster centroids find it worthwhile to drift apart.6 In future work, we would like to apply this technique to split nonterminals gradually, by initially requiring high-entropy parse forests on the training data and slowly relaxing this constraint."
+      ]
+    },
+    {
+      "heading": "5 Experiments",
+      "text": []
+    },
+    {
+      "heading": "5.1 Setup",
+      "text": [
+        "We ran several experiments to compare the INHERIT with the PCFG-LA model and look into the effect of different Treebank preprocessing and the annealing-like procedures.",
+        "We used sections 2–20 of the Penn Treebank 2 Wall Street Journal corpus (Marcus et al., 1993) for training, section 22 as development set and section 23 for testing.",
+        "Following Matsuzaki et al.",
+        "(2005), words occurring fewer than 4 times in the training corpus were replaced by unknown-word symbols that encoded certain suffix and capitalization information.",
+        "All experiments used simple add-lambda smoothing (A=0.1) during the reestimation step (M step) of training.",
+        "Binarization and Markovization.",
+        "Before extracting the backbone PCFG and running the constrained inside-outside (EM) training algorithm, we preprocessed the Treebank using center-parent binarization Matsuzaki et al.",
+        "(2005).",
+        "Besides making the rules at most binary, this preprocessing also helpfully enriched the backbone nonterminals.",
+        "For",
+        "all but the first (“Basic”) experiments, we also enriched the nonterminals with order-1 horizontal and order-2 vertical markovization (Klein and Manning, 2003).7 Figure 4 shows what a multiple-child structure X – * A B H C D looks like after binarization and markovization.",
+        "The binarization process starts at the head of the sentence and moves to the right, inserting an auxiliary node for each picked up child, then moving to the left.",
+        "Each auxiliary node consists of the parent label, the direction (L or R) and the label of the child just picked up.",
+        "A B H C D where H is the head child.",
+        "Initialization.",
+        "The backbone PCFG grammar was read off the altered Treebank, and the initial annotated grammar was created by creating several versions of every rewrite rule.",
+        "The probabilities of these newly created rules are uniform and proportional to the original rule, multiplied by a random epsilon factor uniformly sampled from [.9999,1.0001 ] to break symmetry."
+      ]
+    },
+    {
+      "heading": "5.2 Decoding",
+      "text": [
+        "To test the PCFG learned by a given method, we attempted to recover the unannotated parse of each sentence in the development set.",
+        "We then scored these parses by debinarizing or de-markovizing them, then measuring their precision and recall of the labeled constituents from the gold-standard Treebank parses.",
+        "two “anneal” curves use the “clone all” method.",
+        "We increased L after iteration 50 and, for the INHERIT model, iteration 110.",
+        "The downward spikes in the two annealed cases are due to perturbation of the model parameters (footnote 5).",
+        "An unannotated parse’s probability is the total probability, under our learned PCFG, of all of its annotated refinements.",
+        "This total can be efficiently computed by the constrained version of the inside algorithm in Table 2.",
+        "How do we obtain the unannotated parse whose total probability is greatest?",
+        "It does not suffice to find the single best annotated parse and then strip off the annotations.",
+        "Matsuzaki et al.",
+        "(2005) note that the best annotated parse is in fact NP-hard to find.",
+        "We use their reranking approximation.",
+        "A 1000-best list for each sentence in the decoding set was created by parsing with our markovized unannotated grammar and extracting the 1000 best parses using the k-best algorithm 3 described in Huang and Chiang (2005).",
+        "Then we chose the most probable of these 1000 unannotated parses under our PCFG, first finding the total probability of each by using the the constrained inside algorithm as explained above.8"
+      ]
+    },
+    {
+      "heading": "5.3 Results and Discussion",
+      "text": [
+        "Table 3 summarizes the results on development and test data.",
+        "9 Figure 5 shows the training log-likelihoods.",
+        "First, markovization of the Treebank leads to",
+        "striking improvements.",
+        "The “Basic” block of experiments in Table 3 used non-markovized grammars, as in Matsuzaki et al.",
+        "(2005).",
+        "The next block of experiments, introducing markovized grammars, shows a considerable improvement.",
+        "This is not simply because markovization increases the number of parameters: markovization with L = 2 already beats basic models that have much higher L and far more parameters.",
+        "Evidently, markovization pre-splits the labels in the trees in a reasonable way, so EM has less work to do.",
+        "This is not to say that markovization eliminates the need for hidden annotations: with markovization, going from L=1 to L=2 increases the parsing accuracy even more than without it.",
+        "Second, our “clone all” training technique (shown in the next block of Table 3) did not help performance and may even have hurt slightly.",
+        "Here we initialized the L=2x2 model with the trained L=2 model for PCFG-LA, and the L=3x3 model with the L=3 and the L=3x3x3 model with the L=3x3 model.",
+        "Third, our “clone some” training technique appeared to work.",
+        "On PCFG-LA, the L<2x2 condition (i.e., train with L=2 and then clone some) matched the performance of L=4 with 30% fewer parameters.",
+        "On INHERIT, L<2x2 beat L=4 with 8% fewer parameters.",
+        "In these experiments, we used the average divergence as a threshold: x[0] and X[1] are split again if the divergence of their rewrite distributions is higher than average.",
+        "Fourth, our INHERIT model was a disappointment.",
+        "It generally performed slightly worse than PCFG-LA when given about as many degrees of freedom.",
+        "This was also the case on some cursory experiments on smaller training corpora.",
+        "It is tempting to conclude that INHERIT simply adopted overly strong linguistic constraints, but relaxing those constraints by moving to the INHERIT2 model did not seem to help.",
+        "In our one experiment with INHERIT2 (not shown in Table 3), using 2 features that can each take L=2 values (d.f.",
+        ": 212,707) obtains an F1 score of only 83.67 – worse than 1 feature taking L=4 values."
+      ]
+    },
+    {
+      "heading": "5.4 Analysis: What was learned by INHERIT?",
+      "text": [
+        "INHERIT did seem to discover “linguistic” features, as intended, even though this did not improve parse accuracy.",
+        "We trained INHERIT and PCFG-LA models (both L=2, non-markovized) and noticed the following.",
+        "We used both models to assign the most-probable annotations to the gold parses of the development set.",
+        "Under the INHERIT model, NP [0] vs. NP[1] constituents were 21% plural vs. 41% plural.",
+        "Under PCFG-LA this effect was weaker (30% vs. 39%), although it was significant in both (Fisher’s exact test, p < 0.001).",
+        "Strikingly, under the INHERIT model, the NP’s were 10 times more likely to pass this feature to both children (Fisher’s, p < 0.001) – just as we would expect for a number feature, since the determiner and head noun of an NP must agree.",
+        "The INHERIT model also learned to use feature value 1 for “tensed auxiliary.” The VP [1] nonterminal was far more likely than VP[0] to expand as V VP, where V represents any of the tensed verb preterminals VBZ, VBG, VBN, VBD, VBP.",
+        "Furthermore, these expansion rules had a very strong preference for “pass to head,” so that the left child would also be annotated as a tensed auxiliary, typically causing it to expand as a form of be, have, or do.",
+        "In short, the feature ensured that it was genuine auxiliary verbs that subcategorized for VP's.",
+        "(The PCFG-LA model actually arranged the same behavior, e.g. similarly preferring VBZ [1] in the auxiliary expansion rule VP -* VBZ VP.",
+        "The difference is that the PCFG-LA model was able to express this preference directly without propagating the [1] up to the VP parent.",
+        "Hence neither VP[0] nor VP[1] became strongly associated with the auxiliary rule.)",
+        "Many things are equally learned by both models: They learn the difference between subordinating conjunctions (while, if) and prepositions (under, after), putting them in distinct groups of the original IN tag, which typically combine with sentences and noun phrases, respectively.",
+        "Both models also split the conjunction CC into two distinct groups: a group of conjunctions starting with an upper-case letter at the beginning of the sentence and a group containing all other conjunctions."
+      ]
+    },
+    {
+      "heading": "6 Future Work: Log-Linear Modeling",
+      "text": [
+        "Our approach in the INHERIT model made certain strict independence assumptions, with no backoff.",
+        "The choice of a particular passpattern, for example, depends on all and only the three nonterminals X, Y, Z.",
+        "However, given sparse training data, sometimes it is advantageous to back off to smaller amounts of contextual information; the nonterminal X or Y might alone be sufficient to predict the passpattern.",
+        "A very reasonable framework for handling this issue is to model P(X[a] -*Y[Q] Z[-y]) with a log-linear model.10 Feature functions would consider the values of variously sized, overlapping subsets of X, Y, Z, a, Q, -y.",
+        "For example, a certain feature might fire when X [a] = NP[1] and Z[-y] = N[2].",
+        "This approach can be extended to the multi-feature case, as in INHERIT2.",
+        "Inheritance as in the INHERIT model can then be expressed by features like a = Q, or a = Q and X = VP.",
+        "During early iterations, we could use a prior to encourage a strong positive weight on these inheritance features, and gradually relax this bias – akin to the “structural annealing” of (Smith and Eisner, 2006).",
+        "When modeling the lexical rule P(X [a] -* w), we could use features that consider the spelling of the word w in conjunction with the value of a.",
+        "Thus, we might learn that V[1] is particularly likely to rewrite as a word ending in -s. Spelling features that are predictable from string context are important clues to the existence and behavior of the hidden annotations we wish to induce.",
+        "A final remark is that “inheritance” does not necessarily have to mean that a = Q.",
+        "It is enough that a and Q should have high mutual information, so that one can be predicted from the other; they do not actually have to be represented by the same integer.",
+        "More broadly, we might like a to have high mutual information with the pair (Q, -y).",
+        "One might try using this sort of intuition directly in an unsupervised learning procedure (Elidan and Friedman, 2003)."
+      ]
+    },
+    {
+      "heading": "7 Conclusions",
+      "text": [
+        "We have discussed “informed” techniques for inducing latent syntactic features.",
+        "Our INHERIT model tries to constrain the way in which features are passed through the tree.",
+        "The motivation for this approach is twofold: First, we wanted to capture the linguistic insight that features follow certain patterns in propagating through the tree.",
+        "Second, we wanted to make it statistically feasible and computationally tractable to increase L to higher values than in the PCFG-LA model.",
+        "The hope was that the learning process could then make finer distinctions and learn more fine-grained information.",
+        "However, it turned out that the higher values of L did not compensate for the perhaps overly con",
+        "strained model.",
+        "The results on English parsing rather suggest that it is the similarity in degrees of freedom (e.g., INHERIT with L=3x3x3 and PCFG-LA with L=2x2) that produces comparable results.",
+        "Substantial gains were achieved by using markovization and splitting only selected nonterminals.",
+        "With these techniques we reach a parsing accuracy similar to Matsuzaki et al.",
+        "(2005), but with an order of magnitude less parameters, resulting in more efficient parsing.",
+        "We hope to get more wins in future by using more sophisticated annealing techniques and log-linear modeling techniques."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This paper is based upon work supported by the National Science Foundation under Grant No.",
+        "0313193.",
+        "We are grateful to Takuya Matsuzaki for providing details about his implementation of PCFG-LA, and to Noah Smith and the anonymous reviewers for helpful comments."
+      ]
+    }
+  ]
+}

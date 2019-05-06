@@ -1,0 +1,301 @@
+{
+  "info": {
+    "authors": [
+      "James Gorman",
+      "James R. Curran"
+    ],
+    "book": "SIGLEX Workshop on Deep Lexical Acquisition",
+    "id": "acl-W05-1011",
+    "title": "Approximate Searching for Distributional Similarity",
+    "url": "https://aclweb.org/anthology/W05-1011",
+    "year": 2005
+  },
+  "references": [
+    "acl-J92-4003",
+    "acl-N01-1013",
+    "acl-P02-1030",
+    "acl-W00-1427",
+    "acl-W02-0908",
+    "acl-W96-0213"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Distributional similarity requires large volumes of data to accurately represent infrequent words.",
+        "However, the nearest-neighbour approach to finding synonyms suffers from poor scalability.",
+        "The Spatial Approximation Sample Hierarchy (SASH), proposed by Houle (2003b), is a data structure for approximate nearest-neighbour queries that balances the efficiency/approximation trade-off.",
+        "We have intergrated this into an existing distributional similarity system, tripling efficiency with a minor accuracy penalty."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "With the development of WordNet (Fellbaum, 1998) and large electronic thesauri, information from lexical semantic resources is regularly used to solve NLP problems.",
+        "These problems include collocation discovery (Pearce, 2001), smoothing and estimation (Brown et al., 1992; Clark and Weir, 2001) and question answering (Paşca and Harabagiu, 2001).",
+        "Unfortunately, these resources are expensive and time-consuming to create manually, and tend to suffer from problems of bias, inconsistency, and limited coverage.",
+        "In addition, lexicographers cannot keep up with constantly evolving language use and cannot afford to build new resources for the many sub-domains that NLP techniques are being applied to.",
+        "There is a clear need for methods to extract lexical semantic resources automatically or tools that assist in their manual creation and maintenance.",
+        "Much of the existing work on automatically extracting resources is based on the distributional hypothesis that similar words appear in similar contexts.",
+        "Existing approaches differ primarily in their definition of “context”, e.g. the surrounding words or the entire document, and their choice of distance metric for calculating similarity between the vector of contexts representing each term.",
+        "Finding synonyms using distributional similarity involves performing a nearest-neighbour search over the context vectors for each term.",
+        "This is very computationally intensive and scales according to the vocabulary size and the number of contexts for each term.",
+        "Curran and Moens (2002b) have demonstrated that dramatically increasing the quantity of text used to extract contexts significantly improves synonym quality.",
+        "Unfortunately, this also increases the vocabulary size and the number of contexts for each term, making the use of huge datasets infeasible.",
+        "There have been many data structures and approximation algorithms proposed to reduce the computational complexity of nearest-neighbour search (Ch´avez et al., 2001).",
+        "Many of these approaches reduce the search space by using clustering techniques to generate an index of near-neighbours.",
+        "We use the Spacial Approximation Sample Hierarchy (SASH) data structure developed by Houle (2003b) as it allows more control over the efficiency-approximation trade-off than other approximation methods.",
+        "This paper describes integrating the SASH into an existing distributional similarity system (Curran, 2004).",
+        "We show that replacing the nearest-neighbour search improves efficiency by a factor of three with only a minor accuracy penalty."
+      ]
+    },
+    {
+      "heading": "2 Distributional Similarity",
+      "text": [
+        "Distributional similarity systems can be separated into two components.",
+        "The first component extracts the contexts from raw text and compiles them into a statistical description of the contexts each term appears in.",
+        "The second component performs nearest-neighbour search or clustering to determine which terms are similar, based on distance calculations between their context vectors.",
+        "The approach used in this paper follows Curran (2004)."
+      ]
+    },
+    {
+      "heading": "2.1 Extraction Method",
+      "text": [
+        "A context relation is defined as a tuple (w, r, w′) where w is a term, which occurs in some grammatical relation r with another word w′ in some sentence.",
+        "We refer to the tuple (r, w′) as an attribute of w. For example, (dog, diect-obj, walk) indicates that dog was the direct object of walk in a sentence.",
+        "Context extraction begins with a Maximum Entropy POS tagger and chunker (Ratnaparkhi, 1996).",
+        "The Grefenstette (1994) relation extractor produces context relations that are then lemmatised using the Minnen et al.",
+        "(2000) morphological analyser.",
+        "The relations for each term are collected together and counted, producing a context vector of attributes and their frequencies in the corpus."
+      ]
+    },
+    {
+      "heading": "2.2 Measures and Weights",
+      "text": [
+        "Both nearest-neighbour and cluster analysis methods require a distance measure that calculates the similarity between context vectors.",
+        "Curran (2004) decomposes this measure into measure and weight functions.",
+        "The measure function calculates the similarity between two weighted context vectors and the weight function calculates a weight from the raw frequency information for each context relation.",
+        "The SASH requires a distance measure that preserves metric space (see Section 4.1).",
+        "For these experiments we use the JACCARD (1) measure and the TTEST (2) weight, as Curran and Moens (2002a) found them to have the best performance in their comparison /of many distance measures."
+      ]
+    },
+    {
+      "heading": "3 Nearest-neighbour search",
+      "text": [
+        "The simplest algorithm for finding synonyms is nearest-neighbour search, which involves pairwise vector comparison of the target term with every term in the vocabulary.",
+        "Given an n term vocabulary and up to m attributes for each term, the asymptotic time complexity of nearest-neighbour search is O(n2m).",
+        "This is very expensive with even a moderate vocabulary and small attribute vectors making the use of huge datasets infeasible."
+      ]
+    },
+    {
+      "heading": "3.1 Heuristic",
+      "text": [
+        "Using cutoff to remove low frequency terms can significantly reduce the value of n. In these experiments, we used a cutoff of 5.",
+        "However, a solution is still needed to reduce the factor m. Unfortunately, reducing m by eliminating low frequency contexts has a significant impact on the quality of the results.",
+        "Curran and Moens (2002a) propose an initial heuristic comparison to reduce the number of full O(m) vector comparisons.",
+        "They introduce a bounded vector (length k) of canonical attributes, selected from the full vector, to represent the term.",
+        "The selected attributes are the most strongly weighted verb attributes: Curran and Moens chose these relations as they generally constrain the semantics of the term more and partake in fewer idiomatic collocations.",
+        "If a pair of terms share at least one canonical attribute then a full similarity comparison is performed, otherwise the terms are not considered similar.",
+        "If a maximum of p positive results are returned, our complexity becomes O(n2k+npm), which, since k is constant, is O(n2 + npm)."
+      ]
+    },
+    {
+      "heading": "4 The SASH",
+      "text": [
+        "The SASH approximates a nearest-neighbour search by pre-computing some of the near-neighbours of each node (terms in our case).",
+        "It is arranged as a multi-leveled pyramid, where each node is linked to its (approximate) near-neighbours on the levels above and below.",
+        "This produces multiple paths between nodes, allowing the SASH to shape itself to the data set (Houle, 2003a).",
+        "This graph is searched by finding the near-neighbours of the target node at each level.",
+        "The following description is adapted from Houle (2003b)."
+      ]
+    },
+    {
+      "heading": "4.1 Metric Spaces",
+      "text": [
+        "The SASH organises nodes that can be measured in metric space.",
+        "Although it is not necessary for the SASH to work, only in this space can performance be guaranteed.",
+        "Our meaures produce a metric-like space for the terms derived from large datasets.",
+        "A domain D is a metric space if there exists a function dist : D x D – � R''0 such that:",
+        "1. dist(p, q) '' 0 b p, q E D (non-negativity) 2. dist(p, q) = 0 iff p= q b p, q E D (equality) 3. dist(p, q) = dist(q, p) b p, q E D (symmetry) 4. dist(p, q) + dist(q, r) '' dist(p, r) b p, q, r E D (triangle inequality)",
+        "We invert the similarity measure to produce a distance, resulting in condition 2 not being satisfied since dist(p, p) = x, x > 0.",
+        "For most measures x is constant, so dist(p, q) > dist(p, p) if p # q and p and q do not occur in exactly the same contexts.",
+        "For some measures, e.g.",
+        "DICE, dist(p, p) > dist(p, q), that is, p is closer to q than it is to itself.",
+        "These do not preserve metric space in any way, so cannot be used with the SASH.",
+        "Ch´avez et al.",
+        "(2001) divides condition 2 into:",
+        "5. dist(p, p) = 0 b p E D (reflexivity) 6. dist(p,q)>0iffp#qbp,qED (strict positiveness)",
+        "If strict positiveness is not satisfied the space is called pseudometric.",
+        "In theory, our measures do not satisfy this condition, however in practice most large datasets will satisfy this condition."
+      ]
+    },
+    {
+      "heading": "4.2 Structure",
+      "text": [
+        "The SASH is a directed, edge-weighted graph with the following properties:",
+        "• Each term corresponds to a unique node.",
+        "• The nodes are arranged into a hierarchy of lev",
+        "els, with the bottom level containing n2 nodes and the top containing a single root node.",
+        "Each level, except the top, will contain half as many nodes as the level below.",
+        "These are numbered from 1 (top) to h.",
+        "• Edges between nodes are linked from consecutive levels.",
+        "Each node will have at most p parent nodes in the level above, and c child nodes in the level below.",
+        "• Every node must have at least one parent so that all nodes are reachable from the root.",
+        "Figure 1 shows a SASH which will be used below."
+      ]
+    },
+    {
+      "heading": "4.3 Construction",
+      "text": [
+        "The SASH is constructed iteratively by finding the nearest parents in the level above.",
+        "The nodes are first randomly distributed to reduce any clustering effects.",
+        "They are then split into the levels described above, with level h having n2 nodes, level 2 at most c nodes and level 1 having a single root node.",
+        "The root node has all nodes at level 2 as children and each node at level 2 has the root as its sole parent.",
+        "Then for each node in each level i from 3 to h, we find the set of p nearest parent nodes in level (i – 1).",
+        "The node then asks that parent if it can be a child.",
+        "As only the closest c nodes can be children of a node, it may be the case that a requested parent rejects a child.",
+        "If a child is left without any parents it is said to be orphaned.",
+        "Any orphaned nodes must now find the closest node in the above level that has fewer than c children.",
+        "Once all nodes have at least one parent, we move to the next level.",
+        "This proceeds iteratively through the levels."
+      ]
+    },
+    {
+      "heading": "4.4 Search",
+      "text": [
+        "Searching the SASH is also performed iteratively.",
+        "To find the k nearest neighbours of a node q, we first find the k nearest neighbours at each level.",
+        "At level 1 we take the single root node to be nearest.",
+        "Then, for each level after, we find the k nearest unique children of the nodes found in the level above.",
+        "When the last level has been searched, we return the closest k nodes from all the sets of near neighbours returned.",
+        "In Figure 1, the filled nodes demonstrate a search for the near-neighbours of some node q, using k = 2.",
+        "Our search begins with the root node A.",
+        "As we are using k = 2, we must find the two nearest children of A using our similarity measure.",
+        "In this case, C and D are closer than B.",
+        "We now find the closest two children of C and D. E is not checked as it is only a child of B.",
+        "All other nodes are checked, including F and G, which are shared as children by B and C. From this level we chose G and H. We then consider the fourth and fifth levels similarly.",
+        "At this point we now have the list of near nodes A, C, D, G, H, I, J, K and L. From this we chose the two nodes closest to q: H and I marked in black.",
+        "These are returned as the near-neighbours of q. k can also be varied at each level to force a larger number of elements to be tested at the base of the SASH using, for instance, the equation:",
+        "We use this geometric function in our experiments."
+      ]
+    },
+    {
+      "heading": "4.5 Complexity",
+      "text": [
+        "When measuring the time complexity, we consider the number of distance measurements as these dominate the computation.",
+        "If we do not consider the problem of assigning parents to orphans, for n nodes, p parents per child, at most c children per parent and a search returning k elements, the loose upper bounds are: SASH construction",
+        "Since the average number of children per node is approximately 2p, practical complexities can be derived using c = 2p.",
+        "In Houle’s experiments, typically less than 5% of computation time was spent assigning parents to orphans, even for relatively small c. In some of our experiments we found that low values of c produced significantly worse load times that for higher values, but this was highly dependant on the distribution of nodes.",
+        "Table 1 shows this with respect to several distributions and values of c."
+      ]
+    },
+    {
+      "heading": "5 Evaluation",
+      "text": [
+        "The simplest method of evaluation is direct comparison of the extracted synonyms with a manually-created gold standard (Grefenstette, 1994).",
+        "However, on small corpora, rare direct matches provide limited information for evaluation, and thesaurus coverage is a problem.",
+        "Our evaluation uses a combination of three electronic thesauri: the Macquarie (Bernard, 1990), Roget’s (Roget, 1911) and Moby (Ward, 1996) thesauri.",
+        "With this gold standard in place, it is possible to use precision and recall measures to evaluate the quality of the extracted thesaurus.",
+        "To help overcome the problems of direct comparisons we use several measures of system performance: direct matches (DIRECT), inverse rank (INVR), and precision of the top n synonyms (P(n)), for n = 1, 5 and 10.",
+        "INVR is the sum of the inverse rank of each matching synonym, e.g. matching synonyms at ranks 3, 5 and 28 give an inverse rank score of 3 + s + 128 , and with at most 100 synonyms, the maximum INVR score is 5.187.",
+        "Precision of the top n is the percentage of matching synonyms in the top n extracted synonyms.",
+        "The same 70 single-word nouns were used for the evaluation as in Curran and Moens (2002a).",
+        "These were chosen randomly from WordNet such that they covered a range over the following properties: frequency Penn Treebank and BNC frequencies; number of senses WordNet and Macquarie senses; specificity depth in the WordNet hierarchy; concreteness distribution across WordNet subtrees.",
+        "For each of these terms, the closest 100 terms and their similarity score were extracted."
+      ]
+    },
+    {
+      "heading": "6 Experiments",
+      "text": [
+        "The contexts were extracted from the non-speech portion of the British National Corpus (Burnard, 1995).",
+        "All experiments used the JACCARD measure function, the TTEST weight function and a cutoff frequency of 5.",
+        "The SASH was constructed using the geometric equation for ki described in Section 4.4.",
+        "When the heuristic was applied, the TTESTLOG weight function was used with a canonical set size of 100 and a maximum frequency cutoff of 10,000.",
+        "The values 4–16, 8–32, 16–64, and 32–128 were chosen for p and c. This gives a range of branching factors to test the balance between sparseness, where there is potential for erroneous fragmentation of large clusters, and bushiness, where more tests must be made to find near children.",
+        "The c = 4p relationship is derived from the simple hashing rule of thumb that says that a hash table should have roughly twice the size required to store all its elements (Houle, 2003b).",
+        "Our initial experiments showed that the random distribution of nodes (RANDOM) in SASH construction caused the nearest-neighbour approximation to be very inaccurate for distributional similarity.",
+        "Although the speed was improved by two orders of magnitude when c = 16, it achieved only 13% of the INVR of the naive implementation.",
+        "The best RANDOM result was less than three times faster then the naive solution and only 60% INVR.",
+        "In accordance with Zipf’s law the majority of terms have very low frequencies.",
+        "Similarity measurements made against these low frequency terms are less reliable, as accuracy increases with the number of relations and their frequencies (Curran and Moens, 2002b).",
+        "This led to the idea that ordering the nodes by frequency before generating the SASH would improve accuracy.",
+        "The SASH was then generated with the highest frequency terms were near the root so that the initial search paths would be more accurate.",
+        "This has the unfortunate side-effect of slowing search by up to four times because comparisons with high frequency terms take longer than with low frequency terms as they have a larger number of relations.",
+        "This led to updating our original frequency ordering idea by recognising that we did not need the most accurately comparable terms at the top of the SASH, only more accurately comparable terms than those randomly selected.",
+        "As a first attempt, we constructed SASHs with frequency orderings that were folded about a chosen number of relations M. For each term, if its number of relations mi was greater than M, it was given a new ranking based on the score m2 .",
+        "In this way, very high and very low frequency terms were pushed away from the root.",
+        "The folding points this was tested for were 500, 1000 and 1500.",
+        "There are many other node organising schemes we are yet to explore.",
+        "The frequency distributions over the top three levels for each ordering scheme are shown in Table 2.",
+        "Zipf’s law results in a large difference between the mean and median frequency values in the RANDOM results: most of the nodes have low frequency, but some high frequency results push the mean up.",
+        "The fourfold reduction in efficiency for SORT (see Table 3) is a result of the mean number of relations being over 65 times that of RANDOM.",
+        "Experiments covering the full set of permutations of these parameters were run, with and without the heuristic applied.",
+        "In the cases where the heuristic rejected pairs of terms, the SASH treated the rejected pairs as being as infinitely far apart.",
+        "In addition, the brute force solutions were generated with (NAIVE HEURISTIC) and without (NAIVE) the heuristic.",
+        "We have assumed that all weights and measures introduce similar distribution properties into the SASH, so that the best weight and measure when performing a brute-force search will also produce the best results when combined with the SASH.",
+        "Future experiments will explore SASH behaviour with other similarity measures."
+      ]
+    },
+    {
+      "heading": "7 Results",
+      "text": [
+        "Table 3 presents the results for the initial experiments.",
+        "SORT was consistently more accurate than RANDOM, and when c = 128, performed as well as NAIVE for all evaluation measures except for direct matches.",
+        "Both SASH solutions outperformed NAIVE in efficiency.",
+        "The trade-off between efficiency and approximation accuracy is evident in these results.",
+        "The most efficient result is 100 times faster than NAIVE, but only 13% accurate on INVR, with 6% of direct matches.",
+        "The most accurate result is 100% accurate on INVR, with 99% of direct matches, but is less than twice as fast.",
+        "Table 4 shows the trade-off for folded distributions.",
+        "The least accurate FOLD500 result is 30% accurate but 50 times faster than NAIVE, while the most accurate is 87% but less than two times faster.",
+        "The least accurate FOLD 1500 result is 43% accurate but 71 times faster than NAIVE, while the most accurate is 101% and two and half times faster.",
+        "These results show the impact of moving high frequency terms away from the root.",
+        "Figure 2 plots the trade-off using search time and INVR at c = 16, 32, 64 and 128.",
+        "For c = 16 every SASH has very poor accuracy.",
+        "By c = 64 their accuracy has improved dramatically, but their search time also increased somewhat.",
+        "At c = 128, there is only a small improvement in accuracy, coinciding with a large increase in search time.",
+        "The best trade-off between efficiency and approximation accuracy occurs at the knee of the curve where c = 64.",
+        "When c = 128 both SORT and FOLD 1500 perform as well as, or slightly outperform NAIVE on some evaluation measures.",
+        "These evaluation measures involve the rank of correct synonyms, so if the SASH",
+        "approximation was to fail to find some incorrectly proposed synonyms ranked above some other correct synonyms, those correct synonyms would have their ranking pushed up.",
+        "In this way, the approximation can potentially outperform the original nearest-neighbour algorithm.",
+        "From Tables 3 and 4 we also see that as the value of c increases, so does the accuracy across all of the experiments.",
+        "This is because as c increases the number of paths between nodes increases and we have a solution closer to a true nearest-neighbour search, that is, there are more ways of finding the true nearest-neighbour nodes.",
+        "Table 5 presents the results of combining the canonical attributes heuristic (see Section 3.1) with the SASH approximation.",
+        "This NAIVE HEURISTIC is 14 times faster than NAIVE and 97% accurate, with 96% of direct matches.",
+        "The combination has comparable accuracy and is much more efficient than the best of the SASH solutions.",
+        "The best heuristic SASH results used the SORT ordering with c = 16, which was 37 times faster than NAIVE and 2.5 times faster than NAIVE HEURISTIC.",
+        "Its performance was statistically indistinguishable from NAIVE HEURISTIC.",
+        "Using the heuristic changes the impact of the number of children c on the SASH performance characteristics.",
+        "It seems that beyond c = 16 the only significant effect is to reduce the efficiency (often to slower than NAIVE HEURISTIC).",
+        "The heuristic interacts in an interesting way with the ordering of the nodes in the SASH.",
+        "This is most obvious with the RANDOM results.",
+        "The RANDOM heuristic INVR results are eight times better than the full RANDOM results.",
+        "Similar, though less dramatic, results are seen with other orderings.",
+        "It appears that using the heuristic changes the clustering of nearest-neighbours within the SASH so that better matching paths are chosen and more noisy matches are eliminated entirely by the heuristic.",
+        "It may seem that there are no major advantages to using the SASH with the already efficient heuristic matching method.",
+        "However, our experiments have used small canonical attribute vectors (maximum length 100).",
+        "Increasing the canonical vector size allows us to increase the accuracy of heuristic solutions at the cost of efficiency.",
+        "Using a SASH solution would offset some of this efficiency penalty.",
+        "This has the potential for a solution that is more than an order of magnitude faster than NAIVE and is almost as accurate."
+      ]
+    },
+    {
+      "heading": "8 Conclusion",
+      "text": [
+        "We have integrated a nearest-neighbour approximation data structure, the Spacial Approximation Sample Hierarchy (SASH), with a state-of-the-art distributional similarity system.",
+        "In the process we have extended the original SASH construction algorithms (Houle, 2003b) to deal with the non-uniform distribution of words within semantic space.",
+        "We intend to test other similarity measures and node ordering strategies, including a more linguistic analysis using WordNet, and further explore the interaction between the canonical vector heuristic and the SASH.",
+        "The larger 300 word evaluation set used by Curran (2004) will be used, and combined with a more detailed analyis.",
+        "Finally, we plan to optimise our SASH implementation so that it is comparable with the highly optimised nearest-neighbour code.",
+        "The result is distributional similarity calculated three times faster than existing systems with only a minor accuracy penalty."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "We would like to thank the anonymous reviewers for their helpful feedback and corrections.",
+        "This work has been supported by the Australian Research Council under Discovery Project DP0453131."
+      ]
+    }
+  ]
+}

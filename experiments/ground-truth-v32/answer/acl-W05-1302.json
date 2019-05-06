@@ -1,0 +1,286 @@
+{
+  "info": {
+    "authors": [
+      "Benjamin Wellner",
+      "Jose M. Castano",
+      "James Pustejovsky"
+    ],
+    "book": "Workshop on Linking Biological Literature, Ontologies and Databases: Mining Biological Semantics",
+    "id": "acl-W05-1302",
+    "title": "Adaptive String Similarity Metrics for Biomedical Reference Resolution",
+    "url": "https://aclweb.org/anthology/W05-1302",
+    "year": 2005
+  },
+  "references": [
+    "acl-P02-1045",
+    "acl-W02-0303",
+    "acl-W02-0312",
+    "acl-W02-1001",
+    "acl-W04-0711"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "In this paper we present the evaluation of a set of string similarity metrics used to resolve the mapping from strings to concepts in the UMLS MetaThesaurus.",
+        "String similarity is conceived as a single component in a full Reference Resolution System that would resolve such a mapping.",
+        "Given this qualification, we obtain positive results achieving 73.6 F-measure (76.1 precision and 71.4 recall) for the task of assigning the correct UMLS concept to a given string.",
+        "Our results demonstrate that adaptive string similarity methods based on Conditional Random Fields outperform standard metrics in this domain."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": []
+    },
+    {
+      "heading": "1.1 String Similarity and Reference Resolution",
+      "text": [
+        "String similarity/matching algorithms are used as a component in reference resolution algorithms.",
+        "We use reference resolution in a broad sense, which includes any of the following aspects: a. Intra-document noun phrase reference resolution.",
+        "b. Cross-document or corpus reference resolution.",
+        "c. Resolution of entities found in a corpus with databases, dictionaries or other external knowledge sources.",
+        "This is also called semantic integration, e.g., (Li et al., 2005), reference grounding, e.g., (Kim and Park, 2004) or normalization, e.g., (Pustejovsky et al., 2002; Morgan et al., 2004).",
+        "The last two aspects of reference resolution are particularly important for information extraction, and the interaction of reference resolution with information extraction techniques (see for example Bagga (1998)).",
+        "The extraction of a particular set of entities from a corpus requires reference resolution for the set of entities extracted (e.g., the EDT task in ACE1), and it is apparent that there is more variation in the cross-document naming conventions than in a single document.",
+        "The importance of edit distance algorithms has already been noticed, (M¨uller et al., 2002) and the importance of string similarity techniques in the biomedical domain has also been acknowledged, e.g., (Yang et al., 2004).",
+        "String similarity/matching algorithms have also been used extensively in related problems such as Name databases and similar problems in structured data, see (Li et al., 2005) and references mentioned therein.",
+        "The problem of determining whether two similar strings may denotate the same entity is particularly challenging in the biomedical literature.",
+        "It has already been noticed (Cohen et al., 2002) that there is great variation in the naming conventions, and noun phrase constructions in the literature.",
+        "It has also been noticed that bio-databases are hardly ever updated with the names in the literature (Blaschke",
+        "et al., 2003).",
+        "A further complication is that the actual mentions found in text are more complex than just names - including descriptors, in particular.",
+        "Finally, ambiguity (where multiple entities have the same name) is very pervasive in biomedicine.",
+        "In this paper we investigate the use of several string similarity methods to group together string mentions that might refer to the same entity or concept.",
+        "Specifically, we consider the sub-problem of assigning an unseen mention to one of a set of existing unique entities or concepts, each with an associated set of known synonyms.",
+        "As our aim here is focusing on improving string matching, we have purposely factored out the problem of ambiguity (to the extent possible) by using the UMLS MetaThesaurus as our data source, which is largly free of strings that refer to multiple entities.",
+        "Thus, our work here can be viewed an important piece in a larger normalization or reference resolution system that resolves ambiguity (which includes filtering out mentions that don’t refer to any entity of interest).",
+        "The experiments reported on in this paper evaluate a suite of robust string similarity techniques.",
+        "Our results demonstrate considerable improvement to be gained by using adaptive string similarity metrics based on Conditional Random Fields customized to the domain at hand.",
+        "The resulting best metric, we term SoftTFIDF-CRF, achieves 73.6 F-measure on the task of assigning a given string to the correct concept.",
+        "Additionally, our experiments demonstrate a tradeoff between efficiency and recall based on - gram indexing."
+      ]
+    },
+    {
+      "heading": "2 Background",
+      "text": []
+    },
+    {
+      "heading": "2.1 Entity Extraction and Reference Resolution in the Biomedical Domain",
+      "text": [
+        "Most of the work related to reference resolution in this domain has been done in the following areas: a) Intra-document Reference resolution, e.g (Casta˜no et al., 2002; Lin and Liang, 2004) b) Intra-document Named entity recognition (e.g Biocreative Task 1A (Blaschke et al., 2003), and others), also called classification of biological names (Torii et al., 2004) c) Intra-document alias extraction d) cross-document Acronym-expansion extraction, e.g., (Pustejovsky et al., 2001).",
+        "e) Protein names resolution against database entries in SwissProt, protein name grounding, in the context of a relation extraction task (Kim and Park, 2004).",
+        "One constraint in these approaches is that they use several patterns for the string matching problem.",
+        "The results of the protein name grounding are 59% precision and 40% recall.",
+        "The Biocreative Task 1B task challenged systems to ground entities found in article abstracts which contain mentions of genes in Fly, Mouse and Yeast databases.",
+        "A central component in this task was resolving ambiguity as many gene names refer to multiple genes."
+      ]
+    },
+    {
+      "heading": "2.2 String Similarity and Ambiguity",
+      "text": [
+        "In this subsection consider the string similarity issues that are present in the biology domain in particular.",
+        "The task we consider is to associate a string with an existing entity, represented by a set of known strings.",
+        "Although the issue of ambiguity is present in the examples we give, it cannot be resolved by using string similarity methods alone, but instead by methods that take into account the context in which those strings occur.",
+        "The protein name p21 is ambiguous at least between two entities, mentioned as p21-ras and p21/Waf in the literature.",
+        "A biologist can look at a set of descriptions and decide whether the strings are ambiguous or correspond to any of these two (or any other entity).",
+        "The following is an example of such a mapping, where R corresponds to p21-ras, W to p21(Waf) and G to another entity (the gene).",
+        "Also it can be noticed that some of the mappings include subcases (e.g., R.1).2"
+      ]
+    },
+    {
+      "heading": "String Form Entity",
+      "text": [
+        "normal ras p21 protein R pure v-Kirsten (Ki)-ras p21 R.1",
+        "If we want to use an external knowlege source to produce such a mapping, we can try to map it to concepts in the UMLS Methatesaurus and entries in the SwissProt database.",
+        "These two entities correspond to the concepts C0029007 (p21-Ras) and C0288472 (p21-Waf) in the UMLS Methathesaurus.",
+        "There are 27 strings or names in the UMLS that map to C0288472 (Table 2):",
+        "It can be observed that there is only one exact match: p21 in C0288472 and Table 1.",
+        "It should be noted that p21, is not present in the UMLS as a possible string for C0029007.",
+        "There are other close matches like p21 (Waf1/Cip1) (which seems very frequent) and p21 (waf1 -cip1).",
+        "An expression like The inhibitor of cyclin-dependent kinases WAF1 gene product p21 has a high similarity with Cyclin-Dependent Kinase",
+        "However there are other mappings which look quite difficult unless some context is given to provide additional clues (e.g., v -p21).",
+        "The SwissProt entries CDN1A FELCA, CDN1A HUMAN and CDN1A MOUSE are related to p21 (Waf).",
+        "They have the following set of common description names: Cyclin-dependent kinase inhibitor 1, p21, CDK-interacting protein 1.3 There is only one entry in SwissProt related to p21-ras: Q9PSS8 PLAFE: with the description name P21-ras protein and a related gene name: Ki-ras.",
+        "It should be noted that SwissProt classifies, as different entities, the proteins that refer to different organisms.",
+        "The UMLS MetaThesaurus, on the other hand, does not make this distinction.",
+        "Neither is this distinction always present in the literature."
+      ]
+    },
+    {
+      "heading": "3 Methods for Computing String Similarity",
+      "text": [
+        "A central component in the process of normalization or reference resolution is computing string similarity between two strings.",
+        "Methods for measuring string similarity can generally be broken down into character-based and token-based approaches.",
+        "Character-based approaches typically consist of the edit-distance metric and variants thereof.",
+        "Edit distance considers the number of edit operations (addition, substitution and deletion) required to transform a string into another string .",
+        "The Levenstein distance assigns unit cost to all edit operations.",
+        "Other variations allow arbitrary costs or special costs for starting and continuing a “gap” (i.e., a long sequence of adds or deletes).",
+        "Token-based approaches include the Jaccard similarity metric and the TF/IDF metric.",
+        "The methods consider the (possibly weighted) overlap between the tokens of two strings.",
+        "Hybrid token and character-based are best represented by SoftTFIDF, which includes not only exact token matches but also close matches (using edit-distance, for example).",
+        "Another approach is to perform the Jaccard similarity (or TF/IDF) between the grams of the two strings instead of the tokens.",
+        "See Cohen et al.",
+        "(2003) for a detailed overview and comparison of some of these methods on different data sets.",
+        "Recent work has also focused on automatic methods for adapting these string similarity measures to specific data sets using machine learning.",
+        "Such approaches include using classifiers to weight various fields for matching database records (Cohen and Richman, 2001).",
+        "(Belenko and Mooney, 2003) presents a generative, Hidden Markov Model for string similarity."
+      ]
+    },
+    {
+      "heading": "4 An Adaptive String Similarity Model",
+      "text": [
+        "Conditional Random Fields (CRF) are a recent, increasingly popular approach to sequence labeling problems.",
+        "Informally, a CRF bears resemblance to a Hidden Markov Model (HMM) in which, for each input position in a sequence, there is an observed variable and a corresponding hidden variable.",
+        "Like HMMs, CRFs are able to model (Markov) dependencies between the hidden (predicted) variables.",
+        "However, because CRFs are conditional, discrimina-tively trained models, they can incorporate arbitrary overlapping (non-independent) features over the entire input space – just like a discriminative classifier.",
+        "CRFs are log-linear models that compute the probability of a state sequence, where the are arbitrary feature functions, the are the model parameters and is a normalization function.",
+        "Training a CRF amounts to finding the that maximize the conditional log-likelihood of the data.",
+        "Given a trained CRF, the inference problem involves finding the most likely state sequence given a sequence of observations.",
+        "This is done using a slightly modified version of the Viterbi algorithm (See Lafferty et al.",
+        "(2001) more for details on CRFs)."
+      ]
+    },
+    {
+      "heading": "4.1 CRFs for String Similarity",
+      "text": [
+        "CRFs can be used to measure string similarity by viewing the observed sequence, , and the state sequence, , as sequences of characters.",
+        "In practice we are presented with two strings, , and of possibly differing lengths.",
+        "A necessary first step is to align the two strings by applying the Levenstein distance procedure as described earlier.",
+        "This produces a series of edit operations where each operation has one of three possible forms: 1) (addition), 2) (substitution) and 3) (deletion).",
+        "The observed and hidden sequences are then derived by reading off the terms on the right and left-hand sides of the operations, respectively.",
+        "Thus, the possible state values include all the characters in our domain plus the special null character, .",
+        "We employ a set of relatively simple features in our string similarity model described in Table 4.",
+        "One motivation for keeping the set of features simple was to determine the utility of string similarity CRFs without spending effort designing domain-specific features; this is a primary motivation for taking a machine learning approach in the first place.",
+        "Additionally, we have found that more specific, discriminating features (e.g., observation trigrams with state bi-grams) tend to reduce the performance of the CRF on this domain - in some cases considerably."
+      ]
+    },
+    {
+      "heading": "4.2 Practical Considerations",
+      "text": [
+        "We discuss a few practical concerns with using CRFs for string similarity.",
+        "The first issue is how to scale CRFs to this task.",
+        "The inference complexity for CRFs is where is the size of the vocabulary of states and is the number of input positions.",
+        "In our setting, the number of state variable values is very large - one for each character in our alphabet (which is on the order of 40 or more including digits and punctuation).",
+        "Moreover, we typically have very large training sets largely due to the fact that training pairs are derivable from an equivalence class of size .",
+        "Given this situation, standard training for CRFs becomes unwieldy, since it involves performing inference over the entire data set repeatedly (typically a few hundred iterations are required to converge).",
+        ", given an observed sequence, as:",
+        "As such, we resort to an approximation: Voted Per-ceptron training (Collins, 2002).",
+        "Voted Perceptron training does not involve maximizing log-likelihood, but instead updates parameters via stochastic gradient descent with a small number of passes over the data.",
+        "Another consideration that arises is given a pair of strings, which one should be considered the “observed” sequence and which one the “hidden” sequence.",
+        "Another consideration that arises is given a pair of strings, which string should be considered the “observed” sequence and which the “hidden” sequence?4 We have taken to always selecting the longest string as the “observed” string, as it appears most natural, though that decision is somewhat arbitrary.",
+        "A last observation is that the probability assigned to a pair of strings by the model will be reduced geometrically for longer string pairs (since the probability is computed as a product of terms, where is the length of the sequence).",
+        "We have taken to normalizing the probabilities by the length of the sequence roughly following the approach of (Belenko and Mooney, 2003).",
+        "A final point here is that it is possible to use Viterbi decoding to find the best hidden strings given only the observed string.",
+        "This provides a mechanism to generate domain-specific string alterations for a given string ranked by their probability.",
+        "The advantage of this approach is that such alterations can be used to expand a synonym list; exact matching can then be used greatly increasing efficiency.",
+        "Work is ongoing in this area."
+      ]
+    },
+    {
+      "heading": "5 Matching Procedure",
+      "text": [
+        "Our matching procedure in this paper is set in the context of finding the concept or entity (each with some existing set of known strings) that a given string, , is referring to.",
+        "In many settings, such as the BioCreative Task 1B task mentioned above, it is necessary to match large numbers of strings against the lexicon - potentially every possible phrase in a large",
+        "number of documents.",
+        "As such, very fast matching times (typically on the order of milliseconds) are required.",
+        "Our method can be broken down into two steps.",
+        "We first select a reasonable candidate set of strings (associated with a concept or lexical entry), , reasonably similar to the given string using an efficient method.",
+        "We then use one of a number of string similarity metrics on all the pairs: The set of candidate strings, is determined by the gram match ratio, which we define as: where such that is a gram of .",
+        "This set is retrieved very quickly by creating a - gram index: a mapping between each gram and the strings (entries) in which it occurs.",
+        "At query time, the given string is broken into grams and the sets corresonding to each gram are retrieved from the index.",
+        "A straightforward computation finds those entries that have a certain number of grams in common with the query string from which the ratio can be readily computed.",
+        "Depending on the setting, three options are possible given the returned set of candidates for a string :",
+        "1.",
+        "Consider and equivalent where is the most similar string 2.",
+        "Consider and equivalent where is the most similar string and , for some threshold 3.",
+        "Consider and equivalent for all where , for some threshold",
+        "In the experiments in this paper, we use the first criterion since for a given string, we know that it should be assigned to exactly one concept (see below)."
+      ]
+    },
+    {
+      "heading": "6 Experiments and Results",
+      "text": []
+    },
+    {
+      "heading": "6.1 Data and Experimental Setup",
+      "text": [
+        "We used the UMLS MetaThesaurus for all our experiments for three reasons: 1) the UMLS represents a wide-range of important biomedical concepts",
+        "for many applications and 2) the size of the UMLS (compared with BioCreative Task 1B, for example) promotes statistically significant results as well as sufficient training data 3) the problem of ambiguity (multiple concepts with the same name) is largely absent in the UMLS.",
+        "The UMLS is a taxonomy of medical and clinical concepts consisting of 1,938,701 lexical entries (phrase strings) where each entry belongs to one (or, in very rarely, more than one) of 887,688 concepts.",
+        "We prepared the data by first selecting only those lexical entries belonging to a concept containing 12 or more entries.",
+        "This resulted in a total of 129,463 entries belonging to 7,993 concepts.",
+        "We then divided this data into a training set of 95,167 entries and test set of 34,296 entries where roughly 70% of the entries for each concept were placed in the training set and 30% in the test set.",
+        "Thus, the training set and test set both contained some string entries for each of the 7,993 concepts.",
+        "While restricting the number of entries to 12 or more was somewhat arbitrary, this allowed for at least 7 (70% of 12) entries in the training data for each concept, providing sufficient training data.",
+        "The task was to assign the correct concept identifier to each of the lexical entries in the test set.",
+        "This was carried out by finding the most similar string entry in the training data and returning the concept identifier associated with that entry.",
+        "Since each test instance must be assigned to exactly one concept, our system simply ranked the candidate strings based on the string similarity metric used.",
+        "We compared the results for different maximum gram match ratios.",
+        "Recall that the gram match mechanism is essentially a filter; higher values correspond to larger candidate pools of strings considered by the string similarity metrics.",
+        "We used six different string similarity metrics that were applied to the same set of candidate results returned by the gram matching procedure for each test string.",
+        "These were TFIDF, Levenstein, q-gram-Best, CRF, SoftTFIDF-Lev and SoftTFIDF-CRF.",
+        "TFIDF and Levenstein were described earlier.",
+        "The q-gram-Best metric simply selects the match with the lowest gram match ratio returned by the gram match procedure described Table 5: Maximum F-measure attained for each string similarity metric, with corresponding precision and recall values.",
+        "The numbers in parentheses indicate the gram match value for which the highest F-measure was attained.",
+        "above5.",
+        "The SoftTFIDF-Lev model is the SoftTFIDF metric described earlier where the secondary metric for similarity between pairs of tokens is the Levenstein distance.",
+        "The CRF metric is the CRF string similarity model applied to the entire strings.",
+        "This model was trained on pairs of strings that belonged to the same concept in the training data, resulting in 130,504 string pair training instances.",
+        "The SoftTFIDF-CRF metric is the SoftTFIDF method where the secondary metric is the CRF string similarity model.",
+        "This CRF model was trained on pairs of tokens (not entire phrases).",
+        "We derived pairs of tokens by finding the most similar pairs of tokens (similarity was determined here by Levenstein distance) between strings belonging to the same concept in the training data.",
+        "This resulted in 336,930 string pairs as training instances."
+      ]
+    },
+    {
+      "heading": "6.2 Results",
+      "text": [
+        "We computed the precision, recall and F-measure for each of the string similarity metrics across different gram match ratios shown in Fig. 1.",
+        "Both a precision and recall error is introduced when the top-returned concept id is incorrect; just a recall error occurs when no concept id is returned at all - i.e. when the gram match procedure returns the empty set of candidate strings.",
+        "This is more likely to occur when for lower values and explains the poor recall in those cases.",
+        "In addition, we computed the mean reciprocal rank of each of the methods.",
+        "This is computed using the ranked, ordered list of the concepts returned by each method.",
+        "This scoring method as",
+        "signs a score of for each test instance where is the position in the ranked list at which the correct concept is found.",
+        "For example, by returning the correct concept as the 4th element in the ranked list, a method is awarded .",
+        "The mean reciprocal rank is just the average score over all the test elements.",
+        "As can be seen, the SoftTFIDF-CRF string-similarity metric outperforms all the other methods on this data set.",
+        "This approach is robust to both word order variations and character-level differences, the latter with the benefit of being adapted to the domain.",
+        "Word order is clearly a critical factor in this domain though the CRF metric, entirely character-based, does surprisingly well - much better than the Levenstein distance.",
+        "The q-gram-Best metric, being able to handle word order variations and character-level differences, performs fairly.",
+        "The graphs illustrate a tradeoff between efficiency and accuracy (recall).",
+        "Lower gram match ratios return fewer candidates with correspondingly fewer pairwise string similarities to compute.",
+        "Precision actually peaks with a gram match ratio of around 0.2.",
+        "Recall tapers off even up to high q-gram levels for all metrics, indicating that nearly 30% of the test instances are probably too difficult for any string similarity metric.",
+        "Error analysis indicates that these cases tend to be entries involving synonymous “nicknames”.",
+        "Acquiring such synonyms requires other machinery, e.g., (Yu and Agichtein, 2003)."
+      ]
+    },
+    {
+      "heading": "7 Conclusions",
+      "text": [
+        "We have explored a set of string similarity metrics in the biological domain in the service of reference resolution.",
+        "String similarity is only one parameter to be considered in this task.",
+        "We presented encouraging results for assigning strings to UMLS concepts based solely on string similarity metrics – demonstrating that adaptive string similarity metrics show significant promise for biomedical text processing.",
+        "Further progress will require a system that 1) utilizes context of occurrence of respective strings for handling ambiguity and 2) further improves recall"
+      ]
+    },
+    {
+      "heading": "'Inspection of the data indicates that the purely character",
+      "text": [
+        "based methods are more robust than one might think.",
+        "There are at least 8 strings to match against for a concept and it is likely that at least one of them will have similar word order to the test string.",
+        "through expanded synonyms.",
+        "Future work should also consider the dependent nature (via transitivity) of reference resolution.",
+        "Comparing a test string against all (current) members of an equivalence class and considering multiple, similar test instances simultaneously (McCallum and Wellner, 2003) are two directions to pursue in this vein."
+      ]
+    },
+    {
+      "heading": "8 Acknowledgements",
+      "text": [
+        "We thank Dave Harris, Alex Morgan, Lynette Hirschman and Marc Colosimo for useful discussions and comments.",
+        "This work was supported in part by MITRE Sponsored Research 51MSR123-A5."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,296 @@
+{
+  "info": {
+    "authors": [
+      "Christoph Tillmann"
+    ],
+    "book": "Workshop on Computationally Hard Problems and Joint Inference in Speech and Language Processing",
+    "id": "acl-W06-3602",
+    "title": "Efficient Dynamic Programming Search Algorithms for Phrase-Based SMT",
+    "url": "https://aclweb.org/anthology/W06-3602",
+    "year": 2006
+  },
+  "references": [
+    "acl-J03-1005",
+    "acl-J04-4002",
+    "acl-J93-2003",
+    "acl-J97-3002",
+    "acl-J99-4005",
+    "acl-P03-1021",
+    "acl-P97-1037",
+    "acl-P98-2158",
+    "acl-W03-1001"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper presents a series of efficient dynamic-programming (DP) based algorithms for phrase-based decoding and alignment computation in statistical machine translation (SMT).",
+        "The DP-based decoding algorithms are analyzed in terms of shortest path-finding algorithms, where the similarity to DP-based decoding algorithms in speech recognition is demonstrated.",
+        "The paper contains the following original contributions: 1) the DP-based decoding algorithm in (Tillmann and Ney, 2003) is extended in a formal way to handle phrases and a novel pruning strategy with increased translation speed is presented 2) a novel alignment algorithm is presented that computes a phrase alignment efficiently in the case that it is consistent with an underlying word alignment.",
+        "Under certain restrictions, both algorithms handle MT-related problems efficiently that are generally NP complete (Knight, 1999)."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "This paper deals with dynamic programming based decoding and alignment algorithms for phrase-based SMT.",
+        "Dynamic Programming based search algorithms are being used in speech recognition (Jelinek, 1998; Ney et al., 1992) as well as in statistical machine translation (Tillmann et al., 1997; Niessen et al., 1998; Tillmann and Ney, 2003).",
+        "Here, the decoding algorithms are described as shortest path finding algorithms in regularly structured search graphs or search grids.",
+        "Under certain restrictions, e.g. start and end point restrictions for the path, the shortest path computed corresponds to a recognized word sequence or a generated target language translation.",
+        "In these algorithms, a shortest-path search",
+        "is carried out in one pass over some input along a specific ’direction’: in speech recognition the search is time-synchronous, the single-word based search algorithm in (Tillmann et al., 1997) is (source) position-synchronous or left-to-right, the search algorithm in (Niessen et al., 1998) is (target) position-synchronous or bottom-to-top, and the search algorithm in (Tillmann and Ney, 2003) is so-called cardinality-synchronous.",
+        "Taking into account the different word order between source and target language sentences, it becomes less obvious that a SMT search algorithm can be described as a shortest path finding algorithm.",
+        "But this has been shown by linking decoding to a dynamic-programming solution for the traveling salesman problem.",
+        "This algorithm due to (Held and Karp, 1962) is a special case of a shortest path finding algorithm (Dreyfus and Law, 1977).",
+        "The regularly structured search graph for this problem is illustrated in Fig. 1: all paths from the leftmost to the rightmost vertex correspond to a translation of the in"
+      ]
+    },
+    {
+      "heading": "New York City, New York, June 2006. c�2006 Association for Computational Linguistics",
+      "text": [
+        "put sentence, where each source position is processed exactly once.",
+        "In this paper, the DP-based search algorithm in (Tillmann and Ney, 2003) is extended in a formal way to handle phrase-based translation.",
+        "Two versions of a phrase-based decoder for SMT that search slightly different search graphs are presented: a multi-beam decoder reported in the literature and a single-beam decoder with increased translation speed 1.",
+        "A common analysis of all the search algorithms above in terms of a shortest-path finding algorithm for a directed acyclic graph (dag) is presented.",
+        "This analysis provides a simple way of analyzing the complexity of DP-based search algorithm.",
+        "Generally, the regular search space can only be fully searched for small search grids under appropriate restrictions, i.e. the monotonicity restrictions in (Tillmann et al., 1997) or the inverted search graph in (Niessen et al., 1998).",
+        "For larger search spaces as are required for continuous speech recognition (Ney et al., 1992) 2 or phrase-based decoding in SMT, the search space cannot be fully searched: suitably defined lists of path hypothesis are maintained that partially explore the search space.",
+        "The number of hypotheses depends locally on the number hypotheses whose score is close to the top scoring hypothesis: this set of hypotheses is called the beam.",
+        "The translation model used in this paper is a phrase-based model, where the translation units are so-called blocks: a block is a pair of phrases which are translations of each other.",
+        "For example, Fig. 2 shows an Arabic-English translation example that uses blocks.",
+        "During decoding, we view translation as a block segmentation process, where the input sentence is segmented from left to right and the target sentence is generated from bottom to top, one block at a time.",
+        "In practice, a largely monotone block sequence is generated except for the possibility to swap some neighbor blocks.",
+        "During decoding, we try to minimize the score of a block sequence under the restriction that the concatenated source phrases of the blocks yield a segmentation of the input sentence:",
+        "Here, is dimensional feature vector with real-valued features and is the corresponding weight vector as described in Section 5.",
+        "The fact that a given block covers some source interval is implicit in this notation.",
+        "This paper is structured as follows: Section 2 introduces the multi-beam and the single-beam DP-based decoders.",
+        "Section 3 presents an analysis of all the graph-based shortest-path finding algorithm mentioned above: a search algorithm for a directed acyclic graph (dag).",
+        "Section 4 shows an efficient phrasal alignment algorithm that gives an algorithmic justification for learning blocks from word-aligned training.",
+        "Finally, Section 5 presents an evaluation of the beam-search decoders on an Arabic-English decoding task."
+      ]
+    },
+    {
+      "heading": "2 Beam-Search Decoding Algorithms",
+      "text": [
+        "In this section, we introduce two beam-search algorithms for SMT: a multi-beam algorithm and single-beam algorithm.",
+        "The multi-beam search algorithm is presented first, since it is conceptually simpler."
+      ]
+    },
+    {
+      "heading": "2.1 Multi-Beam Decoder",
+      "text": [
+        "For the multi-beam decoder makes use of search states that are -tuples of the following type: (2) is the state history, that depends on the block generation model.",
+        "In our case, , where is the interval where the most recent block matched the input sentence, and are the final two target words of the partial translation produced thus far.",
+        "is the so-called coverage vector that ensures that a consistent block alignment is obtained during decoding and that the decoding",
+        "which is similar to (Koehn, 2004).",
+        "The decoders differ in their pruning strategy: here, each state list is pruned only once, whereas the decoder in (Koehn, 2004) prunes a state list every time a new hypothesis is entered.",
+        "input: source sentence with words can be carried out efficiently.",
+        "It keeps track of the already processed input sentence positions.",
+        "is the cost of the shortest path (distance) from some initial state to the current state .",
+        "The baseline decoder maintains state lists with entries of the above type, where is the number of input words.",
+        "The states are stored in lists or stacks that support lookup operations to check whether a given state tuple is already present in a list and what its score is.",
+        "The use of a coverage vector is related to a DP-based solution for the traveling salesman problem as illustrated in Fig. 1.",
+        "The algorithm keeps track of sets of visited cities along with the identity of the last visited city.",
+        "Cities correspond to source sentence positions .",
+        "The vertexes in this graph correspond to set of already visited cities.",
+        "Since the traveling salesman problem (and also the translation model) uses only local costs, the order in which the source positions have been processed can be ignored.",
+        "Conceptually, the reordering problem is linearized by searching a path through the set inclusion graph in Fig. 1.",
+        "Phrase-based decoding is handle by an almost identical algorithm: the last visited position is replaced by an interval .",
+        "The states are stored in lists or stacks that support lookup operations to check whether a given state tuple is already present in a list and what its score is.",
+        "Extending the partial block translation that is represented by a state with a single block generates a new state .",
+        "Here, is the source interval where block matches the input sentence.",
+        "The state transition is defined as follows:",
+        "(3)",
+        "The state fields are updated on a component-by-component basis.",
+        "is the coverage vec",
+        "tor obtained by adding all the positions from the interval .",
+        "The new state history is defined as where and are the final two target words of the target phrase of .",
+        "Some special cases, e.g. where has less than two target words, are taken into account.",
+        "The path cost is computed as , where the transition cost is computed from the history and the matching block as defined in Section 5.",
+        "The decoder in Table 1 fills state sets .",
+        "All the coverage vectors for states in the set cover the same number of source positions .",
+        "When a state set is processed, the decoder has finished processing all states in the sets where .",
+        "Before expanding a state set, the decoder prunes a state set based on its coverage vector and the path costs only: two different pruning strategies are used that have been introduced in (Tillmann and Ney, 2003): 1) coverage pruning prunes states that share the same coverage vector , 2) cardinality pruning prunes states according to the cardinality of covered positions: all states in the beam are compared with each other.",
+        "Since the states are kept in separate lists, which are pruned independently of each others, this decoder version is called multi-beam decoder.",
+        "The decoder uses a matcher function when expanding a state: for a state it looks for uncovered source positions to find source phrase matches for blocks.",
+        "Updating a state in Table 1 includes adding the state if it is not yet present or updating its shortest path cost : if the",
+        "state is already in only the state with the lower path cost is kept.",
+        "This inserting/updating operation is also called recombination or relaxation in the context of a dag search algorithm (cf.",
+        "Section 3).",
+        "The update procedure also stores for each state its predecessor state in a so-called back-pointer array (Ney et al., 1992).",
+        "The final block alignment and target translation can be recovered from this back-pointer array once the final state set has been computed.",
+        "is the source phrase length of the matching block when going from to .",
+        "This algorithm is similar to the beam-search algorithm presented in (Koehn, 2004): it allows states to be added to a stack that is not the stack for the successor cardinality.",
+        "is the initial decoder state, where no source position is covered: .",
+        "For the final states in all source positions are covered."
+      ]
+    },
+    {
+      "heading": "2.2 Single-Beam Implementation",
+      "text": [
+        "The second implementation uses two lists to keep a single beam of active states.",
+        "This corresponds to a beam-search decoder in speech recognition, where path hypotheses corresponding to word sequences are processed in a time-synchronous way and at a given time step only hypotheses within some percentage of the best hypothesis are kept (Lowerre and Reddy, 1980).",
+        "The single-beam decoder processes hypotheses cardinality-synchronously, i.e. the states at stage generate new states at position .",
+        "In order to make the use of a single beam possible, we slightly modify the state transitions in Eq.",
+        "3: Here, Eq.",
+        "5 corresponds to the matcher definition in Eq.",
+        "3.",
+        "We add an additional field that is a pointer keeping track of how much of the recent source phrase match has been covered.",
+        "In Eq.",
+        "5, when a block is matched to the input sentence, this pointer is set to position k where the most recent block match starts.",
+        "We use a dot to indicate that when a block is matched, the matching position of the predecessor state can be ignored.",
+        "While the pointer is not yet equal to the end position of the match , it is increased as shown in Eq.",
+        "4.",
+        "The path cost is set: , where is the state transition cost divided by the source phrase length of block : we evenly spread the cost of generating over all source positions being matched.",
+        "The new coverage vector is obtained from by adding the scanned position : .",
+        "The algorithm that makes use of the above definitions is shown in Table 2.",
+        "The states are stored in only two state sets and : contains the most probable hypotheses that were kept in the last beam pruning step all of which cover source positions.",
+        "contains all the hypotheses in the current beam that cover source positions.",
+        "The single-beam decoder in Table 2 uses two procedures: the scanner and the matcher correspond to the state transitions in Eq.",
+        "4 and Eq.",
+        "5.",
+        "Here, the matcher simply matches a block to an uncovered portion of the input sentence.",
+        "After the matcher has matched a block, that block is processed in a cardinality-synchronous way using the scanner procedure as described above.",
+        "The predicate CLOSED is used to switch between matching and scanning states.",
+        "The predicate CLOSED is true if the pointer is equal to the match end position (this is stored in ).",
+        "At this point, the position-by-position match of the source phrase is completed and we can search for additional block matches."
+      ]
+    },
+    {
+      "heading": "3 DP Shortest Path Algorithm for dag",
+      "text": [
+        "This section analyzes the relationship between the block decoding algorithms in this paper and a single-source shortest path finding algorithm for a directed acyclic graphs (dag).",
+        "We closely follow the presentation in (Cor-men et al., 2001) and only sketch the algorithm here: a dag is a weighted graph for which a topological sort of its vertex set exists: all the vertexes can be enumerated in linear order.",
+        "For such a weighted graph, the shortest path from a single source can be computed in time, where is the number of vertexes and number of edges in the graph.",
+        "The dag search algorithm runs over all vertexes in topological order.",
+        "Assuming an adjacency-list representation of the dag, for each vertex , we loop over all successor vertexes , where each vertex with its adjacency-list is processed exactly once.",
+        "During the search, we maintain for each vertex an attribute , which is an upper bound on the shortest path cost from the source vertex to the vertex .",
+        "This shortest path estimate is updated or relaxed each time the vertex occurs in some adjacency list.",
+        "Ignoring the pruning, the Beam decoding algorithm in Table 1 and the dag search algorithm can be compared as follows: states correspond to dag vertexes and state transitions correspond to dag edges.",
+        "Using two loops for the multi-beam decoder while generating states in stages is just a way of generating a topological sort of the search states on the fly: a linear order of search states is generated by appending the search states in the state lists , , etc.",
+        ".",
+        "The analysis in terms of a dag shortest path algorithm can be used for a simple complexity analysis of the proposed algorithms.",
+        "Local state transitions correspond to an adjacency-list traversal in the dag search algorithm.",
+        "These involve costly lookup operations, e.g. language, distortion and translation model probability lookup.",
+        "Typically the computation time for update operations on lists is negligible compared to these probability lookups.",
+        "So, the search algorithm complexity is simply computed as the number of edges in the search graph: (this analysis is implicit in (Tillmann,",
+        "2001)).",
+        "Without proof, for the search algorithm in Section 2.1 we observe that the number of states is finite and that all the states are actually reachable from the start state .",
+        "This way for the single-word based search in (Tillmann and Ney, 2003), a complexity of is shown, where is the size of the target vocabulary and is the length of the input sentence.",
+        "The complexity is dominated by the exponential number of coverage vectors that occur in the search, and the complexity of phrase-based decoding is higher yet since its hypotheses store a source interval rather than a single source position .",
+        "In the general case, no efficient search algorithm exists to search all word or phrase re-orderings (Knight, 1999).",
+        "Efficient search algorithms can be derived by the restricting the allowable coverage vectors (Tillmann, 2001) to local word reordering only.",
+        "An efficient phrase alignment method that does not make use of reordering restriction is demonstrated in the following section."
+      ]
+    },
+    {
+      "heading": "4 Efficient Block Alignment Algorithm",
+      "text": [
+        "A common approach to phrase-based SMT is to learn phrasal translation pairs from word-aligned training data (Och and Ney, 2004).",
+        "Here, a word alignment is a subset of the Cartesian product of source and target positions: Here, is the target sentence length and is the source sentence length.",
+        "The phrase learning approach in (Och and Ney, 2004) takes two alignments: a source-to-target alignment and a target-to-source alignment .",
+        "The intersection of these two alignments is computed to obtain a high-precision word alignment.",
+        "Here, we note that if the intersection covers all source and target positions (as shown in Fig. 4), it constitutes a bijection between source and target sentence positions, since the intersecting alignments are functions according to their definition in (Brown et al., 1993) 3.",
+        "In this paper, an algorithmic justification for restricting blocks based on word alignments is given.",
+        "We assume that source and target sentence are given, and the task is to compute the lowest scoring block alignment.",
+        "Such an algorithm might be important in some discriminative training procedure that relies on decoding the training data efficiently.",
+        "To restrict the block selection based on word aligned training data, interval projection functions are defined as follows 4: is a source interval and is an target inter",
+        "val.",
+        "is the set of target positions such that the alignment point occurs in the alignment set and is covered by the source interval .",
+        "is defined accordingly.",
+        "Formally, the definitions look like this: In order to obtain a particularly simple block alignment algorithm, the allowed block links are restricted by an ADMISSIBILITY restriction, which is defined as follows: is admissible iff (6) and Admissibility is related to the word reordering problem: for the source positions in an interval and for the target positions in an interval , all word reordering involving these positions has to take place within the block defined by and .",
+        "Without an underlying alignment each pair of source and target intervals would define a possible block link: the admissibility reduces the number of block links drastically.",
+        "Examples of admissible and non-admissible blocks are shown in Fig. 3.",
+        "If the alignment is a bijection, by definition each target position is aligned to exactly one source position and vice versa and source and target sentence have the same length.",
+        "Because of the admissibility definition, a target interval clumping alone is sufficient to determine the source interval clumping and the clump alignment.",
+        "In Fig. 4, a bijection word alignment for a sentence pair that consists of source and target words is shown, where the alignment links that yield a bijection are shown as solid dots.",
+        "Four admissible block alignments are shown as well.",
+        "An admissible block alignment is always guaranteed to exist: the block that covers all source and target position is admissible by definition.",
+        "The underlying word alignment and the admissibility restriction play together to reduce the number of block alignments: out of all eight possible target clumpings, only aligned training data which is equivalent.",
+        "and and",
+        "target clumping is generated sequentially from bottom-to-top and it induces some source clumping in an order which is defined by the word alignment."
+      ]
+    },
+    {
+      "heading": "4.1 Incomplete Bijection Coverage",
+      "text": [
+        "In this section, an algorithm is sketched that works if the intersection coverage is not complete.",
+        "In this case, a given target interval may produce several admissible block links since it can be coupled with different source intervals to form admissible block links, e.g. in Fig. 5, the target interval is linked to two source intervals and both resulting block links do not violate the admissibility restriction.",
+        "The minimum score block translation can be computed using either the one-beam or the multi-beam algorithm presented earlier.",
+        "The search state definition in Eq.",
+        "2 is modified to keep track of the current target position the same way as the recursive quantity does this in the algorithm in Table 3:",
+        "five yield segmentations with admissible block links.",
+        "The DP-based algorithm to compute the block sequence with the highest score is shown in Table 3.",
+        "Here, the following auxiliary quantity is used: :=score of the best partial segmentation that covers the target interval .",
+        "Target intervals are processed from bottom to top.",
+        "A target interval is projected using the word alignment , where a given target interval might not yield an admissible block.",
+        "For the initialization, we set and the final score is obtained as .",
+        "The complexity of the algorithm is where the time to compute the cost and the time to compute the interval projections are ignored.",
+        "Using the alignment links , the segmentation problem is essentially linearized: the Additionally, a complex block history as defined in Section 2 can be used.",
+        "Before the search is carried out, the set of admissible block links for each target interval is precomputed and stored in a table where a simple lookup for each target interval is carried out during alignment.",
+        "The efficiency of the block alignment algorithm depends on the alignment intersection coverage."
+      ]
+    },
+    {
+      "heading": "5 Beam-Search Results",
+      "text": [
+        "In this section, we present results for the beam-search algorithms introduced in Section 2.",
+        "The MT03 Arabic-English NIST evaluation test set consisting of sentences with Arabic words is used for the experiments.",
+        "Translation results in terms of uncased BLEU using reference translations are reported in Table 4 and Table 5 for the single-beam ( -Beam) and the multi-beam ( -Beam) search algorithm.",
+        "For all reordering experiments, the notion of skips is used (Tillmann and Ney, 2003) to restrict the phrase re-ordering: the number of skips restricts the number of holes in the coverage vector for a left-to-right traversal of the input sentence.",
+        "All",
+        "reordering takes place in a window of size , such that only local block reordering is handled.",
+        "The following block bigram scoring is used: a block pair with corresponding source phrase matches is represented as a feature-vector .",
+        "The feature-vector components are the negative logarithm of some probabilities as well as a word-penalty feature.",
+        "The real-valued features include the following: a block translation score derived from phrase occurrence statistics , a trigram language model to predict target words , a lexical weighting score for the block internal words , a distortion model as well as the negative target phrase length .",
+        "The transition cost is computed as , where is a weight vector that sums up to : .",
+        "The weights are trained using a procedure similar to (Och, 2003) on held-out test data.",
+        "A block set of million blocks, which are not filtered according to any particular test set is used, which has been generated by a phrase-pair selection algorithm similar to (Al-Onaizan et al., 2004).",
+        "The training data is sentence-aligned consisting of million training sentence pairs.",
+        "Beam-search results are presented in terms of two pruning thresholds: the coverage pruning threshold and the cardinality pruning threshold (Tillmann and Ney, 2003).",
+        "To carry out the pruning, the minimum cost with respect to each coverage set and cardinality are computed for a state set .",
+        "For the coverage pruning, states are distinguished according to the subset of covered positions .",
+        "The minimum cost is defined as: .",
+        "For the cardinality pruning, states are distinguished according to the cardinality of subsets of covered positions.",
+        "The minimum cost is defined for all hypotheses with the same cardinality : .",
+        "States in are pruned if the shortest path cost is greater than the minimum cost plus the pruning threshold: The same state set pruning is used for the Beam and Table 5: Effect of the coverage pruning threshold on BLEU and the overall CPU time [secs].",
+        "To restrict the overall search space the cardinality pruning is set to and the cardinality histogram pruning is set to .",
+        "the Beam search algorithms.",
+        "Table 4 shows the effect of the skip size on the translation performance.",
+        "The pruning thresholds are set to conservatively large values: and .",
+        "Only if no block reordering is allowed ( ), performance drops significantly.",
+        "The Beam search is consistently faster than Beam search algorithm.",
+        "Table 5 demonstrates the effect of the coverage pruning threshold.",
+        "Here, a conservatively large cardinality pruning threshold of and the so-called histogram pruning to restrict the overall number of states in the beam to a maximum number of are used to restrict the overall search space.",
+        "The - Beam search algorithm is consistently faster than the - Beam search algorithm for the same pruning threshold, but performance in terms of BLEU score drops significantly for lower coverage pruning thresholds as a smaller portion of the overall search space is searched which leads to search errors.",
+        "For larger pruning thresholds , where the performance of the two algorithms in terms of BLEU score is nearly identical, the Beam algorithm runs significantly faster.",
+        "For a coverage threshold of , the Beam algorithm is as fast as the Beam algorithm at , but obtains a significantly higher BLEU score of versus for the Beam algorithm.",
+        "The results in this section show that the Beam algorithm generally runs faster since the beam search pruning is applied to all states simultaneously making more efficient use of the beam search concept."
+      ]
+    },
+    {
+      "heading": "6 Discussion",
+      "text": [
+        "The decoding algorithm shown here is most similar to the decoding algorithms presented in (Koehn, 2004) and (Och and Ney, 2004), the later being used for the Alignment Template Model for SMT.",
+        "These algorithms also",
+        "include an estimate of the path completion cost which can easily be included into this work as well ((Tillmann, 2001)).",
+        "(Knight, 1999) shows that the decoding problem for SMT as well as some bilingual tiling problems are NP-complete, so no efficient algorithm exists in the general case.",
+        "But using DP-based optimization techniques and appropriate restrictions leads to efficient DP-based decoding algorithms as shown in this paper.",
+        "The efficient block alignment algorithm in Section 4 is related to the inversion transduction grammar approach to bilingual parsing described in (Wu, 1997): in both cases the number of alignments is drastically reduced by introducing appropriate reordering restrictions.",
+        "The list-based decoding algorithms can also be compared to an Earley-style parsing algorithm that processes list of parse states in a single left-to-right run over the input sentence.",
+        "For this algorithm, the comparison in terms of a shortest-path algorithm is less obvious: in the so-called completion step the parser revisits states in previous stacks.",
+        "But it is interesting to note that there is no multiple lists variant of that parser.",
+        "In phrase-based decoding, a multiple list decoder is feasible only because exact phrase matches occur.",
+        "A block decoding algorithm that would allow for a’fuzzy’ match of source phrases, e.g. insertions or deletions of some source phrase words are allowed, would need to carry out its computations using two stacks since the match end of a block is unknown."
+      ]
+    },
+    {
+      "heading": "7 Acknowledgment",
+      "text": [
+        "This work was partially supported by DARPA and monitored by SPAWAR under contract No.",
+        "N66001-99-28916.",
+        "The author would like to thank the anonymous reviewers for their detailed criticism on this paper."
+      ]
+    }
+  ]
+}

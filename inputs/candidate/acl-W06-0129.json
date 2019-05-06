@@ -1,0 +1,184 @@
+{
+  "info": {
+    "authors": [
+      "Bob Carpenter"
+    ],
+    "book": "SIGHAN Workshop on Chinese Language Processing",
+    "id": "acl-W06-0129",
+    "title": "Character Language Models for Chinese Word Segmentation and Named Entity Recognition",
+    "url": "https://aclweb.org/anthology/W06-0129",
+    "year": 2006
+  },
+  "references": [
+    "acl-J00-3004",
+    "acl-N04-4028"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We describe the application of the Ling-Pipe toolkit to Chinese word segmentation and named entity recognition for the 3rd SIGHAN bakeoff."
+      ]
+    },
+    {
+      "heading": "1 Word Segmentation",
+      "text": [
+        "Chinese is written without spaces between words.",
+        "For the word segmentation task, four training corpora were provided with one sentence per line and a single space character between words.",
+        "Test data consisted of Chinese text, one sentence per line, without spaces between words.",
+        "The task is to insert single space characters between the words.",
+        "For this task and named entity recognition, we used the UTF8-encoded Unicode versions of the corpora converted from their native formats by the bakeoff organizers."
+      ]
+    },
+    {
+      "heading": "2 Named Entity Recognition",
+      "text": [
+        "Named entities consist of proper noun mentions of persons (PER), locations (LOC), and organizations (ORG).",
+        "Two training corpora were provided.",
+        "Each line consists of a single character, a single space character, and then a tag.",
+        "The tags were in the standard BIO (begin/in/out) encoding.",
+        "B-PER tags the first character in a person entity, I PER tags subsequent characters in a person, and 0 characters not part of entities.",
+        "We segmented the data into sentences by taking Unicode character 0 x 3 0 0 2, which is rendered as a baseline-aligned small circle, as marking end of sentence (EOS).",
+        "As judged by our own sentence numbers (see Figures 1 and 2), this missed around 20% of the sentence boundaries in the City U NE corpus and 5% of the boundaries in the Microsoft NE corpus.",
+        "Test data is in the same format as the word segmentation task."
+      ]
+    },
+    {
+      "heading": "3 LingPipe",
+      "text": [
+        "LingPipe is a Java-based natural language processing toolkit distributed with source code by Alias-i (2006).",
+        "For this bakeoff, we used two LingPipe packages, com.",
+        "alias i .",
+        "spell for Chinese word segmentation and com .",
+        "alias i .",
+        "chunk for named-entity extraction.",
+        "Both of these depend on the character language modeling package com .aliasi .",
+        "lm, and the chunker also depends on the hidden Markov model package com .alias .",
+        "hmm.",
+        "The experiments reported in this paper were carried out in May 2006 using (a prerelease version of) LingPipe 2.3.0."
+      ]
+    },
+    {
+      "heading": "3.1 LingPipe’s Character Language Models",
+      "text": [
+        "LingPipe provides n-gram based character language models with a generalized form of WittenBell smoothing, which performed better than other approaches to smoothing in extensive English trials (Carpenter 2005).",
+        "Language models provide a probability distribution P(a) defined for strings a E E* over a fixed alphabet of characters E. We begin with Markovian language models normalized as random processes.",
+        "This means the sum of the probabilities for strings of a fixed length is 1.0.",
+        "The chain rule factors P(ac) = P(a) • P(cIa) for a character c and string a.",
+        "The n-gram Markovian assumption restricts the context to the previous n 1 characters, taking P(cn I ac1 • • • cn-1) = P(cn I c1 ••• cn-1).",
+        "The maximum likelihood estimator for n-grams is �PML(cIa) = count(ac)/extCount(a), where count(a) is the number of times the sequence a was observed in the training data and extCount(a)",
+        "Sydney, July 2006. c�2006 Association for Computational Linguistics is the number of single-character extensions of Q observed: extCount(Q) = P, count(Qc).",
+        "Witten-Bell smoothing uses linear interpolation to form a mixture model of all orders of maximum likelihood estimates down to the uniform estimate PU(c) = 1/lEl.",
+        "The interpolation ratio A(dQ) ranges between 0 and 1 depending on the context:",
+        "We take numExts(Q) =l�clcount(Qc) > 0�l to be the number of different symbols observed following Q in the training data.",
+        "The original Witten-Bell estimator set the hyperparameter 0 = 1.",
+        "Ling-Pipe’s default sets 0 equal to the n-gram order."
+      ]
+    },
+    {
+      "heading": "3.2 Noisy Channel Spelling Correction",
+      "text": [
+        "LingPipe performs spelling correction with a noisy-channel model.",
+        "A noisy-channel model consists of a source model P� (p)defining the probability of message p, coupled with a channel model P, (Q l p) defining the likelihood of a signal Q given a message p. In LingPipe, the source model Ps is a character language model.",
+        "The channel model P, is a (probabilistically normalized) weighted edit distance (with transposition).",
+        "LingPipe’s decoder finds the most likely message p to have produced a signal Q: argmaxµP(plQ) = argmaxµP(p) • P(Ql p).",
+        "For spelling correction, the channel P,(Ql p) is a model of what is likely to be typed given an intended message.",
+        "Uniform models work fairly well and ones tuned to brainos and typos work even better.",
+        "The source model is typically estimated from a corpus of ordinary text.",
+        "For Chinese word segmentation, the source model is trained over the corpus with spaces inserted.",
+        "The noisy channel deterministically eliminates spaces so that P,(Ql p) = 1.0 if Q is identical to p with all of the spaces removed, and 0.0 otherwise.",
+        "This channel is easily implemented as a weighted edit distance where deletion of a single space is 100% likely (log probability edit “cost” is zero) and matching a character is 100% likely, with any other operation being 0% likely (infinite cost).",
+        "This makes any segmentation equally likely according to the channel model, reducing decoding to finding the highest likelihood hypothesis consisting of the test string with spaces inserted.",
+        "This approach reduces to the cross-entropy/compression-based approach of (Teahan et al.",
+        "2000).",
+        "Experiments showed that skewing these space-insertion/matching probabilities reduces decoding accuracy."
+      ]
+    },
+    {
+      "heading": "3.3 LingPipe’s Named Entity Recognition",
+      "text": [
+        "LingPipe 2.1 introduced a hidden Markov model interface with several decoders: first-best (Viterbi), n-best (Viterbi forward, A* backward with exact Viterbi estimates), and confidence-based (forward-backward).",
+        "LingPipe 2.2 introduced a chunking implementation that codes a chunking problem as an HMM tagging problem using a refinement of the standard BIO coding.",
+        "The refinement both introduces context and greatly simplifies confidence estimation over the approach using standard BIO coding in (Culotta and McCallum 2004).",
+        "The tags are B - T for the first character in a multi-character entity of type T, MT for a middle character in a multi-character entity, E - T for the end character in a multi-character entity, and WT for a single character entity.",
+        "The out tags are similarly contextualized, with additional information on the start/end tags to model their context.",
+        "Specifically, the tags used are BOT for a character not in an entity following an entity of type T, I-O for any middle character not in an entity, and E-O-T for a character not in an entity but preceding a character in an entity of type T, and finally, W-O-T for a character that is a single character between two entities, the following entity being of type T. Finally, the first tag is conditioned on the begin-of-sentence tag (BOS) and after the last tag, the end-of-sentence tag (EOS) is generated.",
+        "Thus the probabilities normalize to model string/tag joint probabilities.",
+        "In the HMM implementation considered here, transitions between states (tags) in the HMM are modeled by a maximum likelihood estimate over the training data.",
+        "Tag emissions are generated by bounded character language models.",
+        "Rather than the process estimate P(X ), we use P(X # l #) where # is a distinguished boundary character",
+        "not in the training or test character sets.",
+        "We also train with boundaries.",
+        "For Chinese at the character level, this bounding is irrelevant as all tokens are length 1, so probabilities are already normalized and there is no contextual position to take account of within a token.",
+        "In the more usual word-tokenized case, it normalizes probabilities over all strings and accounts for the special status of prefixes and suffixes (e.g. capitalization, inflection).",
+        "Consider the chunking consisting of the string John J. Smith lives in Seattle.",
+        "with John J. Smith a person mention and Seattle a location mention.",
+        "In the coded HMM model, the joint estimate is:",
+        "• �PML(I-PERIB-PER) • �PI-PER(J#I#) • �PML(I-PERII-PER) • �PI-PER(•#I#) • �PML(E-PERII-PER) • �PE-PER (Smith# I#) • �PML(B-O-PERIE-PER) • �PB-O-PER(lives#I#) • �PML(E-O-LOCIB-O-PER) • �PE-O-LOC(in#I#) • �PML(W-LOCIE-O-LOC) • �PW-LOC (Seattle# I#) • �PML(W-O-EOSIW-LOC) • �PW-O-EOS(•#I#) • �PML(EOSIW-O-EOS)",
+        "LingPipe 2.3 introduced an n-best chunking implementation that adapts an underlying n-best chunker via rescoring.",
+        "In rescoring, each of these outputs is scored on its own and the new best output is returned.",
+        "The rescoring model is a longer-distance generative model that produces alternating out/entity tags for all characters.",
+        "The joint probability of the specified chunking is:",
+        "where each estimator is a character language model, and where the cT are distinct characters not in the training/test sets that encode begin-of-sentence (BOS), end-of-sentence (EOS), and type (e.g.",
+        "PER, LOC, ORG).",
+        "In words, we generate an alternating sequence of OUT and type estimates, starting and ending with an OUT estimate.",
+        "We begin by conditioning on the begin-of-sentence tag.",
+        "Because the first character is in an entity, we do not generate any text, but rather generate a character indicating that we are done generating the OUT characters and ready to switch to generating person characters.",
+        "We then generate the phrase John J. Smith in the person model; note that type estimates always begin and end with the cOUT character, essentially making them bounded models.",
+        "After generating the name and the character to end the entity, we revert to generating more out characters, starting from a person and ending with a location.",
+        "Note that we are generating the phrase lives in including the preceding and following space.",
+        "All such spaces are generated in the OUT models for English; there are no spaces in the Chinese input.",
+        "Next, we generate the location phrase the same way as the person phrase.",
+        "Next, we generate the final period in the OUT model and then the end-of-sentence symbol.",
+        "Note that the OUT category’s language model shoulders the brunt of the burden of estimating contextual effects.",
+        "It conditions on the preceding type, so that the likelihood of lives in is conditioned on following a person entity.",
+        "Furthermore, the choice to begin an entity of type location is based on the fact that it follows lives in.",
+        "This includes begin-of-sentence and end-of-sentence effects, so the model is sensitive to initial capitalization in the out model as a distribution of character sequences likely to follow BOS.",
+        "Similarly, the",
+        "end-of-sentence is conditioned on the preceding text, in this case a single period.",
+        "The resulting model defines a (properly normalized) joint probability distribution over chunkings."
+      ]
+    },
+    {
+      "heading": "4 Held-out Parameter Tuning",
+      "text": [
+        "We ran preliminary tests on MUC 6 English and City University of Hong Kong data for Chinese and found baseline performance around 72% and rescored performance around 82%.",
+        "The underlying model was designed to have good recall in generating hypotheses.",
+        "Over 99% of the MUC test sentences had their correct analysis in a 1024-best list generated by the underlying model.",
+        "Nevertheless, setting the number of hypotheses beyond 64 did not improve results in either English or Chinese, so we reported runs with n-best set to 64.",
+        "We believe this is because the two language-model based approaches make highly correlated ranking decisions based on character n-grams.",
+        "Held-out scores peaked with 5-grams for Chinese; 3-grams and 4-grams were not much worse and longer n-grams performed nearly identically.",
+        "We used 7500 as the number of distinct characters, though this parameter is not at all sensitive to within an order of magnitude.",
+        "We used Ling-Pipe’s default of setting the interpolation parameter equal to the n-gram length; for the final evaluation 0 = 5.0.",
+        "Higher interpolation ratios favor precision over recall, lower ratios favor recall.",
+        "Values within an order of magnitude performed with 1% F-measure and 2% precision/recall."
+      ]
+    },
+    {
+      "heading": "5 Bakeoff Time and Effort",
+      "text": [
+        "The total time spent on this SIGHAN bakeoff was about 2 hours for the word segmentation task and 10 hours for the named-entity task (not including writing this paper).",
+        "We started from a working word segmentation system for the last SIGHAN.",
+        "Most of the time was spent munging entity data, with the rest devoted to held out analysis.",
+        "The final code was roughly one page per task, with only a dozen or so LingPipe-specific lines.",
+        "The final run, including unpacking, training and testing, took 45 minutes on a 512MB home PC; most of the time was named-entity decoding."
+      ]
+    },
+    {
+      "heading": "6 Results",
+      "text": [
+        "Official bakeoff results for the four word segmentation corpora are shown in Figure 3, and for the two named entity corpora in Figure 4.",
+        "Column labels are R for recall, P for precision, F1 for balanced F-measure, Best F1 for the best closed system’s F1 score, OOV for the out-of-vocabulary rate in the test corpus, and RppV for recall on the out-of-vocabulary items.",
+        "For the named-entity results, precision and recall are also broken down by category."
+      ]
+    },
+    {
+      "heading": "7 Distribution",
+      "text": [
+        "LingPipe may be downloaded from its homepage, http://www.alias-i.com/lingpipe.",
+        "The code for the bakeoff is available via anonymous CVS from the sandbox.",
+        "An Apache Ant makefile is provided to generate our bakeoff submission from the official data distribution format."
+      ]
+    }
+  ]
+}

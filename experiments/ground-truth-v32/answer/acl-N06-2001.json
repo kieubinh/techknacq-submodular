@@ -1,0 +1,162 @@
+{
+  "info": {
+    "authors": [
+      "Andrei Alexandrescu",
+      "Katrin Kirchhoff"
+    ],
+    "book": "Human Language Technology Conference and Meeting of the North American Association for Computational Linguistics – Short Papers",
+    "id": "acl-N06-2001",
+    "title": "Factored Neural Language Models",
+    "url": "https://aclweb.org/anthology/N06-2001",
+    "year": 2006
+  },
+  "references": [
+    "acl-C04-1022",
+    "acl-H05-1026",
+    "acl-J92-4003",
+    "acl-N03-2002",
+    "acl-W03-1021"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We present a new type of neural probabilistic language model that learns a mapping from both words and explicit word features into a continuous space that is then used for word prediction.",
+        "Additionally, we investigate several ways of deriving continuous word representations for unknown words from those of known words.",
+        "The resulting model significantly reduces perplexity on sparse-data tasks when compared to standard backoff models, standard neural language models, and factored language models."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Neural language models (NLMs) (Bengio et al., 2000) map words into a continuous representation space and then predict the probability of a word given the continuous representations of the preceding words in the history.",
+        "They have previously been shown to outperform standard back-off models in terms of perplexity and word error rate on medium and large speech recognition tasks (Xu et al., 2003; Emami and Jelinek, 2004; Schwenk and Gauvain, 2004; Schwenk, 2005).",
+        "Their main drawbacks are computational complexity and the fact that only distributional information (word context) is used to generalize over words, whereas other word properties (e.g. spelling, morphology etc.)",
+        "are ignored for this purpose.",
+        "Thus, there is also no principled way of handling out-of-vocabulary (OOV) words.",
+        "Though this may be sufficient for applications that use a closed vocabulary, the current trend of porting systems to a wider range of languages (esp.",
+        "highly-inflected languages such as Arabic) calls for dynamic dictionary expansion and the capability of assigning probabilities to newly added words without having seen them in the training data.",
+        "Here, we introduce a novel type of NLM that improves generalization by using vectors of word features (stems, affixes, etc.)",
+        "as input, and we investigate deriving continuous representations for unknown words from those of known words."
+      ]
+    },
+    {
+      "heading": "2 Neural Language Models",
+      "text": [
+        "A standard NLM (Fig.",
+        "1) takes as input the previous n – 1 words, which select rows from a continuous word representation matrix M. The next layer’s input i is the concatenation of the rows in M corresponding to the input words.",
+        "From here, the network is a standard multilayer perceptron with hidden layer h = tanh(i * Wih + bh) and output layer o = h * Who + bo.",
+        "where bh�o are the biases on the respective layers.",
+        "The vector o is normalized by the softmax function fsoftmax(oi) = ���' .",
+        "Back",
+        "ters, including the M matrix, which is shared across input words.",
+        "The training criterion maximizes the regularized log-likelihood of the training data."
+      ]
+    },
+    {
+      "heading": "3 Generalization in Language Models",
+      "text": [
+        "An important task in language modeling is to provide reasonable probability estimates for n-grams that were not observed in the training data.",
+        "This generalization capability is becoming increasingly relevant in current large-scale speech and NLP systems that need to handle unlimited vocabularies and domain mismatches.",
+        "The smooth predictor function learned by NLMs can provide good generalization if the test set contains n-grams whose individual words have been seen in similar context in the training data.",
+        "However, NLMs only have a simplistic mechanism for dealing with words that were not observed at all: OOVs in the test data are mapped to a dedicated class and are assigned the singleton probability when predicted (i.e. at the output layer) and the features of a randomly selected singleton word when occurring in the input.",
+        "In standard backoff n-gram models, OOVs are handled by reserving a small fixed amount of the discount probability mass for the generic OOV word and treating it as a standard vocabulary item.",
+        "A more powerful backoff strategy is used in factored language models (FLMs) (Bilmes and Kirchhoff, 2003), which view a word as a vector of word features or “factors”: w = (f1, f2, ... , fk) and predict a word jointly from previous words and their factors: A generalized backoff procedure uses the factors to provide probability estimates for unseen n-grams, combining estimates derived from different backoff paths.",
+        "This can also be interpreted as a generalization of standard class-based models (Brown et al., 1992).",
+        "FLMs have been shown to yield improvements in perplexity and word error rate in speech recognition, particularly on sparse-data tasks (Vergyri et al., 2004) and have also outperformed backoff models using a linear decomposition of OOVs into sequences of morphemes.",
+        "In this study we use factors in the input encoding for NLMs."
+      ]
+    },
+    {
+      "heading": "4 Factored Neural Language Models",
+      "text": [
+        "NLMs define word similarity solely in terms of their context: words are assumed to be close in the continuous space if they co-occur with the same (subset of) words.",
+        "But similarity can also be derived from word shape features (affixes, capitalization, hyphenation etc.)",
+        "or other annotations (e.g. POS classes).",
+        "These allow a model to generalize across classes of words bearing the same feature.",
+        "We thus define a factored neural language model (FNLM) (Fig.",
+        "2) which takes as input the previous n – 1 vectors of factors.",
+        "Different factors map to disjoint row sets of the matrix.",
+        "The h and o layers are identical to the standard NLM’s.",
+        "Instead of predicting the probabilities for",
+        "all words at the output layer directly, we first group words into classes (obtained by Brown clustering) and then compute the conditional probability of each word given its class: P(wt) = P(ct) x P(wt1ct).",
+        "This is a speed-up technique similar to the hierarchical structuring of output units used by (Morin and Bengio, 2005), except that we use a “flat” hierarchy.",
+        "Like the standard NLM, the network is trained to maximize the log-likelihood of the data.",
+        "We use BKP with cross-validation on the development set and L2 regularization (the sum of squared weight values penalized by a parameter A) in the objective function."
+      ]
+    },
+    {
+      "heading": "5 Handling Unknown Factors in FNLMs",
+      "text": [
+        "In an FNLM setting, a subset of a word’s factors may be known or can be reliably inferred from its shape although the word itself never occurred in the training data.",
+        "The FNLM can use the continuous representation for these known factors directly in the input.",
+        "If unknown factors are still present, new continuous representations are derived for them from those of known factors of the same type.",
+        "This is done by averaging over the continuous vectors of a selected subset of the words in the training data, which places the new item in the center of the region occupied by",
+        "the subset.",
+        "For example, proper nouns constitute a large fraction of OOVs, and using the mean of the rows in M associated with words with a proper noun tag yields the “average proper noun” representation for the unknown word.",
+        "We have experimented with the following strategies for subset selection: NULL (the null subset, i.e. the feature vector components for unknown factors are 0), ALL (average of all known factors of the same type); TAIL (averaging over the least frequently encountered factors of that type up to a threshold of 10%); and LEAST, i.e. the representation of the single least frequent factors of the same type.",
+        "The prediction of OOVs themselves is unaffected since we use a factored encoding only for the input, not for the output (though this is a possibility for future work)."
+      ]
+    },
+    {
+      "heading": "6 Data and Baseline Setup",
+      "text": [
+        "We evaluate our approach by measuring perplexity on two different language modeling tasks.",
+        "The first is the LDC CallHome Egyptian Colloquial Arabic (ECA) Corpus, consisting of transcriptions of phone conversations.",
+        "ECA is a morphologically rich language that is almost exclusively used in informal spoken communication.",
+        "Data must be obtained by transcribing conversations and is therefore very sparse.",
+        "The present corpus has 170K words for training (� V� = 16026), 32K for development (dev), 17K for evaluation (eval97).",
+        "The data was preprocessed by collapsing hesitations, fragments, and foreign words into one class each.",
+        "The corpus was further annotated with morphological information (stems, morphological tags) obtained from the LDC ECA lexicon.",
+        "The OOV rates are 8.5% (development set) and 7.7% (eval97 set), respectively.",
+        "The second corpus consists of Turkish newspaper text that has been morphologically annotated and disambiguated (Hakkani-T¨ur et al., 2002), thus providing information about the word root, POS tag, number and case.",
+        "The vocabulary size is 67510 (relatively large because Turkish is highly agglutinative).",
+        "400K words are used for training, 100K for development (11.8% OOVs), and 87K for testing (11.6% OOVs).",
+        "The corpus was preprocessed by removing segmentation marks (titles and paragraph boundaries)."
+      ]
+    },
+    {
+      "heading": "7 Experiments and Results",
+      "text": [
+        "We first investigated how the different OOV handling methods affect the average probability assigned to words with OOVs in their context.",
+        "Table 1 shows that average probabilities increase compared to the strategy described in Section 3 as well as other baseline models (standard backoff trigrams and FLM, further described below), with the strongest increase observed for the scheme using the least frequent factor as an OOV factor model.",
+        "This strategy is used for the models in the following perplexity experiments.",
+        "We compare the perplexity of word-based and factor-based NLMs with standard backoff trigrams, class-based trigrams, FLMs, and interpolated models.",
+        "Evaluation was done with (the “w/unk” column in Table 2) and without (the “no unk” column) scoring of OOVs, in order to assess the usefulness of our approach to applications using closed vs. open vocabularies.",
+        "The baseline Model 1 is a standard backoff 3-gram using modified Kneser-Ney smoothing (model orders beyond 3 did not improve perplexity).",
+        "Model 2 is a class-based trigram model with Brown clustering (256 classes), which, when interpolated with the baseline 3-gram, reduces the perplexity (see row 3).",
+        "Model 3 is a 3-gram word-based NLM (with output unit clustering).",
+        "For NLMs, higher model orders gave improvements, demonstrating their better scalability: for ECA, a 6-gram (w/o unk) and a 5-gram (w/unk) were used; for Turkish, a 7-gram (w/o unk) and a 5-gram (w/unk) were used.",
+        "Though worse in isolation, the word-based NLMs reduce perplexity considerably when interpolated with Model 1.",
+        "The FLM baseline is a hand-optimized 3-gram FLM (Model 5); we also tested an FLM optimized with a genetic algorithm as de",
+        "scribed in (Duh and Kirchhoff, 2004) (Model 6).",
+        "Rows 7-10 of Table 2 display the results.",
+        "Finally, we trained FNLMs with various combinations of factors and model orders.",
+        "The combination was optimized by hand on the dev set and is therefore most comparable to the hand-optimized FLM in row 8.",
+        "The best factored NLM (Model 7) has order 6 for both ECA and Turkish.",
+        "It is interesting to note that the best Turkish FNLM uses only word factors such as morphological tag, stem, case, etc.",
+        "but not the actual words themselves in the input.",
+        "The FNLM outperforms all other models in isolation except the FLM; its interpolation with the baseline (Model 1) yields the best result compared to all previous interpolated models, for both tasks and both the unk and no/unk condition.",
+        "Interpolation of Model 1, FLM and FNLM yields a further improvement.",
+        "The parameter values of the (F)NLMs range between 32 and 64 for d, 45-64 for the number of hidden units, and 362-1024 for C (number of word classes at the output layer)."
+      ]
+    },
+    {
+      "heading": "8 Conclusion",
+      "text": [
+        "We have introduced FNLMs, which combine neural probability estimation with factored word representations and different ways of inferring continuous word features for unknown factors.",
+        "On sparse-data Arabic and Turkish language modeling task FNLMs were shown to outperform all comparable models (standard backoff 3-gram, word-based NLMs) except FLMs in isolation, and all models when interpolated with the baseline.",
+        "These conclusions apply to both open and closed vocabularies."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work was funded by NSF under grant no.",
+        "IIS0326276 and DARPA under Contract No.",
+        "HR001106-C-0023.",
+        "Any opinions, findings and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of these agencies."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+{
+  "info": {
+    "authors": [
+      "Ralf D. Brown",
+      "Jae Dong Kim",
+      "Peter J. Jansen",
+      "Jaime G. Carbonnell"
+    ],
+    "book": "Workshop on Building and Using Parallel Texts",
+    "id": "acl-W05-0813",
+    "title": "Symmetric Probabilistic Alignment",
+    "url": "https://aclweb.org/anthology/W05-0813",
+    "year": 2005
+  },
+  "references": [
+    "acl-W02-1018",
+    "acl-W03-0301"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We recently decided to develop a new alignment algorithm for the purpose of improving our Example-Based Machine Translation (EBMT) system’s performance, since subsentential alignment is critical in locating the correct translation for a matched fragment of the input.",
+        "Unlike most algorithms in the literature, this new Symmetric Probabilistic Alignment (SPA) algorithm treats the source and target languages in a symmetric fashion.",
+        "In this short paper, we outline our basic algorithm and some extensions for using context and positional information, and compare its alignment accuracy on the Romanian-English data for the shared task with IBM Model 4 and the reported results from the prior workshop."
+      ]
+    },
+    {
+      "heading": "1 Symmetric Probabilistic Alignment (SPA)",
+      "text": [
+        "In subsentential alignment, mappings are produced from words or phrases in the source language sentence and those words or phrases in the target language sentence that best express their meaning.",
+        "An alignment algorithm takes as input a bilingual corpus consisting of corresponding sentence pairs and strives to find the best possible alignment in the second for selected n-grams (sequences of n words) in the first language.",
+        "The alignments are based on a number of factors, including a bilingual dictionary (preferably a probabilistic one), the position of the words, invariants such as numbers and punctuation, and so forth.",
+        "For our baseline algorithm, we make the following simplifying assumptions, each of which we intend to relax in future work, and the last of which has already been partially relaxed:",
+        "1.",
+        "A fixed bilingual probabilistic dictionary is available.",
+        "2.",
+        "Fragments (word sequences) are translated independently of surrounding context.",
+        "3.",
+        "Contiguous fragments of source language text",
+        "are translated into contiguous fragments in the target language text.",
+        "Unlike the work of (Marcu and Wong, 2002), our alignment algorithm is not generative and does not use the idea of a bag of concepts from which the phrases in the sentence pair arise.",
+        "It is, rather, intended to find the corresponding target-language phrase given a specific source-language phrase of interest, as required by our EBMT system after finding a match between the input and the training data (Brown, 2004)."
+      ]
+    },
+    {
+      "heading": "1.1 Baseline Algorithm",
+      "text": [
+        "Our baseline algorithm is based on maximizing the probability of bidirectional translations of individual words between a selected n-gram in the source language and every possible n-gram in the corresponding paired target language sentence.",
+        "No positional preference assumptions are made, nor are any length preservation assumptions made.",
+        "That is, an n-gram may translate to an m-gram, for any values of n or m bounded by the source and target sentence lengths, respectively.",
+        "Finally a smoothing factor is used to avoid singularities (i.e. avoiding zero-probabilities for unknown words, or words never translated before in a way consistent with the dictionary).",
+        "Given a source-language sentence",
+        "in the bilingual corpus, where si, ..., si+k is a phrase of interest, and the corresponding target language",
+        "the values of j and l are to be determined.",
+        "Then the segment we try to obtain is the target fragment �FT with the highest probability of all possible fragments of S2 to be a mutual translation with the given source fragment, or",
+        "All possible segments can be checked in O(m2) time, where m is the target language length, because we will check m 1-word segments, m – 1 two-word segments, and so on.",
+        "If we bound the target language n-grams to a maximal length k, then the complexity is linear, i.e. O(km).",
+        "The score of the best possible alignment is computed as follows: Let LT be the Target Language Vocabulary, s a source word, ti be target segment words, and V = {ti E {LT} i >_ 1} the translation word set of s, We define the translation relation probability p(Tr(s) E {t0, t1, ..., tk}) as follows:",
+        "1. p(Tr(s) E {t0, t1, ..., tk}) = max(p(ti s)) for all ti E {t0, t1, ..., tk} when {ti ti E {t0, t1, ..., tk}} is not empty.",
+        "2. p(Tr(s) E {t0, t1, ..., tk}) = 0 otherwise.",
+        "Then the score of the best alignment is",
+        "where the score can be written as two components",
+        "where E is a very small probability used as a smoothing value."
+      ]
+    },
+    {
+      "heading": "1.2 Length Penalty",
+      "text": [
+        "The ratio between source and target segment (n-gram) lengths should be comparable to the ratio between the lengths of the source and target sentences, though certainly variation is possible.",
+        "Therefore, we add a penalty function to the alignment probability that increases with the discrepancy between the two ratios.",
+        "Let the length of the source language segment be i and the length of a target language segment under consideration be j.",
+        "Given a source language sentence length of n (in the corpus sentence containing the fragment) and its corresponding target language length of m. The expected target segment length is then given by j�= i x mn .",
+        "Further defining an allowable difference AD, our implementation calculates the length penalty LP as follows, with the value of the exponent determined empirically:",
+        "The score for a segment including the penalty function is then:",
+        "Note that, as intended, the score is forced to 0 when the length difference j – �j > AD."
+      ]
+    },
+    {
+      "heading": "1.3 Distortion Penalty",
+      "text": [
+        "For closely-related language pairs which tend to have similar word orders, we introduce a distortion penalty to penalize the alignment score of any candidate target fragment which is out of the expected position range.",
+        "First, we calculate CE, the expected center of the candidate target fragment using CFS, the center of the source fragment and the ratio of target to source-sentence length.",
+        "Then we calculate an allowed distance limit of the center Dallowed using a constant distance limit value DL and the ratio of actual target sentence length to average target sentence length.",
+        "Let Dactual be the actual distance difference between the candidate target fragment’s center and the expected center, and set",
+        "Furthermore, we think that we can apply this penalty to language pairs which have lower word-order similarities than e.g. French-English.",
+        "Because there might exist certain positional relationships between such language pairs, if we can calculate the expected position using each language’s sentence structure, we can apply a distortion penalty to the candidate alignments."
+      ]
+    },
+    {
+      "heading": "1.4 Anchor Context",
+      "text": [
+        "If the adjacent words of the source fragment and the candidate target fragment are translations of each other, we expect that this alignment is more likely to be correct.",
+        "We boost SFT with the anchor context alignment score SAC p,",
+        "Empirically, we found this combination gives the best score for French-English when A = 0.6 and for Romanian-English when A = 0.8, and leads to better results than the similar formula SFT + – A*SFT+(1�A)*SACp (15)"
+      ]
+    },
+    {
+      "heading": "2 Experimental Design",
+      "text": [
+        "In previous work (Kim et al., 2005), we tested our alignment method on a set of French-English sentence pairs taken from the Canadian Hansard corpus and on a set of English-Chinese sentence pairs, and compared the results to human alignments.",
+        "For the present workshop, we chose to use the Romanian-English data which had been made available.",
+        "Due to a lack of time prior to the period of the shared task, we merely reused the parameters which had been tuned for French-English, rather than tuning the alignment parameters specifically for the development data.",
+        "SPA was run under three experimental conditions.",
+        "In the first, labeled “SPA (c)” in Tables 1 and 2, SPA was instructed to examine only contiguous target phrases as potential alignments for a given source phrase.",
+        "In the second, labeled “SPA (n)”, a noncontiguous target alignment consisting of two contiguous segments with a gap between them was permitted in addition to contiguous target alignments.",
+        "The third condition (“SPA (h)”) examined the impact of a small amount of manual alignment information on the selection of contiguous alignments.",
+        "Unlike the first two conditions, the presence of additional data beyond the training corpus forces SPA(h) into the Unlimited Resources track.",
+        "We had a native Romanian speaker hand-align 204 sentence pairs from the training corpus, and extracted 732 distinct translation pairs from those alignments, of which 450 were already present in the automatically-generated dictionaries.",
+        "The new translation pairs were added to the dictionaries for the SPA(h) condition and the translation probabilities for the existing pairs were increased to reflect the increased confidence in their correctness.",
+        "Had more time been available, we would have investigated more sophisticated means of integrating the human knowledge into the translation dictionaries."
+      ]
+    },
+    {
+      "heading": "3 Results and Conclusions",
+      "text": [
+        "Table 1 compares the performance of SPA on what is now the development data against the submissions with the best AER values reported by (Mihalcea and Pedersen, 2003) for the participants in the 2003 workshop, including CMU, MITRE, RALI, University of Alberta, and XRCE 1.",
+        "As SPA generates only SURE alignments, the values in Table 1 are SURE alignments under the NO-NULL-Align scoring condition for all systems except Fourday, which did not generate SURE alignments.",
+        "Despite the fact that SPA was designed specifically for phrase-to-phrase alignments rather than the",
+        "word-to-word alignments needed for the shared task and was not tuned for this corpus, its performance is competitive with the best of the systems previously used for the shared task.",
+        "We thus decided to submit runs for the official 2005 evaluation, whose resulting scores are shown in Table 2.",
+        "On the development set, noncontiguous alignments resulted in slightly lower precision than contiguous alignments, which was not unexpected, but recall does not increase enough to improve F1 or AER.",
+        "The modified dictionaries improved precision slightly, as anticipated, but lowered recall sufficiently to have no net effect on F 1 or AER.",
+        "The evaluation set proved to be very similar in difficulty to the development data, resulting in scores that were very close to those achieved on the dev-test set.",
+        "Noncontiguous alignments again proved to have a very small negative effect on AER resulting from reduced precision, but this time the altered dictionaries for SPA(h) resulted in a substantial reduction in recall, considerably harming overall performance.",
+        "After the shared task was complete, we performed some tuning of the alignment parameters for the Romanian-English development test set, and found that the French-English-tuned parameters were close to optimal in performance.",
+        "The AER on the development test set for the SPA(c) contiguous alignments condition decreased from 36.44% to 36.11% after the retuning."
+      ]
+    },
+    {
+      "heading": "4 Future Work",
+      "text": [
+        "Enhancements in the extraction of word-to-word alignments from what is fundamentally a phrase-to-phrase alignment algorithm could probably further",
+        "improve results on the Romanian-English data.",
+        "We also intend to investigate principled, seamless integration of manual alignments and dictionaries with probabilistic ones, since the ad hoc method proved detrimental.",
+        "Finally, a more detailed performance analysis is in order, to determine whether the close balance of precision and recall is inherent in the bidi-rectionality of the algorithm or merely coincidence."
+      ]
+    },
+    {
+      "heading": "5 Acknowledgements",
+      "text": [
+        "We would like to thank Lucian Vlad Lita for providing manual alignments."
+      ]
+    }
+  ]
+}

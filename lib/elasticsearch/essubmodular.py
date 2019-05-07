@@ -157,8 +157,11 @@ class ElasticsearchSubmodularity:
         # fpenalty = self.calPenaltySumByText(newId, s)
         # print(alpha, Lambda)
         # print(newId+" - coverage: "+str(delta_fc)+" , penalty: "+str(delta_fp)+" , query: "+str(delta_fq))
+        alpha = 1.0 * alpha * len(v)
         beta = 1.0-Lambda
         gamma = 2.0-Lambda
+        # print(alpha, beta, gamma)
+        # print(delta_fq, delta_fc, delta_fp)
         return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
 
     # submodular algorithm
@@ -207,7 +210,7 @@ class ElasticsearchSubmodularity:
                 maxF = ft
                 argmax = docId
 
-        print("maxF: " + str(maxF))
+        print("max delta F: " + str(maxF))
         print(s + [argmax])
         return argmax, maxF
 

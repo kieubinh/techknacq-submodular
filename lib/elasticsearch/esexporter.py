@@ -279,11 +279,13 @@ class ElasticsearchExporter:
                     vDocs[docId] = score_sim
         return vDocs
 
+    # lte = less than or equal
+    # lt = less than
     def queryByDSL(self, query="", year=10000, budget=50):
-        # fil = Q('range', body=' { "info.year": { "lte": 2000 }} ')
+        # fil = Q('range', body=' { "info.year": { "lt": 2000 }} ')
         query_bool = []
         query_bool.append(Q('multi_match', query=query, fields=['info.title', 'sections.text', 'sections.heading']))
-        query_bool.append({'range': {'info.year': {'lte': year}}})
+        query_bool.append({'range': {'info.year': {'lt': year}}})
         q = Q({'bool': {'must': query_bool}})
         # filter = Q()
         # r = Range({ "@info.year": { "lte": 2010 }})
@@ -347,7 +349,7 @@ class ElasticsearchExporter:
                                 }}
                             ],
                             "filter": [
-                                {"range": {"info.year": {"lte": year}}}
+                                {"range": {"info.year": {"lt": year}}}
                             ]
                         }
                     },

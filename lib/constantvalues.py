@@ -13,7 +13,7 @@ class ConstantValues:
     MAXSIZE = 23000
     BUDGET = 100
     Lambda = 1.0
-    Alpha = 100.0
+    Alpha = 0.1
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'
     SIMILARITY_MEASUE = 'text'

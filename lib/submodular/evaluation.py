@@ -9,6 +9,7 @@ class Evaluation:
     def __init__(self):
         self.output = {}
         self.answer = {}
+        self.sumCorrect = 0
         return None
 
     def calFscore(self, output_ids=[], ground_ids=[]):
@@ -27,6 +28,7 @@ class Evaluation:
                 ccorrect += 1
         print("#correct: " + str(ccorrect) + "/total output: " + str(len(output_ids)) + "/total ground truth: " + str(
             len(ground_ids)))
+        self.sumCorrect += ccorrect
         pre = 1.0 * ccorrect / len(ground_ids)
         recall = 1.0 * ccorrect / len(output_ids)
         if ccorrect == 0:
@@ -69,9 +71,9 @@ class Evaluation:
             sumRecall += recall
             sumFscore += fscore
 
-        self.avgPre = float(sumPre / len(self.output.keys()))
-        self.avgRecall = float(sumRecall / len(self.output.keys()))
-        self.avgFscore = float(sumFscore / len(self.output.keys()))
+        self.avgPre = float(sumPre / len(self.output))
+        self.avgRecall = float(sumRecall / len(self.output))
+        self.avgFscore = float(sumFscore / len(self.output))
 
     def getAvgPrecision(self):
         return self.avgPre
@@ -89,7 +91,7 @@ class Evaluation:
             sumout += len(self.output[name])
             sumans += len(self.answer[name])
 
-        print("# output: %i, #answer: %i, total refs of answer: %i"%(len(self.output), len(self.answer), sumans))
+        print("# output: %i, #answer: %i, total refs of answer: %i, #correct: %i" % (len(self.output), len(self.answer), sumans, self.sumCorrect))
 
-        print("# average output: " +str(1.0*sumout / len(self.output)))
+        print("# average output: " + str(1.0 * sumout / len(self.output)))
         print("# average answer: " + str(1.0 * sumans / len(self.output)))

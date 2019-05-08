@@ -16,7 +16,11 @@ from lib.submodular.retrievedinfo import RetrievedInformation
 
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
 lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
-corpusInputPath="inputs/sample-5refs/"
+corpusInputPath = "inputs/selection-5refs/"
+max_matches = 5
+max_each_matches = 100
+concept_graph = "concept-graphs/concept-graph-standard.json"
+
 # ------------------------------- LOADING INPUT ----------------------------------------------
 import os
 import io
@@ -47,6 +51,22 @@ from lib.elasticsearch.esexporter import ElasticsearchExporter
 from lib.elasticsearch.essubmodular import ElasticsearchSubmodularity
 
 
+def getVByQueryCG(ese=None, query=None, year=None, cg=None, learner_model=None):
+    querylist = [query]
+    print(learner_model)
+    rl = ReadingList(cg, querylist, learner_model)
+    # get 10 relevant concepts for the query
+    conceptlist = rl.getRelevantConcepts(max_matches)
+    if query not in conceptlist:
+        conceptlist[query] = 1.0
+    vDocs = ese.getRelevantDocsByCL(conceptlist=conceptlist, year=year, max_each_matches=max_each_matches)
+    # print(vDocs)
+    vlist = []
+    for key in vDocs.keys():
+        vlist.append(key)
+    return vlist
+
+
 def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr-authors/"):
     inputDocs = loadInput(corpusInputPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
@@ -55,13 +75,47 @@ def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None,
         retrievedInfo = RetrievedInformation(article)
         refDocs = getReflistByAuthors(esexport=ese, article=article)
         print(len(refDocs))
-        simq = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
+        simq = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+                              budget=ConstantValues.MAX_SUBMODULARITY / 5)
         essub = ElasticsearchSubmodularity(esexport=ese, v=refDocs, simq=simq)
         readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
         printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
+
+
+def recommendRLByQfrAuCG(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr-authors/"):
+    inputDocs = loadInput(corpusInputPath)
+    ese = ElasticsearchExporter(index=index, doc_type=doc_type)
+    Lambda = lambda_test[0]
+    cg = ConceptGraph(click.format_filename(concept_graph))
+    learner_model = {}
+    for c in cg.concepts():
+        learner_model[c] = ConstantValues.BEGINNER
+    print(learner_model)
+    for article in inputDocs:
+        retrievedInfo = RetrievedInformation(article)
+        # get articles by co-authors
+        refDocs = getReflistByAuthors(esexport=ese, article=article)
+        print(len(refDocs))
+        # get articles by query
+        vlist = getVByQueryCG(ese=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+                              learner_model=learner_model, cg=cg)
+        # mix 2 lists
+        for doc in refDocs:
+            vlist.append(doc)
+        # calculate similarity score between query q and each article in v
+        simq = ese.queryByURL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+                              budget=ConstantValues.MAXSIZE)
+
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=simq)
+        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
+
+        # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
+        # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
+
 
 
 # Using ES to get CONSTANT.MAX_SUBMODULARITY relevant documents,
@@ -89,6 +143,31 @@ def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, r
         # readinglist = essub.greedyAlgByCardinality(v=vDocs, Lambda=Lambda, method="qfr")
         printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
 
+
+def recommendRLByQfrCG(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr/", concept_graph="concept-graph-standard.json"):
+    inputDocs = loadInput(corpusInputPath)
+    ese = ElasticsearchExporter(index=index, doc_type=doc_type)
+    Lambda = lambda_test[0]
+    cg = ConceptGraph(click.format_filename(concept_graph))
+    learner_model = {}
+    for c in cg.concepts():
+        learner_model[c] = ConstantValues.BEGINNER
+    for article in inputDocs:
+        retrievedInfo = RetrievedInformation(article)
+        print(retrievedInfo.getId() + " " + retrievedInfo.getQuery() + " " + str(retrievedInfo.getYear()))
+        # get 5000 relevant documents -> v = 5000
+        vlist = getVByQueryCG(ese=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+                              learner_model=learner_model, cg=concept_graph)
+
+        # vDocs = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+        #                                                budget=ConstantValues.MAX_SUBMODULARITY)
+        # print(len(vDocs))
+        simq = ese.queryByURL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
+                              budget=ConstantValues.MAXSIZE)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=simq)
+        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
+
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
 
 def recommendRLByES(index="acl2014", doc_type="json", corpusInputPath="Jardine2014/", resultpath="results/acl-top/"):
     inputDocs = loadInput(corpusInputPath)
@@ -361,26 +440,32 @@ def printResult(articleId, output, Lambda=-1.0, resultPath=""):
 # es: using elasticsearch similarity score
 # corpusInputPath="inputs/survey/selected/"
 # corpusInputPath="inputs/100-random/"
-def main(resultpath="results/acl-cg/", parameters="es au qfr"):
+def main(resultpath="results/acl-cg/", parameters="es au qfr cg"):
     print(parameters)
     print(resultpath)
     index = ConstantValues.ACL_CORPUS_INDEX
     doctype = ConstantValues.ACL_CORPUS_DOCTYPE
+
     # es -> au / not au
     # au -> qfr / all
     # for es
+
+    if "es-au-qfr-cg" in parameters:
+        recommendRLByQfrAuCG(index=index, doc_type=doctype, corpusInputPath=corpusInputPath,
+                              resultpath=resultpath)
+    if "es-qfr-au" in parameters:
+        recommendRLByQfrAuEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath,
+                             resultpath=resultpath)
+
+    if "es-au" in parameters:
+        recommendRLByAuthors(index=index, doc_type=doctype, corpusInputPath=corpusInputPath,
+                             resultpath=resultpath)
+    if "es-qfr" in parameters:
+        recommendRLByQfrEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
+
     if "es" in parameters:
-        if "au" in parameters:
-            if "qfr" in parameters:
-                recommendRLByQfrAuEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
-            else:
-                recommendRLByAuthors(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
-        elif "qfr" in parameters:
-            #
-            recommendRLByQfrEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
-        else:
-            # only es - get top budget
-            recommendRLByES(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
+        # only es - get top budget
+        recommendRLByES(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
 
     # for tf-idf
     if "es" not in parameters:

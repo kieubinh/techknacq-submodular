@@ -168,6 +168,9 @@ class ElasticsearchSubmodularity:
     def greedyAlgByCardinality(self, Lambda, method):
         # remove no information first
         v = self.ese.removeIdNoInfor(self.v)
+        # if the number of elements in V <= BUDGET -> get all elements in v
+        if len(v) <= ConstantValues.BUDGET:
+            return v
         self.simdocs = self.ese.calSimDocs(v)
         print("V: " + str(len(v)) + " -> (submodular function) -> BUDGET = " + str(ConstantValues.BUDGET))
         # all elements = articleId

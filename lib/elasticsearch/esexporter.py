@@ -303,7 +303,7 @@ class ElasticsearchExporter:
         # res = s.scan()
         print(s.count())
         if s.count() < budget:
-            budget = s.count() - 1
+            budget = s.count()
         response = s[:budget].execute()
         # res2 = s.scan()
 

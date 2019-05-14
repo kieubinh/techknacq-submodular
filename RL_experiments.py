@@ -20,7 +20,7 @@ lambda_test = [None]
 # corpusInputPath = "inputs/selection-5refs/"
 corpusInputPath = "inputs/selection-5refs/"
 max_matches = 1
-max_each_matches = 50
+max_each_matches = 100
 concept_graph = "concept-graphs/concept-graph-standard.json"
 prefix_folder = "results/server/"
 date_folder = "19-05-15/"
@@ -462,7 +462,7 @@ def main(resultpath=None, parameters="es au qfr cg"):
     # for es
     if resultpath is None:
         resultpath = prefix_folder + date_folder + prefix_sim + parameters[0] \
-                     + "-" + str(ConstantValues.Alpha) + "-" + str(ConstantValues.Lambda) \
+                     + "-" + str(ConstantValues.BUDGET) + "-" + str(ConstantValues.Alpha) \
                      + "-" + str(max_matches) + "-" + str(max_each_matches) + "/"
 
     print(resultpath)

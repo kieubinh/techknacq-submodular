@@ -1,5 +1,3 @@
-from _ast import Lambda
-
 from lib.constantvalues import ConstantValues
 from lib.document.similarityscore import SimilarityScore
 from lib.elasticsearch.esexporter import ElasticsearchExporter
@@ -17,17 +15,22 @@ class ElasticsearchSubmodularity:
     #     else:
     #         self.qsim = {}
 
-    def __init__(self, esexport=None, v=None, simq=None):
+    def __init__(self, esexport=None, v=None, simq=None, Lambda=None):
         if v is None:
-            v = []
+            print("No candidate!")
+            return
         if simq is None:
             simq={}
         if esexport == None:
-            print("No information about elasticsearch server")
+            print("No information about elasticsearch server!")
             return
+        if Lambda is None:
+            self.Lambda = 1.0 - 1.0 * ConstantValues.BUDGET / max(len(v), 1)
         self.ese = esexport
         self.simq = simq
         self.v = v
+
+
 
     # def calDocumentSimilarity(self, index="acl2014", doc_type="json"):
     #     docids = getAllDocs(index, doc_type)
@@ -41,7 +44,7 @@ class ElasticsearchSubmodularity:
 
     # s, v: list of articleId
     # F(snew) = Sim(q, new) + Sum(new, i) - (1+lambda) * Sum(Sim(new, j)) with i belongs V\S and j!=new, j belongs S
-    def calChangeCoPe(self, newId=None, s=[], v=[], Lambda=1.0):
+    def calChangeCoPe(self, newId=None, s=[], v=[]):
         # add coverage
         fcc = 0.0
         # subtract relevant selected elements
@@ -64,7 +67,7 @@ class ElasticsearchSubmodularity:
                 else:  # if (docId2 in s):
                     fcc += SimilarityScore().cosineOf2Text(rawdoc1, rawdoc2)
 
-        return fcc - (1 + Lambda) * fcp
+        return fcc - (1 + self.Lambda) * fcp
 
     # s, v: list of articleId
     # delta_fcp(S_(k+1))    =   (1-lambda) * Sum_(x_i in V\{x_(k+1)}) sim(d_x_i, d_x_(k+1))
@@ -123,15 +126,15 @@ class ElasticsearchSubmodularity:
     # fp(S_k) = Sum_(x_i in S_k) Sum_(x_j in S_k) sim (d_x_i, d_x_j)
     # delta_fc(S_(k+1)) = Sum_(c_i in Vc) w(c_i, d_x_(k+1))
     # delta_fp(S_(k+1)) = Sum_(x_i in S_k) sim(d_i, d_x_(k+1))
-    def calMCR(self, newId, s, v, Lambda):
+    def calMCR(self, newId, s, v):
         # add coverage subtract penalty
-        # delta_fc = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v, Lambda=Lambda)
+        # delta_fc = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v)
         delta_fc = self.calDeltaQuery(newId)
         delta_fp = self.calDeltaPenalty(newId)
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
-        return (1 - Lambda) * delta_fc - Lambda * delta_fp
+        return (1 - self.Lambda) * delta_fc - self.Lambda * delta_fp
 
     # function 3: Query-Focused Relevance
     # only calculate change when add newId
@@ -146,7 +149,7 @@ class ElasticsearchSubmodularity:
     # delta_fcp(S_(k+1))    =   (1-lambda) * Sum_(x_i in V\{x_(k+1)}) sim(d_x_i, d_x_(k+1))
     #                           - (2-lambda) Sum_(x_i in S_k) sim (d_x_i, d_x_(k+1))
     # delta_fq(S_(k+1))     =   w(q, x_(k+1)) with x_(k+1) in S_(k+1)
-    def calQFR(self, newId, s, v, Lambda, alpha=ConstantValues.Alpha):
+    def calQFR(self, newId, s, v, alpha=ConstantValues.Alpha):
 
         delta_fq = self.calDeltaQuery(newId)
         # return alpha * delta_fq
@@ -158,14 +161,14 @@ class ElasticsearchSubmodularity:
         # print(alpha, Lambda)
         # print(newId+" - coverage: "+str(delta_fc)+" , penalty: "+str(delta_fp)+" , query: "+str(delta_fq))
         alpha = 1.0 * alpha * len(v)
-        beta = 1.0-Lambda
-        gamma = 2.0-Lambda
+        beta = 1.0-self.Lambda
+        gamma = 2.0-self.Lambda
         # print(alpha, beta, gamma)
         # print(delta_fq, delta_fc, delta_fp)
         return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
 
     # submodular algorithm
-    def greedyAlgByCardinality(self, Lambda, method):
+    def greedyAlgByCardinality(self, method):
         # remove no information first
         v = self.ese.removeIdNoInfor(self.v)
         # if the number of elements in V <= BUDGET -> get all elements in v
@@ -182,7 +185,7 @@ class ElasticsearchSubmodularity:
             u.append(docid)
         # print("BUDGET: "+str(budget))
         while len(u) > 0 and len(s) < ConstantValues.BUDGET:
-            docidk, maxK = self.findArgmax(s, u, v, Lambda, method)
+            docidk, maxK = self.findArgmax(s, u, v, method)
             # print("dock: "+dock['title'])
             # if (maxK>0):
             s.append(docidk)
@@ -192,22 +195,22 @@ class ElasticsearchSubmodularity:
         return s
 
     # switch respective method
-    def calMethod(self, newId, s, v, Lambda, method):
+    def calMethod(self, newId, s, v, method):
         result = 0.0
         if method == ConstantValues.Query_Focused_Relevance:
-            result = self.calQFR(newId=newId, s=s, v=v, Lambda=Lambda)
+            result = self.calQFR(newId=newId, s=s, v=v)
         elif method == ConstantValues.Maximal_Concept_Relevance:
-            result = self.calMCR(newId=newId, s=s, v=v, Lambda=Lambda)
+            result = self.calMCR(newId=newId, s=s, v=v)
         # print(result)
         return result
 
-    def findArgmax(self, s, u, v, Lambda, method):
-        # bound=self.calMethod(s, v, Lambda, method)
+    def findArgmax(self, s, u, v, method):
+        # bound=self.calMethod(s, v, method)
         # print("bound: "+str(bound))
         maxF = None
         argmax = None
         for docId in u:
-            ft = self.calMethod(docId, s, v, Lambda, method)
+            ft = self.calMethod(docId, s, v, method)
 
             if (maxF == None or maxF < ft):
                 maxF = ft
@@ -223,5 +226,5 @@ if __name__ == '__main__':
     simq = ese.queryByDSL(query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system",
                                        year=2014, budget=1000)
     essub = ElasticsearchSubmodularity(esexport=ese, v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"),
-                                       simq=simq)
-    essub.greedyAlgByCardinality(Lambda=1.0, method="qfr")
+                                       simq=simq, Lambda=None)
+    essub.greedyAlgByCardinality(method="qfr")

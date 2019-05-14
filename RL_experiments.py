@@ -15,13 +15,14 @@ from lib.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
 
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
-lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
+# lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
+lambda_test = [None]
 # corpusInputPath = "inputs/selection-5refs/"
 corpusInputPath = "inputs/selection-5refs/"
 max_matches = 1
 max_each_matches = 50
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/laptop/"
+prefix_folder = "results/server/"
 date_folder = "19-05-15/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 prefix_sim = "acl-tfidf-selection-5refs-"

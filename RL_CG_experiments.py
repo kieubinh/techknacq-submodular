@@ -49,10 +49,10 @@ def recommendRLByCGMCR(index="acl2014", doc_type="json", concept_graph="concept-
         vlist = []
         for key in vDocs.keys():
             vlist.append(key)
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=vDocs)
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method=method)
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=vDocs, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method=method)
 
-        RLE.printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultPath)
+        RLE.printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultPath)
 
 
 # input: query (in article)
@@ -84,10 +84,10 @@ def recommendRLByCGMMR(index="acl2014", doc_type="json", concept_graph="concept-
         vDocs = getlistID(year=retrievedInfo.getYear(), resultlist=rl)
         simq = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=1000)
 
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=simq)
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=simq, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method="qfr")
 
-        RLE.printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultPath)
+        RLE.printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultPath)
         # RLE.printResult(articleId=retrievedInfo.getId(), output=rl, resultPath=resultPath)
 
 

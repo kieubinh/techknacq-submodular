@@ -84,12 +84,12 @@ def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None,
         print(len(refDocs))
         simq = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
                               budget=ConstantValues.MAX_SUBMODULARITY / 5)
-        essub = ElasticsearchSubmodularity(esexport=ese, v=refDocs, simq=simq)
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
+        essub = ElasticsearchSubmodularity(esexport=ese, v=refDocs, simq=simq, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method="qfr")
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
-        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultpath)
 
 
 def recommendRLByQfrAuCG(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr-authors/"):
@@ -118,13 +118,13 @@ def recommendRLByQfrAuCG(index="acl2014", doc_type="json", corpusInputPath=None,
         # calculate similarity score between query q and each article in v
         simq = ese.queryByURL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
                               budget=ConstantValues.MAXSIZE)
-        print("au: %i, cg: %i -> total: %i"%(num_au, num_cg, len(vlist)))
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=simq)
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
+        print("au: %i, cg: %i -> total: %i" % (num_au, num_cg, len(vlist)))
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=simq, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method="qfr")
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
-        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultpath)
 
 
 # Using ES to get CONSTANT.MAX_SUBMODULARITY relevant documents,
@@ -145,12 +145,12 @@ def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, r
         # print(len(vDocs))
         # qsim = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(), budget=5000)
         # print(vDocs)
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=vDocs)
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vDocs, simq=vDocs, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method="qfr")
         # essub = ElasticsearchSubmodularity(esexport=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
         #                                    MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=vDocs, Lambda=Lambda, method="qfr")
-        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultpath)
 
 
 def recommendRLByQfrCG(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr/"):
@@ -173,10 +173,10 @@ def recommendRLByQfrCG(index="acl2014", doc_type="json", corpusInputPath=None, r
         # print(len(vDocs))
         simq = ese.queryByURL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
                               budget=ConstantValues.MAXSIZE)
-        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=simq)
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda, method="qfr")
+        essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=simq, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method="qfr")
 
-        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=Lambda, resultPath=resultpath)
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultpath)
 
 
 def recommendRLByES(index="acl2014", doc_type="json", corpusInputPath="Jardine2014/", resultpath="results/acl-top/"):
@@ -189,7 +189,7 @@ def recommendRLByES(index="acl2014", doc_type="json", corpusInputPath="Jardine20
         articleId = retrievedInfo.getId()
         year = retrievedInfo.getYear()
         print(articleId + " : " + query + " before " + str(year))
-        resultlist = ese.queryByURL(query=query, year=year+1, budget=ConstantValues.BUDGET)
+        resultlist = ese.queryByURL(query=query, year=year + 1, budget=ConstantValues.BUDGET)
         output = []
         for (key, value) in resultlist.items():
             output.append(key)
@@ -420,7 +420,9 @@ def print2File(article, resultList, Lambda, resultPath="", budget=ConstantValues
     fout.close()
 
 
-def printResult(articleId, output, Lambda=-1.0, resultPath=""):
+def printResult(articleId, output, Lambda=None, resultPath=""):
+    if Lambda is None:
+        Lambda = -1
     print("number of output: " + str(len(output)))
     # print(output)
     jsondoc = {

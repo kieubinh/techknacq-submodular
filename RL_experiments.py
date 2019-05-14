@@ -18,11 +18,11 @@ from lib.submodular.retrievedinfo import RetrievedInformation
 lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
 # corpusInputPath = "inputs/selection-5refs/"
 corpusInputPath = "inputs/selection-5refs/"
-max_matches = 10
+max_matches = 3
 max_each_matches = 20
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/laptop/"
-date_folder = "19-05-13/"
+prefix_folder = "results/server/"
+date_folder = "19-05-14/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 prefix_sim = "acl-tfidf-selection-5refs-"
 

@@ -18,11 +18,11 @@ from lib.submodular.retrievedinfo import RetrievedInformation
 lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
 # corpusInputPath = "inputs/selection-5refs/"
 corpusInputPath = "inputs/selection-5refs/"
-max_matches = 3
-max_each_matches = 20
+max_matches = 1
+max_each_matches = 50
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/server/"
-date_folder = "19-05-14/"
+prefix_folder = "results/laptop/"
+date_folder = "19-05-15/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 prefix_sim = "acl-tfidf-selection-5refs-"
 
@@ -62,8 +62,9 @@ def getVByQueryCG(ese=None, query=None, year=None, cg=None, learner_model=None):
     rl = ReadingList(cg, querylist, learner_model)
     # get 10 relevant concepts for the query
     conceptlist = rl.getRelevantConcepts(max_matches)
-    if query not in conceptlist:
-        conceptlist[query] = 1.0
+    # do not account original query
+    # if query not in conceptlist:
+    #     conceptlist[query] = 1.0
     vDocs = ese.getRelevantDocsByCL(conceptlist=conceptlist, year=year, max_each_matches=max_each_matches)
     # print(vDocs)
     vlist = []

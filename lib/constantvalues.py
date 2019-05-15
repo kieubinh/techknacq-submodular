@@ -17,8 +17,8 @@ class ConstantValues:
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'
     SIMILARITY_MEASUE = 'text'
-    # ACL_CORPUS_INDEX = "acl_tfidf"
-    ACL_CORPUS_INDEX = "acl_bm25"
+    ACL_CORPUS_INDEX = "acl_tfidf"
+    # ACL_CORPUS_INDEX = "acl_bm25"
     ACL_CORPUS_DOCTYPE = "doc"
     OneVsRest = "OneVsRest"
 
@@ -26,17 +26,17 @@ class ConstantValues:
     COSINE = 0 #default
 
     #method
-    Maximal_Marginal_Relevance="mmr"
-    Maximal_Concept_Relevance="mcr"
-    Query_Focused_Relevance="qfr"
-    Update_Relevance="upr"
+    Maximal_Marginal_Relevance = "mmr"
+    Maximal_Concept_Relevance = "mcr"
+    Query_Focused_Relevance = "qfr"
+    Update_Relevance = "upr"
 
     #data path
     SAMPLE="sample/"
     ACL = "../data/acl/"
     ACL_PART = "../data/acl-part/"
-    # ACL_SCORES = "../data/acl-score/"
-    ACL_SCORES = "../data/acl-bm25-score/"
+    ACL_SCORES = "../data/acl-score/"
+    # ACL_SCORES = "../data/acl-bm25-score/"
     SAMPLE_SCORES = "sample-bm25-score/"
 
     #save model

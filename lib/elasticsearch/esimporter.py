@@ -26,7 +26,7 @@ class ElasticsearchImporter:
     # output: a query in order to update into elasticsearch
     def jsonParser(self, corpusPath="data/acl/", index="acl2014", doctype="json"):
         # es = Elasticsearch([{'host': 'localhost', 'port': '9200'}])
-
+        print(corpusPath)
         for root, dirs, files in os.walk(corpusPath, topdown=False):
             for nameFile in files:
                 # must be json
@@ -114,7 +114,7 @@ class ElasticsearchImporter:
                 jsondict = {
                     "info": {
                         "id": doc_id,
-                        "type": "tfidf",
+                        "type": "bm25",
                         "description": "document similarity",
                         "size": score_doc.__len__()
                     },
@@ -136,8 +136,9 @@ class ElasticsearchImporter:
 from lib.constantvalues import ConstantValues
 
 if __name__ == '__main__':
-    # ElasticsearchImporter().jsonParser(corpusPath="../../data/acl/", index="acltest3",
+    # ElasticsearchImporter().jsonParser(corpusPath=ConstantValues.SAMPLE, index=ConstantValues.ACL_CORPUS_INDEX,
     #                                    doctype=ConstantValues.ACL_CORPUS_DOCTYPE)
-    # ElasticsearchImporter().jsonParser(corpusPath="../../data/acl/", index=ConstantValues.ACL_CORPUS_INDEX, doctype=ConstantValues.ACL_CORPUS_DOCTYPE)
-    ElasticsearchImporter().scoreDocSimToFolder()
+    # ElasticsearchImporter().jsonParser(corpusPath=ConstantValues.ACL, index=ConstantValues.ACL_CORPUS_INDEX, doctype=ConstantValues.ACL_CORPUS_DOCTYPE)
+    ElasticsearchImporter().scoreDocSimToFolder(from_index=ConstantValues.ACL_CORPUS_INDEX,
+                                                from_doctype=ConstantValues.ACL_CORPUS_DOCTYPE, to_folder=ConstantValues.SAMPLE_SCORES)
 

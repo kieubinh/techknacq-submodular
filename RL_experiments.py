@@ -19,10 +19,10 @@ from lib.submodular.retrievedinfo import RetrievedInformation
 lambda_test = [None]
 # corpusInputPath = "inputs/selection-5refs/"
 corpusInputPath = "inputs/selection-5refs/"
-max_matches = 10
-max_each_matches = 5
+max_matches = 8
+max_each_matches = 25
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/laptop/"
+prefix_folder = "results/uts/"
 date_folder = "19-05-15/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 prefix_sim = "acl-tfidf-selection-5refs-"

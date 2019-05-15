@@ -2,10 +2,11 @@
 from lib.elasticsearch.esimporter import ElasticsearchImporter
 from lib.constantvalues import ConstantValues
 if __name__ == '__main__':
-    # ElasticsearchImporter().jsonParser(corpusPath="../../data/acl/", index="acltest3",
-    #                                    doctype=ConstantValues.ACL_CORPUS_DOCTYPE)
-    # ElasticsearchImporter().jsonParser(corpusPath="../data/acl/", index=ConstantValues.ACL_CORPUS_INDEX, doctype=ConstantValues.ACL_CORPUS_DOCTYPE)
-    ElasticsearchImporter().scoreDocSimToFolder()
+    ElasticsearchImporter().jsonParser(corpusPath=ConstantValues.ACL, index=ConstantValues.ACL_CORPUS_INDEX,
+                                       doctype=ConstantValues.ACL_CORPUS_DOCTYPE)
+    # ElasticsearchImporter().jsonParser(corpusPath=ConstantValues.ACL, index=ConstantValues.ACL_CORPUS_INDEX, doctype=ConstantValues.ACL_CORPUS_DOCTYPE)
+    ElasticsearchImporter().scoreDocSimToFolder(from_index=ConstantValues.ACL_CORPUS_INDEX,
+                                                from_doctype=ConstantValues.ACL_CORPUS_DOCTYPE, to_folder=ConstantValues.ACL_SCORES)
 
 
 # curl -X POST "localhost:9200/acl_tfidf/_close"

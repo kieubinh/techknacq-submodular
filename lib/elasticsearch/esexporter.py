@@ -336,28 +336,33 @@ class ElasticsearchExporter:
         while (res_from < budget) & (res_from < ConstantValues.MAXSIZE):
             if res_size + res_from > budget:
                 res_size = budget - res_from
-            response = self.es.search(
-                index=self.index,
-                body={
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {"multi_match": {
-                                    "query": query,
-                                    "fields": ["info.title", "sections.text", "sections.heading"]
+            try:
+                response = self.es.search(
+                    index=self.index,
+                    body={
+                        "query": {
+                            "bool": {
+                                "must": [
+                                    {"multi_match": {
+                                        "query": query,
+                                        "fields": ["info.title", "sections.text", "sections.heading"]
 
-                                }}
-                            ],
-                            "filter": [
-                                {"range": {"info.year": {"lt": year}}}
-                            ]
-                        }
-                    },
-                    "stored_fields": [],
-                    "from": res_from,
-                    "size": res_size,
-                }
-            )
+                                    }}
+                                ],
+                                "filter": [
+                                    {"range": {"info.year": {"lt": year}}}
+                                ]
+                            }
+                        },
+                        "stored_fields": [],
+                        "from": res_from,
+                        "size": res_size,
+                    }
+                )
+            except Exception as e:
+                print('Error queryByURL: from %i to %i' % (res_from, res_size), file=sys.stderr)
+                print(e, file=sys.stderr)
+                return None
 
             # print(response)
             # print(response['hits']['total'])

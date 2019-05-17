@@ -25,7 +25,7 @@ corpusInputPath = "inputs/selection-5refs/"
 max_matches = 1
 max_each_matches = 5000
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/laptop/"
+prefix_folder = "results/uts/"
 date_folder = "19-05-17/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 prefix_sim = "acl-bm25-selection-5refs-"
@@ -158,6 +158,9 @@ def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, r
         # get 5000 relevant documents -> v = 5000
         vDocs = ese.queryByURL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
                                budget=ConstantValues.MAX_SUBMODULARITY)
+        if vDocs is None:
+            # ignore error timeout
+            continue
 
         # vDocs = ese.queryByDSL(query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
         #                                                budget=ConstantValues.MAX_SUBMODULARITY)

@@ -29,8 +29,8 @@ class Evaluation:
         print("#correct: " + str(ccorrect) + "/total output: " + str(len(output_ids)) + "/total ground truth: " + str(
             len(ground_ids)))
         self.sumCorrect += ccorrect
-        pre = 1.0 * ccorrect / len(ground_ids)
-        recall = 1.0 * ccorrect / len(output_ids)
+        pre = 1.0 * ccorrect / len(output_ids)
+        recall = 1.0 * ccorrect / len(ground_ids)
         if ccorrect == 0:
             fscore = 0.0
         else:
@@ -95,3 +95,36 @@ class Evaluation:
 
         print("# average output: " + str(1.0 * sumout / len(self.output)))
         print("# average answer: " + str(1.0 * sumans / len(self.output)))
+
+    # Calculating MAP score
+    def calPrec(self, ground_ids=[], output_ids=[]):
+        count = 0
+        for id in output_ids:
+            if id in ground_ids:
+                count += 1
+        return count / len(output_ids)
+
+    def calAvgPrec(self, output_ids=[], ground_ids=[]):
+        # print(len(output_ids))
+        if len(output_ids) == 0:
+            print("No output list!")
+            print("#correct: 0/total output: " + str(len(output_ids)) + "/total ground truth: " + str(len(ground_ids)))
+            return 0.0
+        prec = 0.0
+        for index in range(0, len(output_ids)):
+            if output_ids[index] in ground_ids:
+                prec += self.calPrec(ground_ids, output_ids[0:index+1])
+
+        return prec / len(ground_ids)
+
+    def calMAP(self):
+        map_score = 0.0
+        for name in self.output.keys():
+
+            avg_prec = self.calAvgPrec(self.output[name], self.answer[name])
+            print(name+" : "+str(avg_prec))
+            map_score += avg_prec
+        self.mapScore = map_score / len(self.output)
+
+    def getMAP(self):
+        return self.mapScore

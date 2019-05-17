@@ -9,6 +9,9 @@
 
 import click
 import json
+import os
+import io
+import sys
 
 from lib.submodular.submodular import Submodular
 from lib.constantvalues import ConstantValues
@@ -19,28 +22,44 @@ from lib.submodular.retrievedinfo import RetrievedInformation
 lambda_test = [None]
 # corpusInputPath = "inputs/selection-5refs/"
 corpusInputPath = "inputs/selection-5refs/"
-max_matches = 8
-max_each_matches = 25
+max_matches = 1
+max_each_matches = 5000
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/uts/"
-date_folder = "19-05-15/"
+prefix_folder = "results/laptop/"
+date_folder = "19-05-17/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
-prefix_sim = "acl-tfidf-selection-5refs-"
+prefix_sim = "acl-bm25-selection-5refs-"
+
+# cont = True -> run continue: ignore exist files
+cont = True
 
 # ------------------------------- LOADING INPUT ----------------------------------------------
-import os
-import io
-import sys
 
+def loadInput(corpusInputPath="sample-high/", resultPath="results/"):
+    # load result path
+    exist_ids = []
+    if resultPath is not None:
+        for root, dirs, files in os.walk(resultPath, topdown=False):
+            for nameFile in files:
+                try:
+                    data = json.load(io.open(root + "/" + nameFile, 'r', encoding='utf-8'))
+                    exist_ids.append(data['info']['id'])
+                    # print(nameId)
 
-def loadInput(corpusInputPath="sample-high/"):
+                except Exception as e:
+                    print('Error reading JSON document:', nameFile, file=sys.stderr)
+                    print(e, file=sys.stderr)
+                    sys.exit(1)
+
+    # load corpus path
     corpusInput = []
     for root, dirs, files in os.walk(corpusInputPath, topdown=False):
         for nameFile in files:
             if "json" in nameFile:
                 try:
                     data = json.load(io.open(root + "/" + nameFile, 'r', encoding='utf-8'))
-                    corpusInput.append(data)
+                    if data['info']['id'] not in exist_ids:
+                        corpusInput.append(data)
                     # print(nameId)
 
                 except Exception as e:
@@ -74,8 +93,8 @@ def getVByQueryCG(ese=None, query=None, year=None, cg=None, learner_model=None):
     return vlist
 
 
-def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr-authors/"):
-    inputDocs = loadInput(corpusInputPath)
+def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None, resultPath="results/acl-qfr-authors/"):
+    inputDocs = loadInput(corpusInputPath, resultPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
     Lambda = lambda_test[0]
     for article in inputDocs:
@@ -89,11 +108,11 @@ def recommendRLByQfrAuEs(index="acl2014", doc_type="json", corpusInputPath=None,
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
-        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultpath)
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultPath)
 
 
-def recommendRLByQfrAuCG(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr-authors/"):
-    inputDocs = loadInput(corpusInputPath)
+def recommendRLByQfrAuCG(index="acl2014", doc_type="json", corpusInputPath=None, resultPath="results/acl-qfr-authors/"):
+    inputDocs = loadInput(corpusInputPath, resultPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
     Lambda = lambda_test[0]
     cg = ConceptGraph(click.format_filename(concept_graph))
@@ -124,13 +143,13 @@ def recommendRLByQfrAuCG(index="acl2014", doc_type="json", corpusInputPath=None,
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
-        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultpath)
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultPath)
 
 
 # Using ES to get CONSTANT.MAX_SUBMODULARITY relevant documents,
 # then using submodular function (QFR) to get subset of these
-def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr/"):
-    inputDocs = loadInput(corpusInputPath)
+def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, resultPath="results/acl-qfr/"):
+    inputDocs = loadInput(corpusInputPath, resultPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
     Lambda = lambda_test[0]
     for article in inputDocs:
@@ -150,11 +169,11 @@ def recommendRLByQfrEs(index="acl2014", doc_type="json", corpusInputPath=None, r
         # essub = ElasticsearchSubmodularity(esexport=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
         #                                    MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=vDocs, Lambda=Lambda, method="qfr")
-        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultpath)
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultPath)
 
 
-def recommendRLByQfrCG(index="acl2014", doc_type="json", corpusInputPath=None, resultpath="results/acl-qfr/"):
-    inputDocs = loadInput(corpusInputPath)
+def recommendRLByQfrCG(index="acl2014", doc_type="json", corpusInputPath=None, resultPath="results/acl-qfr/"):
+    inputDocs = loadInput(corpusInputPath, resultPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
     Lambda = lambda_test[0]
     cg = ConceptGraph(click.format_filename(concept_graph))
@@ -176,11 +195,11 @@ def recommendRLByQfrCG(index="acl2014", doc_type="json", corpusInputPath=None, r
         essub = ElasticsearchSubmodularity(esexport=ese, v=vlist, simq=simq, Lambda=Lambda)
         readinglist = essub.greedyAlgByCardinality(method="qfr")
 
-        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultpath)
+        printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultPath)
 
 
-def recommendRLByES(index="acl2014", doc_type="json", corpusInputPath="Jardine2014/", resultpath="results/acl-top/"):
-    inputDocs = loadInput(corpusInputPath)
+def recommendRLByES(index="acl2014", doc_type="json", corpusInputPath="Jardine2014/", resultPath="results/acl-top/"):
+    inputDocs = loadInput(corpusInputPath, resultPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
     for article in inputDocs:
         retrievedInfo = RetrievedInformation(article)
@@ -189,11 +208,16 @@ def recommendRLByES(index="acl2014", doc_type="json", corpusInputPath="Jardine20
         articleId = retrievedInfo.getId()
         year = retrievedInfo.getYear()
         print(articleId + " : " + query + " before " + str(year))
-        resultlist = ese.queryByURL(query=query, year=year + 1, budget=ConstantValues.BUDGET)
+        resultlist = ese.queryByURL(query=query, year=year, budget=ConstantValues.BUDGET)
+        # print(resultlist)
         output = []
-        for (key, value) in resultlist.items():
-            output.append(key)
-        printResult(articleId=articleId, output=output, resultPath=resultpath)
+        for k, v in sorted(resultlist.items(), key=lambda x: x[1], reverse=True):
+            output.append(k)
+        # print(output)
+        # output=[]
+        # for (key, value) in resultlist.items():
+        #     output.append(key)
+        printResult(articleId=articleId, output=output, resultPath=resultPath)
 
 
 def getReflistByAuthors(esexport=None, article=None):
@@ -220,23 +244,23 @@ def getReflistByAuthors(esexport=None, article=None):
     return refDocs
 
 
-def recommendRLByAuthors(index="acl2014", doc_type="json", corpusInputPath="inputs/", resultpath="results/acl-au/"):
-    inputDocs = loadInput(corpusInputPath)
+def recommendRLByAuthors(index="acl2014", doc_type="json", corpusInputPath="inputs/", resultPath="results/acl-au/"):
+    inputDocs = loadInput(corpusInputPath, resultPath)
     ese = ElasticsearchExporter(index=index, doc_type=doc_type)
     for article in inputDocs:
         refDocs = getReflistByAuthors(esexport=ese, article=article)
         print(len(refDocs))
-        printResult(article['info']['id'], refDocs, -1, resultPath=resultpath)
+        printResult(article['info']['id'], refDocs, -1, resultPath=resultPath)
 
 
 # using tf-idf to get relevant documents, then using submodular function QFR to get subset of these -> very slow
-def recommendRLByQfr(corpusPath, corpusInputPath, type_sim="text"):
+def recommendRLByQfr(corpusPath, corpusInputPath, type_sim="text", resultPath=None):
     # load corpus
     relevantDocs = RelevantDocuments()
     relevantDocs.loadFromPath(corpusPath)
 
     # load input
-    inputDocs = loadInput(corpusInputPath)
+    inputDocs = loadInput(corpusInputPath, resultPath)
     for article in inputDocs:
 
         retrievedInfo = RetrievedInformation(article)
@@ -277,7 +301,7 @@ def recommendRLByTop(corpusPath, corpusInputPath, resultPath):
     relevantDocs.loadFromPath(corpusPath)
 
     # load input
-    inputDocs = loadInput(corpusInputPath)
+    inputDocs = loadInput(corpusInputPath, resultPath)
     for article in inputDocs:
         retrievedInfo = RetrievedInformation(article)
         # retrievedInfo.loadInforFromTitle(article)
@@ -443,7 +467,7 @@ def printResult(articleId, output, Lambda=None, resultPath=""):
 # def main(concept_graph=os.getcwd()+"/concept-graph-standard.json", query="statistical parsing"):
 
 @click.command()
-# @click.argument('resultpath', type=click.Path())
+# @click.argument('resultPath', type=click.Path())
 @click.argument('parameters', nargs=-1)
 # parameters:
 # top: recommendRLByTop
@@ -452,49 +476,50 @@ def printResult(articleId, output, Lambda=None, resultPath=""):
 # es: using elasticsearch similarity score
 # corpusInputPath="inputs/survey/selected/"
 # corpusInputPath="inputs/100-random/"
-def main(resultpath=None, parameters="es au qfr cg"):
+def main(resultPath=None, parameters="es au qfr cg continue"):
     print(parameters)
+
     index = ConstantValues.ACL_CORPUS_INDEX
     doctype = ConstantValues.ACL_CORPUS_DOCTYPE
 
     # es -> au / not au
     # au -> qfr / all
     # for es
-    if resultpath is None:
-        resultpath = prefix_folder + date_folder + prefix_sim + parameters[0] \
+    if resultPath is None:
+        resultPath = prefix_folder + date_folder + prefix_sim + parameters[0] \
                      + "-" + str(ConstantValues.BUDGET) + "-" + str(ConstantValues.Alpha) \
                      + "-" + str(max_matches) + "-" + str(max_each_matches) + "/"
 
-    print(resultpath)
-    if not os.path.exists(resultpath):
-        os.makedirs(resultpath)
+    print(resultPath)
+    if not os.path.exists(resultPath):
+        os.makedirs(resultPath)
 
     if "es-au-qfr-cg" in parameters:
         recommendRLByQfrAuCG(index=index, doc_type=doctype, corpusInputPath=corpusInputPath,
-                             resultpath=resultpath)
+                             resultPath=resultPath)
     if "es-au-qfr" in parameters:
         recommendRLByQfrAuEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath,
-                             resultpath=resultpath)
+                             resultPath=resultPath)
     if "es-au" in parameters:
         recommendRLByAuthors(index=index, doc_type=doctype, corpusInputPath=corpusInputPath,
-                             resultpath=resultpath)
+                             resultPath=resultPath)
     if "es-qfr-cg" in parameters:
         recommendRLByQfrCG(index=index, doc_type=doctype, corpusInputPath=corpusInputPath,
-                           resultpath=resultpath)
+                           resultPath=resultPath)
 
     if "es-qfr" in parameters:
-        recommendRLByQfrEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
+        recommendRLByQfrEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultPath=resultPath)
 
     if "es" in parameters:
         # only es - get top budget
-        recommendRLByES(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultpath=resultpath)
+        recommendRLByES(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultPath=resultPath)
 
     # for tf-idf
     if "es" not in parameters:
         if "top" in parameters:
-            recommendRLByTop(corpusPath="data/acl/", corpusInputPath=corpusInputPath, resultPath=resultpath)
+            recommendRLByTop(corpusPath="data/acl/", corpusInputPath=corpusInputPath, resultPath=resultPath)
         if "qfr" in parameters:
-            recommendRLByQfr(corpusPath="data/acl-select/", corpusInputPath=corpusInputPath, type_sim="title")
+            recommendRLByQfr(corpusPath="data/acl-select/", corpusInputPath=corpusInputPath, type_sim="title", resultPath=resultPath)
 
             # test case
             # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")

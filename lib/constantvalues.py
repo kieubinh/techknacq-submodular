@@ -9,11 +9,11 @@ class ConstantValues:
 
     TIMEOUT = 10
 
-    MAX_SUBMODULARITY = 23000
+    MAX_SUBMODULARITY = 5000
     MAXSIZE = 23000
-    BUDGET = 10000
+    BUDGET = 100
     Lambda = 1.0
-    Alpha = 0.5
+    Alpha = 0.8
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'
     SIMILARITY_MEASUE = 'text'

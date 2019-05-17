@@ -15,7 +15,7 @@ class RetrievedInformation:
             line_abstract = doc['sections'][0]['text']
             for line in line_abstract:
                 abstract += line
-            self.query = title + abstract
+            self.query = title + " \n" + abstract + " \n" + title + " \n" + title + " \n" + title + " \n" + title
             self.year = int(doc['info']['year'])
             self.authors = doc['info']['authors']
         except Exception as e:

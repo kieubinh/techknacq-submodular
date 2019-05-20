@@ -1,0 +1,305 @@
+{
+  "info": {
+    "authors": [
+      "Ann Irvine",
+      "Chris Callison-Burch"
+    ],
+    "book": "Workshop on Statistical Machine Translation",
+    "id": "acl-W13-2233",
+    "title": "Combining Bilingual and Comparable Corpora for Low Resource Machine Translation",
+    "url": "https://aclweb.org/anthology/W13-2233",
+    "year": 2013
+  },
+  "references": [
+    "acl-C10-1124",
+    "acl-D09-1092",
+    "acl-D12-1025",
+    "acl-E09-1003",
+    "acl-E12-1014",
+    "acl-H05-1061",
+    "acl-N10-1063",
+    "acl-N12-1047",
+    "acl-N13-1056",
+    "acl-P05-1033",
+    "acl-P06-1011",
+    "acl-P06-1103",
+    "acl-P07-2045",
+    "acl-P08-1088",
+    "acl-P11-1002",
+    "acl-P11-1122",
+    "acl-P11-2031",
+    "acl-P11-2071",
+    "acl-P12-1003",
+    "acl-P12-1017",
+    "acl-P13-1135",
+    "acl-P95-1050",
+    "acl-P98-1069",
+    "acl-P99-1067",
+    "acl-W02-0902",
+    "acl-W02-2026",
+    "acl-W06-3119",
+    "acl-W12-3152"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Statistical machine translation (SMT) performance suffers when models are trained on only small amounts of parallel data.",
+        "The learned models typically have both low accuracy (incorrect translations and feature scores) and low coverage (high out-of-vocabulary rates).",
+        "In this work, we use an additional data resource, comparable corpora, to improve both.",
+        "Beginning with a small bitext and corresponding phrase-based SMT model, we improve coverage by using bilingual lexicon induction techniques to learn new translations from comparable corpora.",
+        "Then, we supplement the model's feature space with translation scores estimated over comparable corpora in order to improve accuracy.",
+        "We observe improvements between 0.5 and 1.7 BLEU translating Tamil, Telugu, Bengali, Malayalam, Hindi, and Urdu into English."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Standard statistical machine translation (SMT) models (Koehn et al., 2003) are trained using large, sentence-aligned parallel corpora.",
+        "Unfortunately, parallel corpora are not always available in large enough quantities to train robust models (Ko-lachina et al., 2012).",
+        "In this work, we consider the situation in which we have access to only a small amount of bitext for a given low resource language pair, and we wish to supplement an SMT model with additional translations and features estimated using comparable corpora in the source and target languages.",
+        "Assuming access to a small amount ?Performed while faculty at Johns Hopkins University of parallel text is realistic, especially considering the recent success of crowdsourcing translations (Zaidan and Callison-Burch, 2011; Ambati, 2011; Post et al., 2012).",
+        "We frame the shortcomings of SMT models trained on limited amounts of parallel text1 in terms of accuracy and coverage.",
+        "In this context, coverage refers to the number of words and phrases that a model has any knowledge of at all, and it is low when the training text is small, which results in a high out-of-vocabulary (OOV) rate.",
+        "Accuracy refers to the correctness of the translation pairs and their corresponding probability features that make up the translation model.",
+        "Because the quality of unsupervised automatic word alignments correlates with the amount of available parallel text and alignment errors result in errors in extracted translation pairs, accuracy tends to be low in low resource settings.",
+        "Additionally, estimating translation probabilities2 over sparse training sets results in inaccurate feature scores.",
+        "Given these deficiencies, we begin with a baseline SMT model learned from a small parallel corpus and supplement the model to improve its accuracy and coverage.",
+        "We apply techniques presented in prior work that use comparable corpora to estimate similarities between word and phrases.",
+        "In particular, we build on prior work in bilingual lexicon induction in order to predict translations for OOV words, improving coverage.",
+        "We then use the same corpora to estimate additional translation feature scores, improving model accuracy.",
+        "We see improvements in translation quality between 0.5",
+        "and 1.7 BLEU points translating the following low resource languages into English: Tamil, Telugu, Bengali, Malayalam, Hindi, and Urdu."
+      ]
+    },
+    {
+      "heading": "2 Previous Work",
+      "text": [
+        "Prior work shows that a variety of signals, including distributional, temporal, topic, and string similarity, may inform bilingual lexicon induction (Rapp, 1995; Fung and Yee, 1998; Rapp, 1999; Schafer and Yarowsky, 2002; Koehn and Knight, 2002; Monz and Dorr, 2005; Huang et al., 2005; Schafer, 2006; Klementiev and Roth, 2006; Haghighi et al., 2008; Mimno et al., 2009; Mausam et al., 2010).",
+        "Other work has used decipherment techniques to learn translations from monolingual and comparable data (Ravi and Knight, 2011; Dou and Knight, 2012; Nuhn et al., 2012).",
+        "Daume?",
+        "and Jagarlamudi (2011) use contextual and string similarity to mine translations for OOV words in a high resource language domain adaptation for a machine translation setting.",
+        "Unlike most other prior work on bilingual lexicon induction, Daume?",
+        "and Jagarlamudi (2011) use the translations in end-to-end SMT.",
+        "More recently, Irvine and Callison-Burch (2013) combine a variety of the techniques for estimating word pair similarity using source and target language comparable corpora.",
+        "That work shows that only a small amount of supervision is needed to learn how to effectively combine similarity features into a single model for doing bilingual lexicon induction.",
+        "In this work, because we assume access to a small amount of bilingual data, it is natural to take such a supervised approach to inducing new translations, and we directly apply that of Irvine and Callison-Burch (2013).",
+        "Klementiev et al. (2012) use comparable corpora to score an existing Spanish-English phrase table extracted from the Europarl corpus.",
+        "In this work, we directly apply their technique for scoring an existing phrase table.",
+        "However, unlike that work, our initial phrase tables are estimated from small parallel corpora for genuine low resource languages.",
+        "Additionally, we include new translations discovered in comparable corpora.",
+        "Other prior work has mined supplemental parallel data from comparable corpora (Munteanu and Marcu, 2006; AbduI-Rauf and Schwenk, 2009; Smith et al., 2010; Uszkoreit et al., 2010; Smith et al., 2013).",
+        "Such efforts are orthogonal and complementary to the approach that we take.",
+        "(2012): thousands of words in the source language parallel sentences and dictionaries, and percent of development set word types (unique word tokens) and word tokens that are OOV (do not appear in either section of the training data).",
+        "Wikipedia text, by language."
+      ]
+    },
+    {
+      "heading": "3 Using Comparable Corpora to Improve Accuracy and Coverage",
+      "text": [
+        "After describing our bilingual and comparable corpora, we briefly describe the techniques proposed by Irvine and Callison-Burch (2013) and Klementiev et al. (2012).",
+        "The contribution of this paper is the application and combination of these techniques in truly low resource translation conditions."
+      ]
+    },
+    {
+      "heading": "3.1 Datasets",
+      "text": [
+        "Post et al. (2012) used Mechanical Turk to collect small parallel corpora for the following Indian languages and English: Tamil, Telugu, Bengali, Malayalam, Hindi, and Urdu.",
+        "They collected both parallel sentence pairs and a dictionary of word translations.3 We use all six datasets, which provide real low resource data conditions for six truly low resource language pairs.",
+        "Table 1 shows statistics about the datasets.",
+        "Table 2 lists the amount of comparable data that we use for each language.",
+        "Following both Klementiev et al. (2012) and Irvine and Callison-Burch (2013), we use timestamped web crawls as well as interlingually linked Wikipedia documents.",
+        "We use the timestamped data to estimate temporal similarity and the interlingual Wikipedia links, which indicate documents about the same topic written in different languages, to estimate",
+        "topic similarity.",
+        "We use both datasets in combination with a dictionary derived from the small parallel corpora to estimate contextual similarity."
+      ]
+    },
+    {
+      "heading": "3.2 Improving Coverage",
+      "text": [
+        "In order to improve the coverage of our low resource translation models, we use bilingual lexicon induction techniques to learn translations for words which appear in our test sets but not in our training data (OOVs).",
+        "Bilingual lexicon induction is the task of inducing pairs of words that are translations of one another from monolingual or comparable corpora.",
+        "Irvine and Callison-Burch (2013) use a diverse set of features estimated over comparable corpora and a small set of known translations as supervision for training a discriminative classifier, which makes predictions (translation or not a translation) on test set words paired with all possible translations.",
+        "Possible translations are taken from the set of all target words appearing in the comparable corpora.",
+        "Candidates are ranked according to their classification scores.",
+        "They achieve very good performance on the induction task itself compared with an unsupervised baseline that aggregates the same similarity features uniformly.",
+        "In our setting, we have access to a small parallel corpus, which makes such a supervised approach to bilingual lexicon induction a natural choice.",
+        "We use the framework described in Irvine and Callison-Burch (2013) directly, and further details may be found there.",
+        "In particular, we use the same feature set, which includes the temporal, contextual, topic, orthographic, and frequency similarity between a candidate translation pair.",
+        "We derive translations to serve as positive supervision from our automatically aligned parallel text4 and, like the prior work, use random word pairs as negative supervision.",
+        "Figure 1 shows some examples of Bengali words, their correct translations, and the top-3 translations that this framework induces.",
+        "In our initial experiments, we add the highest ranked English candidate translation for each source language OOV to our phrase tables.",
+        "Because all of the OOVs appear at least once in our comparable corpora,5 we are able to mine translations for all of them.",
+        "Adding these translations by definition improves the coverage of our MT models.",
+        "Then, in additional sets of experiments, we",
+        "ranked induced translations, and their correct translations.",
+        "also induce translations for source language words which are low frequency in the training data and supplement our SMT models with top-k translations, not just the highest ranked."
+      ]
+    },
+    {
+      "heading": "3.3 Improving Accuracy",
+      "text": [
+        "In order to improve the accuracy of our models, we use comparable corpora to estimate additional features over the translation pairs in our phrase tables and include those features in tuning and decoding.",
+        "This approach follows that of Klementiev et al. (2012).",
+        "We compute both phrasal features and lexically smoothed features (using word alignments, like the Moses lexical translation probabilities) for all of the following except orthographic similarity, for which we only use lexically smoothed features,6 resulting in nine additional features: temporal similarity based on timestamped web crawls, contextual similarity based on web crawls and Wikipedia (separately), orthographic similarity using normalized edit distance, and topic similarity based on inter-lingually linked Wikipedia pages.",
+        "Our hope is that by adding a diverse set of similarity features to the phrase tables, our models will better distinguish between good and bad translation pairs, improving accuracy."
+      ]
+    },
+    {
+      "heading": "4 Experiments",
+      "text": []
+    },
+    {
+      "heading": "4.1 Experimental setup",
+      "text": [
+        "We use the data splits given by Post et al. (2012) and, following that work, include the dictionaries in the training data and report results on the devtest set using case-insensitive BLEU and four references.",
+        "We use the Moses phrase-based MT framework (Koehn et al., 2007).",
+        "For each language, we extract a phrase table with a phrase limit of seven.",
+        "In order to make our results comparable to those of Post et al. (2012), we follow that work and use",
+        "training data which are translated correctly by our bilingual lexicon induction technique.",
+        "Evaluation is over the top-1 and top-10 outputs in the ranked lists for each source word.",
+        "the English side of the training data to train a language model.",
+        "Using a language model trained on a larger corpus (e.g. the English side of our comparable corpora) may yield better results, but such an improvement is orthogonal to the focus of this work.",
+        "Throughout our experiments, we use the batch version of MIRA (Cherry and Foster, 2012) for tuning the feature set.7 We rerun tuning for all experimental conditions and report results averaged over three tuning runs (Clark et al., 2011).",
+        "Our baseline uses the bilingually extracted phrase pairs and standard translation probability features.",
+        "We supplement it with the top ranked translation for each OOV to improve coverage (+ OOV Trans) and with additional features to improve accuracy (+Features).",
+        "In Section 4.2, we make each modification separately and then together.",
+        "Then we present additional experiments where we induce translations for low frequency words, in addition to OOVs (4.3), append top-k translations (4.4), vary the amount of training data used to induce the baseline model (4.5), and vary the amount of comparable corpora used to estimate features and induce translations (4.6)."
+      ]
+    },
+    {
+      "heading": "4.2 Results",
+      "text": [
+        "Before presenting end-to-end MT results, we examine the performance of the supervised bilingual lexicon induction technique that we use for translating OOVs.",
+        "In Table 3, top-1 accuracy is the percent of source language words in a held out portion of the training data8 for which the highest ranked English candidate is a correct translation.9 Performance is lowest for Tamil and highest for Hindi.",
+        "For all languages, top-10 accuracy is much higher than the top-1 accuracy.",
+        "In Section 4.4, we explore",
+        "source word, so some have multiple correct translations appending the top-k translations for OOV words to our model instead of just the top-1.",
+        "Table 4 shows our results adding OOV translations, adding features, and then both.",
+        "Additional translation features alone, which improve our models?",
+        "accuracy, increase BLEU scores between 0.18 (Bengali) and 0.60 (Malayalam) points.",
+        "Adding OOV translations makes a big difference for some languages, such as Bengali and Urdu, and almost no difference for others, like Malayalam and Tamil.",
+        "The OOV rate (Table 1) is low in the Malayalam dataset and high in the Tamil dataset.",
+        "However, as Table 3 shows, the translation induction accuracy is low for both.",
+        "Since few of the supplemental translations are correct, we don't observe BLEU gains.",
+        "In contrast, induction accuracies for the other languages are higher, OOV rates are substantial, and we do observe moderate BLEU improvements by supplementing phrase tables with OOV translations.",
+        "In order to compute the potential BLEU gains that we could realize by correctly translating all OOV words (achieving 100% accuracy in Table 3), we perform an oracle experiment.",
+        "We use automatic word alignments over the test sets to identify correct translations and append those to the phrase tables.10 The results, in Table 4, show possible gains between 4.3 (Telugu and Bengali) and 0 (Malayalam) BLEU points above the baseline.",
+        "Not surprisingly, the possible gain for Malayalam, which has a very low OOV rate, is very low.",
+        "Our +OOV Trans.",
+        "model gains between 0% (Tamil) and 38% (Urdu) of the potential improvement.",
+        "Using comparable corpora to improve both accuracy (+Features) and coverage (+OOV Trans.)",
+        "results in translations that are better than applying either technique alone for five of the six languages.",
+        "BLEU gains range from 0.48 (Bengali) to 1.39 (Urdu).",
+        "We attribute the particularly good Urdu performance to the relatively large comparable corpora (Table 2).",
+        "As a result, we have already begun to expand our web crawls for all languages.",
+        "In Section 4.6, we present results varying the amount of Urdu-English comparable corpora used to induce translations and estimate additional features.",
+        "Table 4 also shows the Hiero (Chiang, 2005) and SAMT (Zollmann and Venugopal, 2006) results that Post et al. (2012) report for the same",
+        "OOV oracle uses OOV translations from automatic word alignments.",
+        "Hiero and SAMT results are reported in Post et al. (2012).",
+        "datasets.",
+        "Both syntax-based models outperform the phrase-based MT baseline for each language except Urdu, where the phrase-based model outperforms Hiero.",
+        "Here, we extend a phrase-based rather than a syntax-based system because it is simpler.",
+        "However, our improvements may also apply to syntactic models (future work).",
+        "Because our efforts have focused on the accuracy and coverage of translation pairs and have not addressed reordering or syntax, we expect that combining them with an SAMT grammar will result in state-of-the art performance."
+      ]
+    },
+    {
+      "heading": "4.3 Translations of Low Frequency Words",
+      "text": [
+        "Given the positive results in Section 4.2, we hypothesize that mining translations for low frequency words, in addition to OOV words, may improve accuracy.",
+        "For source words which only appear a few times in the parallel training text, the bilingually extracted translations in the standard phrase table are likely to be inaccurate.",
+        "Therefore, we perform additional experiments varying the minimum source word training data frequency for which we induce additional translations.",
+        "That is, if freq(wsrc) ?",
+        "M , we induce a new translation for it and include that translation in our phrase table.",
+        "Note that in the results presented in Table 4, M = 0.",
+        "In these experiments, we include our additional phrase table features estimated over comparable corpora and hope that these scores will assist the model in choosing among multiple translation options for low frequency words, one or more of which is extracted bilingually and one of which is induced using comparable corpora.",
+        "Table 5 shows the results when we vary M .",
+        "As before, we average BLEU scores over three tuning runs.",
+        "In general, modest BLEU score gains are made as we supplement our phrase-based models with induced translations of low frequency words.",
+        "The highest performance is achieved when M is between 5 and 50, depending on language.",
+        "The",
+        "of source words for which new translations are induced and included in the phrase-based model.",
+        "In all cases, the top-1 induced translation is added to the phrase table and features estimated over comparable corpora are included (i.e. +Feats & Trans model).",
+        "largest gains are 0.5 and 0.3 BLEU points for Bengali and Urdu, respectively, at M = 25.",
+        "This is not surprising; we also saw the largest relative gains for those two languages when we added OOV translations to our baseline model.",
+        "With the addition of low frequency translations, our highest performing Urdu model achieves a BLEU score that is 1.7 points higher than the baseline.",
+        "In different data conditions, inducing translations for low frequency words may result in better or worse performance.",
+        "For example, the size of the training set impacts the quality of automatic word alignments, which in turn impacts the reliability of translations of low frequency words.",
+        "However, the experiments detailed here suggest that including induced translations of low frequency words will not hurt performance and may improve it."
+      ]
+    },
+    {
+      "heading": "4.4 Appending Top-K Translations",
+      "text": [
+        "So far we have only added the top-1 induced translation for OOV and low frequency source words to our phrase-based model.",
+        "However, the bilingual lexicon induction results in Table 3 show that accuracies in the top-10 ranked translations are, on average, nearly twice the top-1 accuracies.",
+        "Here, we explore adding the top-k induced translations.",
+        "We hope that our additional phrase table features estimated over comparable corpora will enable the",
+        "guage OOV words, varying k. Features estimated over comparable corpora are included (i.e. +Feats & Trans model).",
+        "The highest BLEU score for each language is highlighted.",
+        "In many cases differences are less than 0.1 BLEU.",
+        "decoder to correctly choose between the k translation options.",
+        "We induce translations for OOV words only (M = 0) and include all comparable corpora features.",
+        "Table 6 shows performance as we append the top-k ranked translations for each OOV word and vary k. With the exception of Bengali, using a k greater than 1 does not increase performance.",
+        "In the case of Bengali, and additional 0.2 BLEU is observed when the top-25 translations are appended.",
+        "In contrast, we see performance decrease substantially for other languages (0.7 BLEU for Telugu and 0.2 for Urdu) when the top-25 translations are used.",
+        "Therefore, we conclude that, in general, the models do not sufficiently distinguish good from bad translations when we append more than just the top-1.",
+        "Although using a k greater than 1 means that more correct translations are in the phrase table, it also increases the number of possible outputs over which the decoder must search."
+      ]
+    },
+    {
+      "heading": "4.5 Learning Curves over Parallel Data",
+      "text": [
+        "In the experiments above, we only evaluated our methods for improving the accuracy and coverage of models trained on small amounts of bitext using the full parallel training corpora released by Post et al. (2012).",
+        "Here, we apply the same techniques but vary the amount of parallel data in order to generate learning curves.",
+        "Figure 2 shows learning cures for all six languages.",
+        "In all cases, results are averaged over three tuning runs.",
+        "We sample both parallel sentences and dictionary entries.",
+        "All six learning curves show similar trends.",
+        "In all experimental conditions, BLEU performance increases approximately linearly with the log of the amount of training data.",
+        "Additionally, supplementing the baseline with OOV translations improves performance more than supplementing the baseline with additional phrase table scores based",
+        "on comparable corpora.",
+        "However, in most cases, supplementing the baseline with both translations and features improves performance more than either alone.",
+        "Performance gains are greatest when very little training data is used.",
+        "The Urdu learning curve shows the most gains as well as the cleanest trends across training data amounts.",
+        "As before, we attribute this to the relatively large comparable corpora available for Urdu."
+      ]
+    },
+    {
+      "heading": "4.6 Learning Curves over Comparable Corpora",
+      "text": [
+        "In our final experiment, we consider the effect of the amount of comparable corpora that we use to estimate features and induce translations.",
+        "We present learning curves for Urdu-English because we have the largest amount of comparable corpora for that pair.",
+        "We use the full amount of parallel data to train a baseline model, and then we randomly sample varying amounts of our Urdu-English comparable corpora.",
+        "Sampling is done separately for the web crawl and Wikipedia comparable corpora.",
+        "Figure 3 shows the results.",
+        "As before, results are averaged over three tuning runs.",
+        "The phrase table features estimated over comparable corpora improve end-to-end MT performance more with increasing amounts of comparable corpora.",
+        "In contrast, the amount of comparable corpora used to induce OOV translations does not impact the performance of the resulting MT system as much.",
+        "The difference may be due",
+        "baseline phrase-based model (baseline), model that supplements the baseline with translations of OOV words induced using our supervised bilingual lexicon induction framework (+Trans), model that supplements the baseline with additional phrase table features estimated over comparable corpora (+Feats), and a system that supplements the baseline with both OOV translations and additional features (+Trans & Feats).",
+        "to the fact that data sparsity is always more of an issue when estimating features over phrase pairs than when estimating features over word pairs because phrases appear less frequently than words in monolingual corpora.",
+        "Our comparable corpora features are estimated over phrase pairs while translations are only induced for OOV words, not phrases.",
+        "So, it makes sense that the former would benefit more from larger comparable corpora."
+      ]
+    },
+    {
+      "heading": "5 Conclusion",
+      "text": [
+        "As Post et al. (2012) showed, it is reasonable to assume a small parallel corpus for training an SMT model even in a low resource setting.",
+        "We have used comparable corpora to improve the accuracy and coverage of phrase-based MT models built using small bilingual corpora for six low resource languages.",
+        "We have shown that our methods improve BLEU score performance independently and that their combined impact is nearly additive.",
+        "Additionally, our results show that adding induced translations of low frequency words improves performance beyond what is achieved by inducing translations for OOVs alone.",
+        "Finally, our results show that our techniques improve relative performance most when very little parallel training data is available."
+      ]
+    },
+    {
+      "heading": "6 Acknowledgements",
+      "text": [
+        "This material is based on research sponsored by DARPA under contract HR0011-09-1-0044 and by the Johns Hopkins University Human Language Technology Center of Excellence.",
+        "The views and conclusions contained in this publication are those of the authors and should not be interpreted as representing official policies or endorsements of DARPA or the U.S. Government."
+      ]
+    }
+  ]
+}

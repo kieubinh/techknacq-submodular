@@ -1,0 +1,214 @@
+{
+  "info": {
+    "authors": [
+      "Chris Dyer",
+      "Victor Chahuneau",
+      "Noah A. Smith"
+    ],
+    "book": "NAACL",
+    "id": "acl-N13-1073",
+    "title": "A Simple, Fast, and Effective Reparameterization of IBM Model 2",
+    "url": "https://aclweb.org/anthology/N13-1073",
+    "year": 2013
+  },
+  "references": [
+    "acl-C96-2141",
+    "acl-J03-1002",
+    "acl-J07-2003",
+    "acl-J93-2003",
+    "acl-N06-2013",
+    "acl-N13-1140",
+    "acl-P12-2060"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We present a simple log-linear reparame-terization of IBM Model 2 that overcomes problems arising from Model 1's strong assumptions and Model 2's overparame-terization.",
+        "Efficient inference, likelihood evaluation, and parameter estimation algorithms are provided.",
+        "Training the model is consistently ten times faster than Model 4.",
+        "On three large-scale translation tasks, systems built using our alignment model outperform IBM Model 4.",
+        "An open-source implementation of the alignment model described in this paper is available from http://github.com/clab/fast align ."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Word alignment is a fundamental problem in statistical machine translation.",
+        "While the search for more sophisticated models that provide more nuanced explanations of parallel corpora is a key research activity, simple and effective models that scale well are also important.",
+        "These play a crucial role in many scenarios such as parallel data mining and rapid large scale experimentation, and as subcomponents of other models or training and inference algorithms.",
+        "For these reasons, IBM Models 1 and 2, which support exact inference in time ?",
+        "(|f |?",
+        "|e|), continue to be widely used.",
+        "This paper argues that both of these models are suboptimal, even in the space of models that permit such computationally cheap inference.",
+        "Model 1 assumes all alignment structures are uniformly likely (a problematic assumption, particularly for frequent word types), and Model 2 is vastly overpa-rameterized, making it prone to degenerate behavior on account of overfitting.1 We present a simple log-linear reparameterization of Model 2 that avoids both problems (?2).",
+        "While inference in log-linear models is generally computationally more expensive than in their multinomial counterparts, we show how the quantities needed for alignment inference, likelihood evaluation, and parameter estimation using EM and related methods can be computed using two simple algebraic identities (?3), thereby defusing this objection.",
+        "We provide results showing our model is an order of magnitude faster to train than Model 4, that it requires no staged initialization, and that it produces alignments that lead to significantly better translation quality on downstream translation tasks (?4)."
+      ]
+    },
+    {
+      "heading": "2 Model",
+      "text": [
+        "Our model is a variation of the lexical translation models proposed by Brown et al. (1993).",
+        "Lexical translation works as follows.",
+        "Given a source sentence f with length n, first generate the length of the target sentence, m. Next, generate an alignment, a = ?a1, a2, .",
+        ".",
+        ".",
+        ", am?, that indicates which source word (or null token) each target word will be a translation of.",
+        "Last, generate the m output words, where each ei depends only on fai .",
+        "The model of alignment configurations we propose is a log-linear reparameterization of Model 2.",
+        "1Model 2 has independent parameters for every alignment position, conditioned on the source length, target length, and current target index.",
+        "source sentence f, alignment parameters p0 and ?, and lexical translation probabilities ?",
+        "(left); an example visualization of the distribution of alignment probability mass under this model (right).",
+        "Our formulation, which we write as ?",
+        "(ai = j | i,m, n), is shown in Fig. 1.2 The distribution over alignments is parameterized by a null alignment probability p0 and a precision ?",
+        "?",
+        "0 which controls how strongly the model favors alignment points close to the diagonal.",
+        "In the limiting case as ??",
+        "0, the distribution approaches that of Model 1, and, as it gets larger, the model is less and less likely to deviate from a perfectly diagonal alignment.",
+        "The right side of Fig. 1 shows a graphical illustration of the alignment distribution in which darker squares indicate higher probability."
+      ]
+    },
+    {
+      "heading": "3 Inference",
+      "text": [
+        "We now discuss two inference problems and give efficient techniques for solving them.",
+        "First, given a sentence pair and parameters, compute the marginal likelihood and the marginal alignment probabilities.",
+        "Second, given a corpus of training data, estimate likelihood maximizing model parameters using EM."
+      ]
+    },
+    {
+      "heading": "3.1 Marginals",
+      "text": [
+        "Under our model, the marginal likelihood of a sentence pair ?f, e?",
+        "can be computed exactly in time 2Vogel et al. (1996) hint at a similar reparameterization of Model 2; however, its likelihood and its gradient are not efficient to evaluate, making it impractical to train and use.",
+        "Och and Ney (2003) likewise remark on the overparameterization issue, removing a single variable of the original conditioning context, which only slightly improves matters.",
+        "?",
+        "(|f |?",
+        "|e|).",
+        "This can be seen as follows.",
+        "For each position in the sentence being generated, i ?",
+        "[1, 2, .",
+        ".",
+        ".",
+        ",m], the alignment to the source and its translation is independent of all other translation and alignment decisions.",
+        "Thus, the probability that the ith word of e is ei can be computed as: p(ei, ai |f,m, n) = ?",
+        "(ai |i,m, n)?",
+        "?",
+        "(ei |fai)",
+        "p(ei, ai = j |f,m, n).",
+        "We can also compute the posterior probability over alignments using the above probabilities,",
+        "Finally, since all words in e (and their alignments) are conditionally independent,3",
+        "3We note here that Brown et al. (1993) derive their variant of this expression by starting with the joint probability of an alignment and translation, marginalizing, and then reorganizing common terms.",
+        "While identical in implication, we find the direct probabilistic argument far more intuitive."
+      ]
+    },
+    {
+      "heading": "3.2 Efficient Partition Function Evaluation",
+      "text": [
+        "Evaluating and maximizing the data likelihood under log-linear models can be computationally expensive since this requires evaluation of normalizing partition functions.",
+        "In our case,",
+        "exp?h(i, j?,m, n).",
+        "While computing this sum is obviously possible in ?",
+        "(|f|) operations, our formulation permits exact computation in ?",
+        "(1), meaning our model can be applied even in applications where computational efficiency is paramount (e.g., MCMC simulations).",
+        "The key insight is that the partition function is the (partial) sum of two geometric series of unnormal-ized probabilities that extend up and down from the probability-maximizing diagonal.",
+        "The closest point on or above the diagonal j?, and the next point down j?",
+        "(see the right side of Fig. 1 for an illustration), is computed as follows:",
+        "Starting at j?",
+        "and moving up the alignment column, as well as starting at j?",
+        "and moving down, the unnormalized probabilities decrease by a factor of r = exp ?",
+        "?n per step.",
+        "To compute the value of the partition, we only need to evaluate the unnormalized probabilities at j?",
+        "and j?",
+        "and then use the following identity, which gives the sum of the first ` terms of a geometric series (Courant and Robbins, 1996):"
+      ]
+    },
+    {
+      "heading": "3.3 Parameter Optimization",
+      "text": [
+        "To optimize the likelihood of a sample of parallel data under our model, one can use EM.",
+        "In the E-step, the posterior probabilities over alignments are computed using Eq.",
+        "1.",
+        "In the M-step, the lexical translation probabilities are updated by aggregating these as counts and normalizing (Brown et al., 1993).",
+        "In the experiments reported in this paper, we make the further assumption that ?f ?",
+        "Dirichlet(?)",
+        "where ?i = 0.01 and approximate the posterior distribution over the ?f 's using a mean-field approximation (Riley and Gildea, 2012).4 During the M-step, the ?",
+        "parameter must also be updated to make the E-step posterior distribution over alignment points maximally probable under ?(?",
+        "|i,m, n).",
+        "This maximizing value cannot be computed analytically, but a gradient-based optimization can be used, where the first derivative (here, for a single target word) is:",
+        "(2) The first term in this expression (the expected value of h under the E-step posterior) is fixed for the duration of each M-step, but the second term's value (the derivative of the log-partition function) changes many times as ?",
+        "is optimized."
+      ]
+    },
+    {
+      "heading": "3.4 Efficient Gradient Evaluation",
+      "text": [
+        "Fortunately, like the partition function, the derivative of the log-partition function (i.e., the second term in Eq.",
+        "2) can be computed in constant time using an algebraic identity.",
+        "To derive this, we observe that the values of h(i, j?,m, n) form an arithmetic sequence about the diagonal, with common difference d = ?1/n.",
+        "Thus, the quantity we seek is the sum of a series whose elements are the products of terms from an arithmetic sequence and those of the geometric sequence above, divided by the partition function value.",
+        "This construction is referred to as an arithmetico-geometric series, and its sum may be computed as follows (Fernandez et al., 2006):",
+        "In this expression r, the g1's and the `'s have the same values as above, d = ?1/n and the a1's are",
+        "by minimizing the AER on the 10k sentence French-English corpus discussed below.",
+        "equal to the value of h evaluated at the starting indices, j?",
+        "and j?",
+        "; thus, the derivative we seek at each optimization iteration inside the M-step is: ?",
+        "?L =Ep(ai|ei,f,m,n) [h(i, ai,m, n)] ?",
+        "1Z?",
+        "(tj?",
+        "(e?h(i,j?,m,n), h(i, j?,m, n), r, d) + tn?j?",
+        "(e?h(i,j?,m,n), h(i, j?,m, n), r, d))."
+      ]
+    },
+    {
+      "heading": "4 Experiments",
+      "text": [
+        "In this section we evaluate the performance of our proposed model empirically.",
+        "Experiments are conducted on three datasets representing different language typologies and dataset sizes: the FBIS Chinese-English corpus (LDC2003E14); a French-English corpus consisting of version 7 of the Europarl and news-commentary corpora;5 and a large Arabic-English corpus consisting of all parallel data made available for the NIST 2012 Open MT evaluation.",
+        "Table 1 gives token counts.",
+        "We begin with several preliminary results.",
+        "First, we quantify the benefit of using the geometric series trick (?3.2) for computing the partition function relative to na?",
+        "?ve summation.",
+        "Our method requires only 0.62 seconds to compute all partition function values for 0 < i,m, n < 150, whereas the na?",
+        "?ve algorithm requires 6.49 seconds for the same.6 Second, using a 10k sample of the French-English data set (only 0.5% of the corpus), we determined 1) whether p0 should be optimized; 2) what the optimal Dirichlet parameters ?i are; and 3) whether the commonly used ?staged initialization?",
+        "procedure (in which Model 1 parameters are used to initialize Model 2, etc.)",
+        "is necessary for our model.",
+        "First, like Och and Ney (2003) who explored this issue for training Model 3, we found that EM tended to find poor values for p0, producing alignments that were overly sparse.",
+        "By fixing the value at p0 = 0.08, we obtained minimal AER.",
+        "Second, like Riley and Gildea (2012), we found that small values of ?",
+        "improved the alignment error rate, although the impact was not particularly strong over large ranges of",
+        "total cost in EM training, in algorithms where ?",
+        "changes more rapidly, for example in Bayesian posterior inference with Monte Carlo methods (Chahuneau et al., 2013), this savings can have substantial value.",
+        "?.",
+        "Finally, we (perhaps surprisingly) found that the standard staged initialization procedure was less effective in terms of AER than simply initializing our model with uniform translation probabilities and a small value of ?",
+        "and running EM.",
+        "Based on these observations, we fixed p0 = 0.08, ?i = 0.01, and set the initial value of ?",
+        "to 4 for the remaining experiments.7 We next compare the alignments produced by our model to the Giza++ implementation of the standard IBM models using the default training procedure and parameters reported in Och and Ney (2003).",
+        "Our model is trained for 5 iterations using the procedure described above (?3.3).",
+        "The algorithms are 7As an anonymous reviewer pointed out, it is a near certainty that tuning of these hyperparameters for each alignment task would improve results; however, optimizing hyperparameters of alignment models is quite expensive.",
+        "Our intention is to show that it is possible to obtain reasonable (if not optimal) results without careful tuning.",
+        "compared in terms of (1) time required for training; (2) alignment error rate (AER, lower is better);8 and (3) translation quality (BLEU, higher is better) of hi",
+        "erarchical phrase-based translation system that used the alignments (Chiang, 2007).",
+        "Table 1 shows the CPU time in hours required for training (one direction, English is generated).",
+        "Our model is at least 10?",
+        "faster to train than Model 4.",
+        "Table 3 reports the differences in BLEU on a held-out test set.",
+        "Our model's alignments lead to consistently better scores than Model 4's do.9"
+      ]
+    },
+    {
+      "heading": "5 Conclusion",
+      "text": [
+        "We have presented a fast and effective reparameterization of IBM Model 2 that is a compelling replacement for for the standard Model 4.",
+        "Although the alignment quality results measured in terms of AER are mixed, the alignments were shown to work exceptionally well in downstream translation systems on a variety of language pairs."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work was sponsored by the U. S. Army Research Laboratory and the U. S. Army Research Office under contract/grant number W911NF-10-1-0533."
+      ]
+    }
+  ]
+}

@@ -8,12 +8,13 @@ class ConstantValues:
     ADVANCED = 3
 
     TIMEOUT = 10
+    MAX_LENGTH_QUERY = 900
 
-    MAX_SUBMODULARITY = 500
+    MAX_SUBMODULARITY = 100
     MAXSIZE = 23000
-    BUDGET = 100
+    BUDGET = 50
     Lambda = 1.0
-    Alpha = 0
+    Alpha = 0.8
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'
     SIMILARITY_MEASUE = 'text'

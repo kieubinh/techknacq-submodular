@@ -1,0 +1,371 @@
+{
+  "info": {
+    "authors": [
+      "Burcu Can",
+      "Suresh Manandhar"
+    ],
+    "book": "EACL",
+    "id": "acl-E12-1067",
+    "title": "Probabilistic Hierarchical Clustering of Morphological Paradigms",
+    "url": "https://aclweb.org/anthology/E12-1067",
+    "year": 2012
+  },
+  "references": [
+    "acl-D11-1057",
+    "acl-J01-2001",
+    "acl-W02-0603",
+    "acl-W06-3209",
+    "acl-W09-1323"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We propose a novel method for learning morphological paradigms that are structured within a hierarchy.",
+        "The hierarchical structuring of paradigms groups morphologically similar words close to each other in a tree structure.",
+        "This allows detecting morphological similarities easily leading to improved morphological segmentation.",
+        "Our evaluation using (Kurimo et al., 2011a; Kurimo et al. 2011b) dataset shows that our method performs competitively when compared with current state-of-art systems."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Unsupervised morphological segmentation of a text involves learning rules for segmenting words into their morphemes.",
+        "Morphemes are the smallest meaning bearing units of words.",
+        "The learning process is fully unsupervised, using only raw text as input to the learning system.",
+        "For example, the word respectively is split into morphemes respect, ive and ly.",
+        "Many fields, such as machine translation, information retrieval, speech recognition etc., require morphological segmentation since new words are always created and storing all the word forms will require a massive dictionary.",
+        "The task is even more complex, when morphologically complicated languages (i.e. agglutinative languages) are considered.",
+        "The sparsity problem is more severe for more morphologically complex languages.",
+        "Applying morphological segmentation mitigates data sparsity by tackling the issue with out-of-vocabulary (OOV) words.",
+        "In this paper, we propose a paradigmatic approach.",
+        "A morphological paradigm is a pair (StemList, SuffixList) such that each concatenation of Stem+Suffix (where Stem ? StemList and Suffix ? SuffixList) is a valid word form.",
+        "The learning of morphological paradigms is not novel as there has already been existing work in this area such as Goldsmith (2001), Snover et al(2002), Monson et al(2009), Can and Manandhar (2009) and Dreyer and Eisner (2011).",
+        "However, none of these existing approaches address learning of the hierarchical structure of paradigms.",
+        "Hierarchical organisation of words help capture morphological similarities between words in a compact structure by factoring these similarities through stems, suffixes or prefixes.",
+        "Our inference algorithm simultaneously infers latent variables (i.e. the morphemes) along with their hierarchical organisation.",
+        "Most hierarchical clustering algorithms are single-pass, where once the hierarchical structure is built, the structure does not change further.",
+        "The paper is structured as follows: section 2 gives the related work, section 3 describes the probabilistic hierarchical clustering scheme, section 4 explains the morphological segmentation model by embedding it into the clustering scheme and describes the inference algorithm along with how the morphological segmentation is performed, section 5 presents the experiment settings along with the evaluation scores, and finally section 6 presents a discussion with a comparison with other systems that participated in Morpho Challenge 2009 and 2010 ."
+      ]
+    },
+    {
+      "heading": "2 Related Work",
+      "text": [
+        "We propose a Bayesian approach for learning of paradigms in a hierarchy.",
+        "If we ignore the hierarchical aspect of our learning algorithm, then our",
+        "method is similar to the Dirichlet Process (DP) based model of Goldwater et al(2006).",
+        "From this perspective, our method can be understood as adding a hierarchical structure learning layer on top of the DP based learning method proposed in Goldwater et al(2006).",
+        "Dreyer and Eisner (2011) propose an infinite Diriclet mixture model for capturing paradigms.",
+        "However, they do not address learning of hierarchy.",
+        "The method proposed in Chan (2006) also learns within a hierarchical structure where Latent Dirichlet Allocation (LDA) is used to find stem-suffix matrices.",
+        "However, their work is supervised, as true morphological analyses of words are provided to the system.",
+        "In contrast, our proposed method is fully unsupervised."
+      ]
+    },
+    {
+      "heading": "3 Probabilistic Hierarchical Model",
+      "text": [
+        "The hierarchical clustering proposed in this work is different from existing hierarchical clustering algorithms in two aspects:"
+      ]
+    },
+    {
+      "heading": "3.1 Mathematical Definition",
+      "text": [
+        "In this paper, a hierarchical structure is a binary tree in which each internal node represents a cluster.",
+        "Let a data set be D = {x1, x2, .",
+        ".",
+        ".",
+        ", xn} and T be the entire tree, where each data point xi is located at one of the leaf nodes (see Figure 2).",
+        "Here, Dk denotes the data points in the branch Tk.",
+        "Each node defines a probabilistic model for words that the cluster acquires.",
+        "The probabilistic",
+        "Di, Dj , Dk having data points {x1, x2, x3, x4}.",
+        "The subtree below the internal node Di is called Ti, the subtree below the internal node Dj is Tj , and the subtree below the internal node Dk is Tk.",
+        "model can be denoted as p(xi|?)",
+        "where ?",
+        "denotes the parameters of the probabilistic model.",
+        "The marginal probability of data in any node can be calculated as:",
+        "The likelihood of data under any subtree is defined as follows:",
+        "where the probability is defined in terms of left Tl and right Tr subtrees.",
+        "Equation 2 provides a recursive decomposition of the likelihood in terms of the likelihood of the left and the right subtrees until the leaf nodes are reached.",
+        "We use the marginal probability (Equation 1) as prior information since the marginal probability bears the probability of having the data from the left and right subtrees within a single cluster."
+      ]
+    },
+    {
+      "heading": "4 Morphological Segmentation",
+      "text": [
+        "In our model, data points are words to be clustered and each cluster represents a paradigm.",
+        "In the hierarchical structure, words will be organised in such a way that morphologically similar words will be located close to each other to be grouped in the same paradigms.",
+        "Morphological similarity refers to at least one common morpheme between words.",
+        "However, we do not make a distinction between morpheme types.",
+        "Instead, we assume that each word is organised as a stem+suffix combination."
+      ]
+    },
+    {
+      "heading": "4.1 Model Definition",
+      "text": [
+        "Let a dataset D consist of words to be analysed, where each word wi has a latent variable which is",
+        "the split point that analyses the word into its stem si and suffix mi:",
+        "The marginal likelihood of words in the node k is defined such that:",
+        "The words in each cluster represents a paradigm that consists of stems and suffixes.",
+        "The hierarchical model puts words sharing the same stems or suffixes close to each other in the tree.",
+        "Each word is part of all the paradigms on the path from the leaf node having that word to the root.",
+        "The word can share either its stem or suffix with other words in the same paradigm.",
+        "Hence, a considerable number of words can be generated through this approach that may not be seen in the corpus.",
+        "We postulate that stems and suffixes are generated independently from each other.",
+        "Thus, the probability of a word becomes:",
+        "We define two Dirichlet processes to generate stems and suffixes independently:",
+        "where DP (?s, Ps) denotes a Dirichlet process that generates stems.",
+        "Here, 's is the concentration parameter, which determines the number of stem types generated by the Dirichlet process.",
+        "The smaller the value of the concentration parameter, the less likely to generate new stem types the process is.",
+        "In contrast, the larger the value of concentration parameter, the more likely it is to generate new stem types, yielding a more uniform distribution over stem types.",
+        "If 's < 1, sparse stems are supported, it yields a more skewed distribution.",
+        "To support a small number of stem types in each cluster, we chose 's < 1.",
+        "Here, Ps is the base distribution.",
+        "We use the base distribution as a prior probability distribution for morpheme lengths.",
+        "We model morpheme",
+        "the generation of a word wi from the stem si and the suffix mi that are generated from Dirichlet processes.",
+        "In the representation, solid-boxes denote that the process is repeated with the number given on the corner of each box.",
+        "lengths implicitly through the morpheme letters:",
+        "where ci denotes the letters, which are distributed uniformly.",
+        "Modelling morpheme letters is a way of modelling the morpheme length since shorter morphemes are favoured in order to have fewer factors in Equation 4 (Creutz and Lagus, 2005b).",
+        "The Dirichlet process,DP (?m, Pm), is defined for suffixes analogously.",
+        "The graphical representation of the entire model is given in Figure 3.",
+        "Once the probability distributions G = {Gs, Gm} are drawn from both Dirichlet processes, words can be generated by drawing a stem from Gs and a suffix from Gm.",
+        "However, we do not attempt to estimate the probability distributions G; instead, G is integrated out.",
+        "The joint probability of stems is calculated by integrating",
+        "where L denotes the number of stem tokens.",
+        "The joint probability distribution of stems can be tackled as a Chinese restaurant process.",
+        "The Chinese restaurant process introduces dependencies between stems.",
+        "Hence, the joint probability of",
+        "where K denotes the number of stem types.",
+        "In the equation, the second and the third factor correspond to the case where novel stems are generated for the first time; the last factor corresponds to the case in which stems that have already been generated for nsi times previously are being generated again.",
+        "The first factor consists of all denominators from both cases.",
+        "The integration process is applied for probability distributions Gm for suffixes analogously.",
+        "Hence, the joint probability of suffixes M =",
+        "where T denotes the number of suffix types and nmi is the number of stem types mi which have been already generated.",
+        "Following the joint probability distribution of stems, the conditional probability of a stem given previously generated stems can be derived as:",
+        "where nS?sisi denotes the number of stem instances si that have been previously generated, where S?si denotes the stem set excluding the new instance of the stem si.",
+        "The conditional probability of a suffix given the other suffixes that have been previously generated is defined similarly:",
+        "mi is the number of instances mi that have been generated previously where M?mi is",
+        "the set of suffixes, excluding the new instance of the suffix mi.",
+        "A portion of a tree is given in Figure 4.",
+        "As can be seen on the figure, all words are located at leaf nodes.",
+        "Therefore, the root node of this subtree consists of words {plugg+ed, skew+ed, exclaim+ed, borrow+s, borrow+ed, liken+s, liken+ed, consist+s, consist+ed}."
+      ]
+    },
+    {
+      "heading": "4.2 Inference",
+      "text": [
+        "The initial tree is constructed by randomly choosing a word from the corpus and adding this into a randomly chosen position in the tree.",
+        "When constructing the initial tree, latent variables are also assigned randomly, i.e. each word is split at a random position (see Algorithm 1).",
+        "We use Metropolis Hastings algorithm (Hastings, 1970), an instance of Markov Chain Monte Carlo (MCMC) algorithms, to infer the optimal hierarchical structure along with the morphological segmentation of words (given in Algorithm 2).",
+        "During each iteration i, a leaf node Di = {wi = si +mi} is drawn from the current tree structure.",
+        "The drawn leaf node is removed from the tree.",
+        "Next, a node Dk is drawn uniformly from the tree",
+        "1: input: data D = {w1 = s1 + m1, .",
+        ".",
+        ".",
+        ", wn = sn +mn}, 2: initialise: root?",
+        "D1 where",
+        "3: initialise: c?",
+        "n?",
+        "1 4: while c >= 1 do 5: Draw a word wj from the corpus.",
+        "6: Split the word randomly such that wj = sj +mj 7: Create a new node Dj where Dj = {wj = sj +mj} 8: Choose a sibling node Dk for Dj 9: Merge Dnew ?",
+        "Dj ?Dk 10: Remove wj from the corpus 11: c?",
+        "c?",
+        "1 12: end while 13: output: Initial tree to make it a sibling node to Di.",
+        "In addition to a sibling node, a split point wi = s",
+        "uniformly.",
+        "Next, the node Di = {wi = s",
+        "is inserted as a sibling node to Dk.",
+        "After updating all probabilities along the path to the root, the new tree structure is either accepted or rejected by applying the Metropolis-Hastings update rule.",
+        "The likelihood of data under the given tree structure is used as the sampling probability.",
+        "We use a simulated annealing schedule to update PAcc:",
+        "where ?",
+        "denotes the current temperature, pnext(D|T ) denotes the marginal likelihood of the data under the new tree structure, and pcur(D|T ) denotes the marginal likelihood of data under the latest accepted tree structure.",
+        "If (pnext(D|T ) > pcur(D|T )) then the update is accepted (see line 9, Algorithm 2), otherwise, the tree structure is still accepted with a probability of pAcc (see line 14, Algorithm 2).",
+        "In our experiments (see section 5) we set ?",
+        "to 2.",
+        "The system temperature is reduced in each iteration of the Metropolis Hastings algorithm: ?",
+        "?",
+        "?",
+        "?",
+        "?",
+        "(11) Most tree structures are accepted in the earlier stages of the algorithm, however, as the tempera",
+        "3: while ?",
+        "> ?",
+        "do 4: Remove the leaf node Di that has the word wi = si +mi 5: Draw a split point for the word such that",
+        "6: Draw a sibling node Dj 7: Dm ?",
+        "Di ?Dj 8: Update pnext(D|T ) 9: if pnext(D|T ) >= pcur(D|T ) then 10: Accept the new tree structure 11: pcur(D|T ) ?",
+        "pnext(D|T ) 12: else 13: random ?",
+        "Normal(0, 1) 14: if random <",
+        "?",
+        "then 15: Accept the new tree structure 16: pcur(D|T ) ?",
+        "pnext(D|T ) 17: else 18: Reject the new tree structure 19: Reinsert the node Di at its previous position with the previous split point 20: end if 21: end if 22: w ?",
+        "wi+1 = si+1 +mi+1 23: ?",
+        "?",
+        "?",
+        "?",
+        "?",
+        "24: end while 25: output: A tree structure where each node corresponds to a paradigm.",
+        "ture decreases only tree structures that lead lead to a considerable improvement in the marginal probability p(D|T ) are accepted.",
+        "An illustration of sampling a new tree structure is given in Figure 5 and 6.",
+        "Figure 5 shows that D0 will be removed from the tree in order to sample a new position on the tree, along with a new split point of the word.",
+        "Once the leaf node is removed from the tree, the parent node is removed from the tree, as the parent node D5 will consist of only one child.",
+        "Figure 6 shows that D8 is sampled to be the sibling node of D0.",
+        "Subsequently, the two nodes are merged within a new cluster that"
+      ]
+    },
+    {
+      "heading": "4.3 Morphological Segmentation",
+      "text": [
+        "Once the optimal tree structure is inferred, along with the morphological segmentation of words, any novel word can be analysed.",
+        "For the segmentation of novel words, the root node is used as it contains all stems and suffixes which are already extracted from the training data.",
+        "Morphological segmentation is performed in two ways: segmentation at a single point and segmentation at multiple points.",
+        "In order to find single split point for the morphological segmentation of a word, the split point yielding the maximum probability given inferred stems and suffixes is chosen to be the final analysis of the word:",
+        "where Droot refers to the root of the entire tree.",
+        "Here, the probability of a segmentation of a given word given Droot is calculated as given below:",
+        "where Sroot denotes all the stems in Droot and Mroot denotes all the suffixes in Droot.",
+        "Here",
+        "In order to discover words with multiple split points, we propose a hierarchical segmentation where each segment is split further.",
+        "The rules for generating multiple split points is given by the following context free grammar:",
+        "Here, s is a pre-terminal node that generates all the stems from the root node.",
+        "And similarly, m is a pre-terminal node that generates all the suffixes from the root node.",
+        "First, using Equation 16, the word (e.g. housekeeper) is split into s1 m1 (e.g. housekeep+er) or s2 m2 (house+keeper).",
+        "The first segment is regarded as a stem, and the second segment is either a stem or a suffix, considering the probability of having a compound word.",
+        "Equation 12 is used to decide whether the second segment is a stem or a suffix.",
+        "At the second segmentation level, each segment is split once more.",
+        "If the first production rule is followed in the first segmentation level, the first segment s1 can be analysed as s m (e.g.",
+        "housekeep+?)",
+        "or s s",
+        "where S and M denote all the stems and suffixes in the root node.",
+        "Following the same production rule, the second segment m1 can only be analysed as m m (er+?).",
+        "We postulate that words cannot have more than two stems and suffixes always follow stems.",
+        "We do not allow any prefixes, circumfixes, or infixes.",
+        "Therefore, the first production rule can output two different analyses: s m m m and s s m m (e.g. housekeep+er and house+keep+er).",
+        "On the other hand, if the word is analysed as s2 m2 (e.g. house+keeper), then s2 cannot be analysed further.",
+        "(e.g. house).",
+        "The second segment m2 can be analysed further, such that s m (stem+suffix) (e.g. keep+er, keeper+?)",
+        "or m m (suffix+suffix).",
+        "The decision to choose which production rule to apply is made as follows:",
+        "Thus, the second production rule yields two different analyses: s s m and s m m (e.g. house+keep+er or house+keeper)."
+      ]
+    },
+    {
+      "heading": "5 Experiments & Results",
+      "text": [
+        "Two sets of experiments were performed for the evaluation of the model.",
+        "In the first set of experiments, each word is split at single point giving a single stem and a single suffix.",
+        "In the second set of experiments, potentially multiple split points",
+        "are generated, by splitting each stem and suffix once more, if it is possible to do so.",
+        "Morpho Challenge (Kurimo et al. 2011b) provides a well established evaluation framework that additionally allows comparing our model in a range of languages.",
+        "In both sets of experiments, the Morpho Challenge 2010 dataset is used (Kurimo et al. 2011b).",
+        "Experiments are performed for English, where the dataset consists of 878,034 words.",
+        "Although the dataset provides word frequencies, we have not used any frequency information.",
+        "However, for training our model, we only chose words with frequency greater than 200.",
+        "In our experiments, we used dataset sizes of 10K, 16K, 22K words.",
+        "However, for final evaluation, we trained our models on 22K words.",
+        "We were unable to complete the experiments with larger training datasets due to memory limitations.",
+        "We plan to report this in future work.",
+        "Once the tree is learned by the inference algorithm, the final tree is used for the segmentation of the entire dataset.",
+        "Several experiments are performed for each setting where the setting varies with the tree size and the model parameters.",
+        "Model parameters are the concentration parameters ?",
+        "= {?s, ?m} of the Dirichlet processes.",
+        "The concentration parameters, which are set for the experiments, are 0.1, 0.2, 0.02, 0.001, 0.002.",
+        "In all experiments, the initial temperature of the system is assigned as ?",
+        "= 2 and it is reduced to the temperature ?",
+        "= 0.01 with decrements ?",
+        "= 0.0001.",
+        "Figure 8 shows how the log likelihoods of trees of size 16K and 22K converge in time (where the time axis refers to sampling iterations).",
+        "Since different training sets will lead to different tree structures, each experiment is repeated three times keeping the experiment setting the same.",
+        "periments obtained from the trees with 10K, 16K, and 22K words."
+      ]
+    },
+    {
+      "heading": "5.1 Experiments with Single Split Points",
+      "text": [
+        "In the first set of experiments, words are split into a single stem and suffix.",
+        "During the segmentation, Equation 12 is used to determine the split position of each word.",
+        "Evaluation scores are given in Table 1.",
+        "The highest F-measure obtained is 51.28% with the dataset of 22K words.",
+        "The scores are noticeably higher with the largest training set."
+      ]
+    },
+    {
+      "heading": "5.2 Experiments with Multiple Split Points",
+      "text": [
+        "The evaluation scores of experiments with multiple split points are given in Table 2.",
+        "The highest F-measure obtained is 62.56%with the dataset with 22K words.",
+        "As for single split points, the scores are noticeably higher with the largest training set.",
+        "For both, single and multiple segmentation, the same inferred tree has been used."
+      ]
+    },
+    {
+      "heading": "5.3 Comparison with Other Systems",
+      "text": [
+        "For all our evaluation experiments using Morpho Challenge 2010 (English and Turkish) and Morpho Challenge 2009 (English), we used 22k words for training.",
+        "For each evaluation, we randomly chose 22k words for training and ran our MCMC inference procedure to learn our model.",
+        "We generated 3 different models by choosing 3 different randomly generated training sets each consisting of 22k words.",
+        "The results are the best results over these 3 models.",
+        "We are reporting the best results out of the 3 models due to the small (22k word) datasets used.",
+        "Use of larger datasets would have resulted in less variation and better results.",
+        "that participated in Morpho Challenge 2009 for English.",
+        "We compare our system with the other participant systems in Morpho Challenge 2010.",
+        "Results are given in Table 6 (Virpioja et al. 2011).",
+        "Since the model is evaluated using the official (hidden) Morpho Challenge 2010 evaluation dataset where we submit our system for evaluation to the organisers, the scores are different from the ones that we presented Table 1 and Table 2.",
+        "We also demonstrate experiments with Morpho Challenge 2009 English dataset.",
+        "The dataset consists of 384, 904 words.",
+        "Our results and the results of other participant systems in Morpho Challenge 2009 are given in Table 3 (Kurimo et al. 2009).",
+        "It should be noted that we only present the top systems that participated in Morpho Challenge 2009.",
+        "If all the systems are considered, our system comes 5th out of 16 systems.",
+        "The problem of morphologically rich languages is not our priority within this research.",
+        "Nevertheless, we provide evaluation scores on Turkish.",
+        "The Turkish dataset consists of 617,298 words.",
+        "We chose words with frequency greater than 50 for Turkish since the Turkish dataset is not large enough.",
+        "The results for Turkish are given in"
+      ]
+    },
+    {
+      "heading": "6 Discussion",
+      "text": [
+        "The model can easily capture common suffixes such as -less, -s, -ed, -ment, etc.",
+        "Some sample tree nodes obtained from trees are given in Table 6.",
+        "that participated in Morpho Challenge 2010 for Turkish.",
+        "regard+less, base+less, shame+less, bound+less, harm+less, regard+ed, relent+less solve+d, high+-priced, lower+s, lower+-level, high+-level, lower+-income, histor+ians pre+mise, pre+face, pre+sumed, pre+, pre+gnant base+ment, ail+ment, over+looked, predica+ment, deploy+ment, compart+ment, embodi+ment anti+-fraud, anti+-war, anti+-tank, anti+-nuclear, anti+-terrorism, switzer+, anti+gua, switzer+land sharp+ened, strength+s, tight+ened, strength+ened, black+ened inspir+e, inspir+ing, inspir+ed, inspir+es, earn+ing, ponder+ing downgrade+s, crash+ed, crash+ing, lack+ing, blind+ing, blind+, crash+, compris+ing, compris+es, stifl+ing, compris+ed, lack+s, assist+ing, blind+ed, blind+er,",
+        "trees.",
+        "As seen from the table, morphologically similar words are grouped together.",
+        "Morphological similarity refers to at least one common morpheme between words.",
+        "For example, the words high-priced and lower-level are grouped in the same node through the word high-level which shares the same stem with high-priced and the same ending with lower-level.",
+        "As seen from the sample nodes, prefixes can also be identified, for example anti+fraud, anti+war, anti+tank, anti+nuclear.",
+        "This illustrates the flexibility in the model by capturing the similarities through either stems, suffixes or prefixes.",
+        "However, as mentioned above, the model does not consider any discrimination between different types of morphological forms during training.",
+        "As the prefix pre-appears at the beginning of words, it is identified as a stem.",
+        "However, identifying pre-as a stem does not yield a change in the morphological analysis of the word."
+      ]
+    },
+    {
+      "heading": "3 Creutz and Lagus (2002) 4 Creutz and Lagus (2005a)",
+      "text": [
+        "vised systems that participated in Morpho Challenge 2010 for English.",
+        "Sometimes similarities may not yield a valid analysis of words.",
+        "For example, the prefix pre-leads the words pre+mise, pre+sumed, pre+gnant to be analysed wrongly, whereas pre-is a valid prefix for the word pre+face.",
+        "Another nice feature about the model is that compounds are easily captured through common stems: e.g. doubt+fire, bon+fire, gun+fire, clear+cut."
+      ]
+    },
+    {
+      "heading": "7 Conclusion & Future Work",
+      "text": [
+        "In this paper, we present a novel probabilistic model for unsupervised morphology learning.",
+        "The model adopts a hierarchical structure in which words are organised in a tree so that morphologically similar words are located close to each other.",
+        "In hierarchical clustering, tree-cutting would be a very useful thing to do but it is not addressed in the current paper.",
+        "We used just the root node as a morpheme lexicon to apply segmentation.",
+        "Clearly, adding tree cutting would improve the accuracy of the segmentation and will help us identify paradigms with higher accuracy.",
+        "However, the segmentation accuracy obtained without using tree cutting provides a very useful indicator to show whether this approach is promising.",
+        "And experimental results show that this is indeed the case.",
+        "In the current model, we did not use any syntactic information, only words.",
+        "POS tags can be utilised to group words which are both morphologically and syntactically similar."
+      ]
+    }
+  ]
+}

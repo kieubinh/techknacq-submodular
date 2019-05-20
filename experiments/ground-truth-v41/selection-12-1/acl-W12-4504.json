@@ -1,0 +1,292 @@
+{
+  "info": {
+    "authors": [
+      "Chen Chen",
+      "Vincent Ng"
+    ],
+    "book": "Joint Conference on EMNLP and CoNLL – Shared Task",
+    "id": "acl-W12-4504",
+    "title": "Combining the Best of Two Worlds: A Hybrid Approach to Multilingual Coreference Resolution",
+    "url": "https://aclweb.org/anthology/W12-4504",
+    "year": 2012
+  },
+  "references": [
+    "acl-D09-1120",
+    "acl-N09-1065",
+    "acl-P04-1020",
+    "acl-P11-1082",
+    "acl-S10-1001",
+    "acl-W11-1902",
+    "acl-W12-4501"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We describe our system for the CoNLL-2012 shared task, which seeks to model corefer-ence in OntoNotes for English, Chinese, and Arabic.",
+        "We adopt a hybrid approach to coreference resolution, which combines the strengths of rule-based methods and learning-based methods.",
+        "Our official combined score over all three languages is 56.35.",
+        "In particular, our score on the Chinese test set is the best among the participating teams."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "TheCoNLL-2012 shared task extends last year's task on coreference resolution from a monolingual to a multilingual setting (Pradhan et al., 2012).",
+        "Unlike the SemEval-2010 shared task on Coreference Resolution inMultiple Languages (Recasens et al., 2010), which focuses on coreference resolution in European languages, the CoNLL shared task is arguably more challenging: it focuses on three languages that come from very different language families, namely English, Chinese, and Arabic.",
+        "We designed a system for resolving references in all three languages.",
+        "Specifically, we participated in four tracks: the closed track for all three languages, and the open track for Chinese.",
+        "In comparison to last year's participating systems, our resolver has two distinguishing characteristics.",
+        "First, unlike last year's resolvers, which adopted either a rule-based method or a learning-based method, we adopt a hybrid approach to coreference resolution, attempting to combine the strengths of both methods.",
+        "Second, while last year's resolvers did not exploit genre-specific information, we optimize our system's parameters with respect to each genre.",
+        "Our decision to adopt a hybrid approach is motivated by the observation that rule-based methods and learning-based methods each have their unique strengths.",
+        "As shown by the Stanford coreference resolver (Lee et al., 2011), the winner of last year's shared task, many coreference relations in OntoNotes can be identified using a fairly small set of simple hand-crafted rules.",
+        "On the other hand, our prior work on machine learning for coreference resolution suggests that coreference-annotated data can be profitably exploited to (1) induce lexical features (Rahman and Ng, 2011a, 2011b) and (2) optimize system parameters with respect to the desired coreference evaluation measure (Ng, 2004, 2009).",
+        "Our system employs a fairly standard architecture, performing mention detection prior to coreference resolution.",
+        "As we will see, however, the parameters of these two components are optimized jointly with respect to the desired evaluation measure.",
+        "In the rest of this paper, we describe the mention detection component (Section 2) and the coreference resolution component (Section 3), show how their parameters are jointly optimized (Section 4), and present evaluation results on the development set and the official test set (Section 5)."
+      ]
+    },
+    {
+      "heading": "2 Mention Detection",
+      "text": [
+        "To build a mention detector that strikes a relatively good balance between precision and recall, we employ a two-step approach.",
+        "First, in the extraction step, we identify named entities (NEs) and employ language-specific heuristics to extract mentions",
+        "from syntactic parse trees, aiming to increase our upper bound on recall as much as possible.",
+        "Then, in the pruning step, we aim to improve precision by employing both language-specific heuristic pruning and language-independent learning-based pruning.",
+        "Section 2.1 describes the language-specific heuristics for extraction and pruning, and Section 2.2 describes our learning-based pruning method."
+      ]
+    },
+    {
+      "heading": "2.1 Heuristic Extraction and Pruning",
+      "text": [
+        "English.",
+        "During extraction, we create a candidate mention from a contiguous text span s if (1) s is a PRP or an NP in a syntactic parse tree; or (2) s corresponds to a NE that is not a PERCENT, MONEY, QUANTITY or CARDINAL.",
+        "During pruning, we remove a candidate mentionmk if (1)mk is embedded within a larger mentionmj such thatmj andmk have the same head, where the head of a mention is detected using Collins's (1999) rules; (2) mk has a quantifier or a partitive modifier; or (3) mk is a singular common NP, with the exception that we retain mentions related to time (e.g., \"today\").",
+        "Chinese.",
+        "Similar to English mention extraction, we create Chinese mentions from all NP and QP nodes in syntactic parse trees.",
+        "During pruning, we remove a candidate mentionmk if (1)mk is embedded within a larger mentionmj such thatmj andmk have the same head, except if mj and mk appear in a newswire document since, unlike other document annotations, Chinese newswire document annotations do consider such pairs coreferent; (2) mk is a NE that is a PERCENT, MONEY, QUANTITY and CARDINAL; or (3) mk is an interrogative pronoun such as \"??",
+        "[what]\", \"??",
+        "[where]\".",
+        "Arabic.",
+        "We employ as candidate mentions all the NPs extracted from syntactic parse trees, removing those that are PERCENT, MONEY, QUANTITY or CARDINAL."
+      ]
+    },
+    {
+      "heading": "2.2 Learning-Based Pruning",
+      "text": [
+        "While the heuristic pruning method identifies candidate mentions, it cannot determine which candidate mentions are likely to be coreferent.",
+        "To improve pruning (and hence the precision of mention detection), we employ learning-based pruning, where we employ the training data to identify and subsequently discard those candidate mentions that are not likely to be coreferent with other mentions.",
+        "obtained prior to coreference resolution.",
+        "Specifically, for each mention mk in the test set that survives heuristic pruning, we compute its mention coreference probability, which indicates the likelihood that the head noun of mk is coreferent with another mention.",
+        "If this probability does not exceed a certain threshold tC , we will remove mk from the list of candidate mentions.",
+        "Section 4 discusses how tC is jointly learned with the parameters of the coreference resolution component to optimize the coreference evaluation measure.",
+        "We estimate the mention coreference probability ofmk from the training data.",
+        "Specifically, since only non-singleton mentions are annotated in OntoNotes, we can compute this probability as the number of times mk 's head noun is annotated (as a gold mention) divided by the total number of timesmk 's head noun appears.",
+        "If mk 's head noun does not appear in the training set, we set its coreference probability to 1, meaning that we let it pass through the filter.",
+        "In other words, we try to be conservative and do not filter any mention for which we cannot compute the coreference probability.",
+        "Table 1 shows the mention detection results of the three languages on the development set after heuristic extraction and pruning but prior to learning-based pruning and coreference resolution."
+      ]
+    },
+    {
+      "heading": "3 Coreference Resolution",
+      "text": [
+        "Like the mention detection component, our coreference resolution component employs heuristics and machine learning.",
+        "More specifically, we employ Stanford's multi-pass sieve approach (Lee et al., 2011) for heuristic coreference resolution, but since most of these sieves are unlexicalized, we seek to improve the multi-pass sieve approach by incorporating lexical information using machine learning techniques.",
+        "As we will see below, while different sieves are employed for different languages, the way we incorporate lexical information into the sieve approach is the same for all languages."
+      ]
+    },
+    {
+      "heading": "3.1 The Multi-Pass Sieve Approach",
+      "text": [
+        "A sieve is composed of one or more heuristic rules.",
+        "Each rule extracts a coreference relation between two mentions based on one or more conditions.",
+        "For example, one rule in Stanford's discourse processing sieve posits two mentions as coreferent if two conditions are satisfied: (1) they are both pronouns; and (2) they are produced by the same speaker.",
+        "Sieves are ordered by their precision, with the most precise sieve appearing first.",
+        "To resolve a set of mentions in a document, the resolver makes multiple passes over them: in the i-th pass, it attempts to use only the rules in the i-th sieve to find an antecedent for each mention mk.",
+        "Specifically, when searching for an antecedent formk, its candidate antecedents are visited in an order determined by their positions in the associated parse tree (Haghighi and Klein, 2009).",
+        "The partial clustering of the mentions created in the i-th pass is then passed to the i+1-th pass.",
+        "Hence, later passes can exploit the information computed by previous passes, but a coreference link established earlier cannot be overridden later."
+      ]
+    },
+    {
+      "heading": "3.2 The Sieves",
+      "text": [
+        "Our sieves for English are modeled after those employed by the Stanford resolver (Lee et al., 2011), which is composed of 12 sieves.1 Since we participated in the closed track, we reimplemented the 10 sieves that do not exploit external knowledge sources.",
+        "These 10 sieves are listed under the \"English\" column in Table 2.",
+        "Specifically, we leave out the Alias sieve and the Lexical Chain sieve, which compute semantic similarity using information extracted from WordNet, Wikipedia, and Freebase.",
+        "Recall that for Chinese we participated in both the closed track and the open track.",
+        "The sieves we employ for both tracks are the same, except that we use NE information to improve some of the sieves in the system for the open track.2 To obtain automatic NE annotations, we employ a NE model that we trained on the gold NE annotations in the training data.",
+        "der in which they are applied).",
+        "The Chinese resolver is composed of 9 sieves, as shown under the \"Chinese\" column of Table 2.",
+        "These sieves are implemented in essentially the same way as their English counterparts except for a few of them, which are modified in order to account for some characteristics specific to Chinese or the Chinese coreference annotations.",
+        "As described in detail below, we introduce a new sieve, the Chinese Head Match sieve, and modify two existing sieves,",
+        "the Precise Constructs sieve, and the Pronoun sieve.",
+        "1.",
+        "Chinese Head Match sieve: Recall from Sec",
+        "tion 2 that the Chinese newswire articles were coreference-annotated in such away that amention and its embedding mention can be coreferent if they have the same head.",
+        "To identify these coreference relations, we employ the Same Head sieve, which posits two mentions mj and mk as coreferent if they have the same head and mk is embedded within mj .",
+        "There is an exception to this rule, however: if mj is a coordinated NP composed of two or more base NPs, and mk is just one of these base NPs, the two mentions will not be considered coreferent (e.g., ???????",
+        "[Charles and Diana]",
+        "and???",
+        "[Diana]).",
+        "2.",
+        "Precise Constructs sieve: Recall from Lee",
+        "et al (2011) that the Precise Constructs sieve posits two mentions as coreferent based on information such as whether one is an acronym of the other and whether they form an appositive or copular construction.",
+        "We incorporate additional rules to this sieve to handle specific cases of abbreviations in Chinese: (a) Abbreviation of foreign person names, e.g., ?????",
+        "?",
+        "?",
+        "[Saddam Hussein] and ???",
+        "[Saddam].",
+        "(b) Abbreviation of Chinese person names, e.g., 58 ???",
+        "[Chen President] and ?????",
+        "[Chen Shui-bian President].",
+        "(c) Abbreviation of country names, e.g, ??",
+        "[Do country] and ????",
+        "[Dominica].",
+        "3.",
+        "Pronouns sieve: The Pronouns sieve resolves pronouns by exploiting grammatical informa",
+        "tion such as the gender and number of a mention.",
+        "While such grammatical information is provided to the participants for English, the same is not true for Chinese.",
+        "To obtain such grammatical information for Chinese, we employ a simple method, which consists of three steps.",
+        "First, we employ simple heuristics to extract grammatical information from those Chinese NPs for which such information can be easily inferred.",
+        "For example, we can heuristically determine that the gender, number and animacy for ?",
+        "[she] is {Female, Single and Animate}; and for??",
+        "[they] is {Unknown, Plural, Inanimate}.",
+        "In addition, we can determine the grammatical attributes of a mention by its named entity information.",
+        "For example, a PERSON can be assigned the grammatical attributes {Unknown, Single, Animate}.",
+        "Next, we bootstrap from these mentions with heuristically determined grammatical attribute values.",
+        "This is done based on the observation that all mentions in the same coreference chain should agree in gender, number, and animacy.",
+        "Specifically, given a training text, if one of the mentions in a coreference chain is heuristically labeled with grammatical information, we automatically annotate all the remaining mentions with the same grammatical attribute values.",
+        "Finally, we automatically create six word lists, containing (1) animate words, (2) inanimate words, (3) male words, (4) female words, (5) singular words, and (6) plural words.",
+        "Specifically, we populate these word lists with the grammatically annotated mentions from the previous step, where each element of a word list is composed of the head of a mention and a count indicating the number of times the mention is annotated with the corresponding grammatical attribute value.",
+        "We can then apply these word lists to determine the grammatical attribute values of mentions in a test text.",
+        "Due to the small size of these word lists, and with the goal of improving precision, we consider two mentions to be grammatically incompatible if for one of these three attributes, onemention has anUnknown value whereas the other has a known value.",
+        "As seen in Table 2, our Chinese resolver does not have the Relaxed String Match sieve, unlike its English counterpart.",
+        "Recall that this sieve marks two mentions as coreferent if the strings after dropping the text following their head words are identical (e.g.,MichaelWolf, andMichaelWolf, a contributing editor for \"New York\").",
+        "Since person names in Chinese are almost always composed of a single word and that heads are seldom followed by other words in Chinese, we believe that Relaxed HeadMatch will not help identify Chinese coreference relations.",
+        "As noted before, cases of Chinese person name abbreviation will be handled by the Precise Constructs sieve.",
+        "We only employ one sieve for Arabic, the exact match sieve.",
+        "While we experimented with additional sieves such as the Head Match sieve and the Pronouns sieve, we ended up not employing them because they do not yield better results."
+      ]
+    },
+    {
+      "heading": "3.3 Incorporating Lexical Information",
+      "text": [
+        "Asmentioned before, we improve the sieve approach by incorporating lexical information.",
+        "To exploit lexical information, we first compute lexical probabilities.",
+        "Specifically, for each pair of mentions mj and mk in a test text, we first compute two probabilities: (1) the string-pair probability (SP-Prob), which is the probability that the strings of the two mentions, sj and sk, are coreferent; and (2) the head-pair probability (HP-Prob), which is the probability that the head nouns of the two mentions, hj and hk, are coreferent.",
+        "For better probability estimation, we preprocess the training data and the two mentions by (1) downcasing (but not stemming) each English word, and (2) replacing each Arabic word w by a string formed by concatenating w with its lem-matized form, its Buckwalter form, and its vocalized Buckwalter form.",
+        "Note that SP-Prob(mj ,mk) (HP",
+        "Prob(mj ,mk)) is undefined if one or both of sj (hj) and sk (hk) do not appear in the training set.",
+        "Next, we exploit these lexical probabilities to improve the resolution of mj and mk by presenting two extensions to the sieve approach.",
+        "The first extension aims to improve the precision of the sieve approach.",
+        "Specifically, before applying any sieve, we check whether SP-Prob(mj ,mk) ?",
+        "tSPL or HP-Prob(mj ,mk)?",
+        "tHPL for some thresholds tSPL and tHPL.",
+        "If so, our resolver will bypass all of the sieves and simply posit mj and mk as not coreferent.",
+        "In essence, we use the lexical probabilities to improve precision, specifically by positing twomen-tions as not coreferent if there is \"sufficient\" information in the training data for us to make this decision.",
+        "Note that if one of the lexical probabilities (say SP-Prob(mj ,mk)) is undefined, we only check whether the condition on the other probability (in this case HP(mj ,mk) ?",
+        "tHPL) is satisfied.",
+        "If both of them are undefined, this pair of mentions will survive this filter and be processed by the sieve pipeline.",
+        "The second extension, on the other hand, aims to improve recall.",
+        "Specifically, we create a new sieve, the Lexical Pair sieve, which we add to the end of the sieve pipeline and which posits two mentionsmj and mk as coreferent if SP-Prob(mj ,mk) ?",
+        "tSPU or HP-Prob(mj ,mk) ?",
+        "tHPU .",
+        "In essence, we use the lexical probabilities to improve recall, specifically by positing two mentions as coreferent if there is \"sufficient\" information in the training data for us to make this decision.",
+        "Similar to the first extension, if one of the lexical probabilities (say SP-Prob(mj ,mk)) is undefined, we only check whether the condition on the other probability (in this case HP(mj ,mk) ?",
+        "tHPU ) is satisfied.",
+        "If both of them are undefined, the Lexical Pair sieve will not process this pair of mentions.",
+        "The four thresholds, tSPL, tHPL, tSPU , and tHPU , will be tuned to optimize coreference performance on the development set."
+      ]
+    },
+    {
+      "heading": "4 Parameter Estimation",
+      "text": [
+        "As discussed before, we learn the system parameters to optimize coreference performance (which, for the shared task, is Uavg, the unweighted average of the three commonly-used evaluation measures, MUC, B3, and CEAFe) on the development set.",
+        "Our system has two sets of tunable parameters.",
+        "So far, we have seen one set of parameters, namely the five lexical probability thresholds, tC , tSPL, tHPL, tSPU , and tHPU .",
+        "The second set of parameters contains the rule relaxation parameters.",
+        "Recall that each rule in a sieve may be composed of one or more conditions.",
+        "We associate with condition i a parameter ?i, which is a binary value that controls whether condition i should be removed or not.",
+        "In particular, if ?i=0, condition iwill be dropped from the corresponding rule.",
+        "The motivation behind having the rule relaxation parameters should be clear: they allow us to optimize the hand-crafted rules using machine learning.",
+        "This section presents two algorithms for tuning these two sets of parameters on the development set.",
+        "Before discussing the parameter estimation algorithms, recall from the introduction that one of the distinguishing features of our approach is that we build genre-specific resolvers.",
+        "In other words, for each genre of each language, we (1) learn the lexical probabilities from the corresponding training set; (2) obtain optimal parameter values ?1 and ?2 for the development set using parameter estimation algorithms 1 and 2 respectively; and (3) among?1 and ?2, take the one that yields better performance on the development set to be the final set of parameter estimates for the resolver.",
+        "Parameter estimation algorithm 1.",
+        "This algorithm learns the two sets of parameters in a sequential fashion.",
+        "Specifically, it first tunes the lexical probability thresholds, assuming that all the rule relaxation parameters are set to one.",
+        "To tune the five probability thresholds, we try all possible combinations of the five probability thresholds and select the combination that yields the best performance on the development set.",
+        "To ensure computational tractability, we allow each threshold to have the following possible values.",
+        "For tC , the possible values are?0.1, 0, 0.05, 0.1, .",
+        ".",
+        "., 0.3; for tSPL and tHPL, the possible values are ?0.1, 0, 0.05, 0.15, .",
+        ".",
+        "., 0.45; and for tSPU and tHPU , the possible values are 0.55, 0.65, .",
+        ".",
+        "., 0.95, 1.0 and 1.1.",
+        "Note that the two threshold values?0.1 and 1.1 render a probability threshold useless.",
+        "For example, if tC = ?0.1, that means all mentions will survive learning-based pruning in the mention detection component.",
+        "As another example, if tSPU and tHPU are both 1.1, it means that the String Pair sieve",
+        "will be useless because it will not posit any pair of mentions as coreferent.",
+        "Given the optimal set of probability thresholds, we tune the rule relaxation parameters.",
+        "To do so, we apply the backward elimination feature selection algorithm, viewing each condition as a feature that can be removed from the \"feature set\".",
+        "Specifically, all the parameters are initially set to one, meaning that all the conditions are initially present.",
+        "In each iteration of backward elimination, we identify the condition whose removal yields the highest score on the development set and remove it from the feature set.",
+        "We repeat this process until all conditions are removed, and identify the subset of the conditions that yields the best score on the development set.",
+        "Parameter estimation algorithm 2.",
+        "In this algorithm, we estimate the two sets of parameters in an interleaved, iterative fashion, where in each iteration, we optimize exactly one parameter from one of the two sets.",
+        "More specifically, (1) in iteration 2n, we optimize the (n mod 5)-th lexical probability threshold while keeping the remaining parameters constant; and (2) in iteration 2n+1, we optimize the (n mod m)-th rule relaxation parameter while keeping the remaining parameters constant, where n = 1, 2, .",
+        ".",
+        "., and m is the number of rule relaxation parameters.",
+        "When optimizing a parameter in a given iteration, the algorithm selects the value that, when used in combination with the current values of the remaining parameters, optimizes theUavg value on the development set.",
+        "We begin the algorithm by initializing all the rule relaxation parameters to one; tC , tSPL and tHPL to ?0.1; and tSPU and tHPU to 1.1.",
+        "This parameter initialization is equivalent to the configuration where we employ all and only the hand-crafted rules as sieves and do not apply learning to perform any sort of optimization at all."
+      ]
+    },
+    {
+      "heading": "5 Results and Discussion",
+      "text": [
+        "The results of our Full coreference resolver on the development set with optimal parameter values are shown in Table 3.",
+        "As we can see, both the mention detection results and the coreference results (obtained via MUC, B3, and CEAFe) are expressed in terms of recall (R), precision (P), and F-measure (F).",
+        "In addition, to better understand the role played by the two sets of system parameters, we performed ablation experiments, showing for each language-track combination the results obtained without tuning (1) the rule relaxation parameters (?",
+        "?i's); (2) the probability thresholds (?",
+        "tj 's); and (3) any of these parameters (?",
+        "?i's & tj).",
+        "Note that (1) we do not have any rule relaxation parameters for the Arabic resolver owing to its simplicity; and (2) for comparison purposes, we show the results of the Stanford resolver for English in the row labeled \"Lee et al. (2011)\".",
+        "A few points regarding the results in Table 3 deserve mention.",
+        "First, these mention detection results are different from those shown in Table 1: here, the scores are computed over the mentions that appear in the non-singleton clusters in the coreference partitions produced by a resolver.",
+        "Second, our reimplementation of the Stanford resolver is as good as the original one.",
+        "Third, parameter tuning is comparatively less effective for Chinese, presumably because we spent more time on engineering the sieves for Chinese than for the other languages.",
+        "Fourth, our score on Arabic is the lowest among the three languages, primarily because Arabic is highly inflectional and we have little linguistic knowledge of the language to design effective sieves.",
+        "Finally, these results and our official test set results (Table 4), as well as our supplementary evaluation results on the test set obtained using gold mention boundaries (Table 5) and gold mentions (Table 6), exhibit similar performance trends.",
+        "Table 7 shows the optimal parameter values obtained for the Full resolver on the development set.",
+        "Since there are multiple genres for English and Chinese, we show in the table the probability thresholds averaged over all the genres and the corresponding standard deviation values.",
+        "For the rule relaxation parameters, among the 36 conditions in the English sieves and the 61 conditions in the Chinese sieves, we show the number of conditions being removed (when averaged over all the genres) and the corresponding standard deviation values.",
+        "Overall, different conditions were removed for different genres.",
+        "To get a better sense of the usefulness of the probability thresholds, we show in Tables 8 and 9 some development set examples of correctly and incorrectly identified/pruned mentions and coreferent/non-coreferent pairs for English and Chinese, respectively.",
+        "Note that no Chinese examples for tC are shown, since its tuned value cor",
+        "responds to the case where no mentions should be pruned."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "We presented a multilingual coreference resolver designed for the CoNLL-2012 shared task.",
+        "We adopted",
+        "a hybrid approach to coreference resolution, which combined the advantages of rule-based methods and learning-based methods.",
+        "Specifically, we proposed two extensions to Stanford's multi-pass sieve approach, which involved the incorporation of lexical information using machine learning and the acquisition of genre-specific resolvers.",
+        "Experimental results demonstrated the effectiveness of these extensions, whether or not they were applied in isolation or in combination.",
+        "In future work, we plan to explore other ways to combine rule-based methods and learning-based methods for coreference resolution, as well as improve the performance of our resolver on Arabic."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "We thank the two anonymous reviewers for their comments on the paper.",
+        "This work was supported in part by NSF Grants IIS-0812261 and IIS-1147644."
+      ]
+    }
+  ]
+}

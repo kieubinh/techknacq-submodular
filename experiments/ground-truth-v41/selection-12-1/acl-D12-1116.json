@@ -1,0 +1,470 @@
+{
+  "info": {
+    "authors": [
+      "Amit Singh"
+    ],
+    "book": "EMNLP",
+    "id": "acl-D12-1116",
+    "title": "Entity based Q&A Retrieval",
+    "url": "https://aclweb.org/anthology/D12-1116",
+    "year": 2012
+  },
+  "references": [
+    "acl-D08-1043",
+    "acl-D10-1010",
+    "acl-E06-1002",
+    "acl-J93-2003",
+    "acl-P04-1066",
+    "acl-P08-1019",
+    "acl-P08-1082",
+    "acl-P09-1082",
+    "acl-P11-1066",
+    "acl-P11-1138"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Bridging the lexical gap between the user's question and the question-answer pairs in the Q&A archives has been a major challenge for Q&A retrieval.",
+        "State-of-the-art approaches address this issue by implicitly expanding the queries with additional words using statistical translation models.",
+        "While useful, the effectiveness of these models is highly dependant on the availability of quality corpus in the absence of which they are troubled by noise issues.",
+        "Moreover these models perform word based expansion in a context agnostic manner resulting in translation that might be mixed and fairly general.",
+        "This results in degraded retrieval performance.",
+        "In this work we address the above issues by extending the lexical word based translation model to incorporate semantic concepts (entities).",
+        "We explore strategies to learn the translation probabilities between words and the concepts using the Q&A archives and a popular entity cata-log.",
+        "Experiments conducted on a large scale real data show that the proposed techniques are promising."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Over the past few years community-based question answering (CQA) portals like Naver, Yahoo!",
+        "Answers, Baidu Zhidao and WikiAnswers have attracted great attention from both academia and industry (Adamic et al. 2008; Singh and Visweswariah, 2011).",
+        "These portals foster collaborative creation of content by allowing the users to both submit questions to be answered and answer questions asked by other users.",
+        "These portals aim to provide highly focused access to this information by directly returning pertinent question and answer (Q&A) pairs to the users questions, instead of a long list of ranked URLs.",
+        "This is in noted contrast to the usual search paradigm, where the question is used to search the database of potential answers, in this case the question is used to search the database of previous questions, which in turn are associated with answers.",
+        "This involves addressing the word mismatch problem between the users question and the question-answer pairs in the archive.",
+        "This is the major challenge for Q&A retrieval.",
+        "Researchers have proposed the use of translation models (Berger and Lafferty, 1999; Jeon et al. 2005; Xue et al. 2008) to solve this problem.",
+        "As a principled approach to capturing semantic word relations, statistical translation language models are built by using the IBM model 1 (Brown et al. 1993) and have been shown to outperform traditional document language models on Q&A retrieval task.",
+        "The basic idea is to estimate the likelihood of translating a document1 to a query by exploiting the dependencies that exists between query words and document words.",
+        "For example the document containing the word Wheezing may well answer the question containing the term Asthma.",
+        "They learn the these dependencies (encoded as translation probabilities) between words using parallel monolingual corpora created from the Q&A pairs.",
+        "While useful, the effectiveness of these models is highly dependant on the availability of quality corpus (Lee et al",
+        "2008).",
+        "Also these models only capture shallow semantics between words via the co-occurrence statistics, while some of the more explicit relationships between words and entities is freely available externally.",
+        "Being context agnostic (Zhou et al. 2007) is another very common criticism hailed on translation models as it results in noisy and generic translations.",
+        "Example shown in Figure 1 captures these problems.",
+        "Specifically, the word Blizzard can refer to an American game development company that develops World of Warcraft game or it could refer to a severe snowstorm.",
+        "Expanding query without taking the gaming context established by the word WOW (acronym for World of Warcraft) into account would lead to topic drift.",
+        "Also it would be difficult to learn relationships between World of Warcraft Burning Crusade and Blizzard from the Q&A corpus alone due to the sparsity of co-occurance counts as these can be expressed in several lexical forms, some of which are multi word phrases.",
+        "In this paper we argue that solution to all the above problems lies in a unified model in which entities are a primary citizen.",
+        "The guiding hypothesis being, an entity based representation provides a less ambiguous representation of the users question and provides for a more semantically accurate expansion if the relationship between entities and words can be estimated more reliably.",
+        "Our main contributions are 1.",
+        "We propose Entity based Translation Language Model (ETLM) for Q&A retrieval that accommodates semantic information associated between entities and words.",
+        "Being closely related to the general source-channel framework (Berger and Lafferty, 1999), the model enjoys its benefits, while mitigating some of its shortcomings.",
+        "Specifically it provides for context aware expansions of the query by exploiting entity annotations on both, the document and the query side.",
+        "Entity annotations also provide a means to handle the ?many-to-one?",
+        "(Moore, 2004) translation limitation in the IBM model, due to which each word in the target document can be generated by at most one word in the question2.",
+        "For the same reasons, it also alleviates another related limitation by enabling translation between contiguous words across the query and documents (Moore, 2004).",
+        "2.",
+        "We learn relationships between entities and terms by proposing new ways of organizing monolingual parallel corpus and simultaneously leveraging external resources like Wikipedia from which one can derive these relationships reliably.",
+        "This helps alleviate the noise problem associated with learning translation models on Q&A archive described above.",
+        "An important point to note is that, our technique has merits independent to the choice of the entity catalog.",
+        "In this work we use",
+        "D original Q&A collection E set of all entities in catalog d(e) description of entity e C D annotated with e ?",
+        "E quser users question q quser annotated with e ?",
+        "E t token span tq, td token span in q and d V word vocabulary",
+        "Wikipedia, as it is a popular choice due to its large and ever expanding coverage and its ability to keep up with world events on a timely basis.",
+        "3.",
+        "We provide detailed evaluation of impact of modelling assumptions and model components on retrieval performance on a large scale real data from Yahoo Answers comprising ?5 million Q&A pairs.",
+        "Rest of the paper is organized as follows: In the next section, we define ETLM and outline its details.",
+        "This is followed by Section 3 which gives the details of entity annotators and its performance.",
+        "Section 4 describes our experiments on the retrieval method used Q&A retrieval.",
+        "In Section 5 we compare and contrast related literature.",
+        "Finally, we conclude in Section 6."
+      ]
+    },
+    {
+      "heading": "2 Our Approach",
+      "text": [
+        "Problem Definition: Let D = d1, d2, ..., dn denote the Q&A collection.",
+        "Here di refers to the i-th Q&A data consisting of a question qi and its answer ai.",
+        "Given the user question quser, the task of Q&A retrieval is to rank di according to score(quser, di).",
+        "Figure 2 outlines the approach to compute this score in the ETLM framework.",
+        "Offline processing: Using the entity catalog E, we learn the entity annotation models EAoffline and EAonline for annotation of entities in the Q&A corpus and the query respectively.",
+        "Refer Section 3 for details.",
+        "For each di ?",
+        "D, we then annotate references to entities in Wikipedia using EAoffline resulting in annotated Q&A corpus C. We then compute relationships between entities and words using C and E. These relationships are used to learn our ETLM model.",
+        "Online processing: At runtime, annotate the user query quser with entities using EAonlineto create an enriched question q.",
+        "Issue this query over the annotated corpus C and rank the candidates as per the ETLM model described below."
+      ]
+    },
+    {
+      "heading": "2.1 ETLM Model",
+      "text": [
+        "Let the annotated query q (and similarly annotated Q&A pair d) be composed of sequence of token spans Tq (and Td).",
+        "Each token span tq (similarly td) corresponds to sequence of contiguous words occurring in the running text.",
+        "These tq's can correspond to entity mentions, phrases or words.",
+        "Let eq denote the tokens spans that are annotated and neq that are not (Tq = eq ?",
+        "neq).",
+        "For example, in the query , What?",
+        "??",
+        "?",
+        "token span Quadratic Formula is linked to an entity corresponding to Quadratic Equation3, while all other token spans are marked as neq .",
+        "For the sake of simplicity, in this work we do not identify phrases i.e. neq is always of unit word length4.",
+        "In the ETLM framework, the similarity between a query q and a document dwithin a collection C is given by the probability",
+        "Intuitively this indicates a generative process for creating q from d. Ideally both q and d are ?only?",
+        "composed of e i.e. ?tq ?",
+        "q; tq ?",
+        "EU , where EU is the universal set of entities 5 (similarly for all td).",
+        "This is because when the document was created, each and every td ?",
+        "d had a sense attached to it.",
+        "however in reality, for various reasons, set of target entities are clearly a subset of EU (for e.g. E: set of all entities",
+        "in the catalog) also not all of them may be recognized by the annotation system.",
+        "T (tq|td) in Equation 1 denotes the probability that a token span tq is the translation of token span td.",
+        "This induces the desired query expansion effect.",
+        "The key task is to estimate Pml(tq|C), T (tq|td) and Pml(td|d); tq ?",
+        "eq ?",
+        "neq and td ?",
+        "ed ?",
+        "ned"
+      ]
+    },
+    {
+      "heading": "2.2 Estimating Model Parameters",
+      "text": [
+        "We adopt 2 different approach for estimating T (tq|td), leading to 2 different configurations of ETLM system .",
+        "As the name suggests, ETLMqa is estimated from Q&A data (C andD) while we leverage the entity catalog (in our case it is Wikipedia) for ETLMwiki."
+      ]
+    },
+    {
+      "heading": "2.3 ETLMqa: Estimate from parallel corpus",
+      "text": [
+        "Following (Xue et al. 2008) we pool the question and answers from D to create a master parallel corpus P = (q1, a1), .., (qn, an) ?",
+        "(a1, q1), ., (an, qn).",
+        "This is used for learning T (ne|ne?)6.",
+        "Similarly we create P ?",
+        "from C. We then derive 2 different parallel corpora from P and P ?",
+        "as follows Pentity We remove all non linked tokens ne from P ?",
+        "thereby reducing it to parallel corpus over e. This is used for learning T (e|e?)",
+        "i.e. translation probabilities between two entities e and e?",
+        "inE.",
+        "Phybrid This is hybrid of Pentity and P where in one part of Q&A pair consists on only newhile other consists of only e. This is used for learning T (ne|e) and T (e|ne).",
+        "To handle entities e, we introduce special id's in the ne space.",
+        "Thus our universal token span set is given 6subscript of q and d has been dropped as translation probability learnt agnostic to it, due to pooling.",
+        "by V ?",
+        "E. This is done so that T (tq|td) is learnt from P , Pentity and Phybrid, w/o any modification to the corresponding translation algorithm (Brown et al. 1993).",
+        "Lets call this approach ETLMqa?",
+        ".",
+        "We explored another intuitive approach ETLMqa, to learn T (e|e?",
+        "), T (e|ne), T (ne|e) and T (ne|ne?)",
+        "directly by using only P ?",
+        "as our parallel corpus.",
+        "We do so by redistributing the probability mass i.e. when calculating T (e|e?",
+        "), we redistribute probability mass spread over all the ne to e given by Equation 2 and 3.",
+        "Similar process is followed for",
+        "Remaining model components are calculated using Equation 4 and 5.",
+        "Here d refers to question part of the Q&A pair."
+      ]
+    },
+    {
+      "heading": "2.4 ETLMwiki: Estimating from Wikipedia",
+      "text": [
+        "Number of symmetric measures have been proposed (Medelyan et al. 2009) to measure semantic relationships between entities and words using Wikipedia.",
+        "For our problem we need an asymmetric measure.",
+        "We use co-citation information in Wikipedia to detect relatedness between entities (T (e|e?))",
+        "and co-occurrence counts to estimate",
+        "Here d(e) represents the page corresponding to entity e. D(e) represents concatenation of d(e) and all context of size 5 surrounding anchor text in Wikipedia that link to e. cf(ne, ne?)",
+        "is the number context windows of fixed size containing both ne and ne?",
+        "in Wikipedia.",
+        "In our case, we set the window size at 10 (because this size turned out to be reasonable in our pilot experiments).",
+        "tft,d(e) is the frequency of t in d(e); co(e, e?)",
+        "indicates number of entities in Wikipedia that have a hyperlink to both e and e?.",
+        "As links from pages with a small number of outgoing links are generally considered to be more valuable than links from pages with a high outgoing link degree, we tried with weighted version of 6 where the co-citations are weighted by the outdegree of Wikipedia page corresponding to entity s that link to e and e?.",
+        "Lets denote the weighted version by ETLMwiki and unweighted version by ETLMwiki?",
+        ".",
+        "Pml(tq|C) and Pml(tq|d) are estimated as per Equation 4 and 5 respectively."
+      ]
+    },
+    {
+      "heading": "2.5 Self translation probability",
+      "text": [
+        "To make sure self translation probability is not underestimated i.e. T (t|t) ?",
+        "T (t?|t) always holds true, we introduce new parameter ?",
+        "as T (t|t?)",
+        "= ?",
+        "+ (1?",
+        "?",
+        ")T (t|t?",
+        "); ?",
+        "= 0 when t 6= t?",
+        "and ?",
+        "> 0.5 otherwise."
+      ]
+    },
+    {
+      "heading": "2.6 ETLMcombo: Combining ETLMqa and",
+      "text": [
+        "ETLMwiki Often, combining language models yields better results than any of the individual language models themselves.",
+        "Linear interpolation is often the technique of choice in language modelling for combining models to exploit complementary features of the component models.",
+        "It involves taking a weighted sum of the probabilities given by the component language models.",
+        "An advantage of the linear interpolation is that it is simple and fast to calculate.",
+        "If the inputs are probability estimates, also the output is a probability estimate.",
+        "The mixture translation model Tcombo(e|e?)",
+        "over M component models is given by Equation 10.",
+        "One can immediately notice that Tcombo(t|t?)",
+        "has one global weight for each of the M component models which might not be ideal.",
+        "With access to large training data one could employ more powerful context dependent interpolation techniques (Liu et al. 2008).",
+        "In our case we have 2 components Tqa and Twiki and four classes for each ; ?",
+        "each class of T (t|t?).",
+        "respectively."
+      ]
+    },
+    {
+      "heading": "3 Entity Annotation",
+      "text": [
+        "In this section we describe our entity annotation system.",
+        "Recently there has been lot of work addressing the problem of annotating text with links to Wikipedia entities (Mihalcea and Csomai, 2007; Bunescu and Paşca, 2006; Milne and Witten, 2008; Kulkarni et al. 2009; Ratinov et al. 2011; Ferrag-ina and Scaiella, 2010).",
+        "We adopt a similar approach, wherein we first find the best disambiguation (BESTDISAMBIGUATION) for a given mention and then decide to prune it (PRUNE), via the dummy mapping NA (similar to ?no assignment?",
+        "(Kulkarni et al. 2009))."
+      ]
+    },
+    {
+      "heading": "3.1 BESTDISAMBIGUATION",
+      "text": [
+        "As defined earlier, e ?",
+        "E represent an entity corresponding to URN of a Wikipedia article.",
+        "Let",
+        "sent the set of possible disambiguations for a mention m (m is an index over all mentions in the corpus).",
+        "Given a mention m, task is to find best disambiguation e from Wikipedia.",
+        "Without loss of gener",
+        "ality, we consider em,?",
+        "?",
+        "Em as the correct answer.",
+        "Let ?",
+        "(m, em,j) represent the mapping onto features between an entity mention m and the Wikipedia en",
+        "tity em,j and ???",
+        "be the corresponding weight vector and D(em,j) = ???",
+        "?",
+        "(m, em,j) represent the disambiguation score.",
+        "The task is to learn ???",
+        "such that",
+        "D(em,j) gives the best disambiguation for the mention m. We pose this as a ranking problem and solve it using max-margin technique (Joachims, 2002; Joachims, 2006) as follows",
+        "?i,j is the total training error that upper bounds the number of pair preferences violations.",
+        "This is controlled by adjusting the parameter C. Note that Equation 11 means pairwise comparison between the correct disambiguation em,?",
+        "and other disambiguation candidates em,j such that j 6= index corresponding to *."
+      ]
+    },
+    {
+      "heading": "3.2 PRUNE",
+      "text": [
+        "The disambiguation phase produces one candidate disambiguation per mention.",
+        "To discard any un-meaningful annotations a simple strategy similar to LOCAL (Kulkarni et al. 2009) is followed where the D(em,?)",
+        "is compared against a predefined threshold ?na, so that if D(em,?)",
+        "< ?na then that annotation for menton m is discarded by linking m to NA.",
+        "The parameter ?na allows the algorithm to back-off when short of evidence."
+      ]
+    },
+    {
+      "heading": "3.3 FEATUREMAP ?(m, em,j)",
+      "text": [
+        "Sense probability prior (SP): It represents the prior probability that a mention name s points to a specific entity in Wikipedia.",
+        "For example, without any other information, mention name ?tree?",
+        "will more likely refer to the entity woody plant8, rather than the less 8en.wikipedia.org/wiki/Tree popular notion related to graphs 9.",
+        "Entity Probability prior (EP): It captures the popularity knowledge as a distribution of entities, i.e., the EP (ei) should be larger than EP (ej) if ei is more popular than ej .",
+        "This score is independent of the mention name.",
+        "Context specific features: It captures the textual similarity between weighted word vectors corresponding to the context of the mention (window around the mention) and textual description associated with the entity (Wikipedia page).",
+        "Let EAonline and EAoffline represent configurations for annotating user question and corpus respectively.",
+        "For EAonline, user question represents the document from which context specific features are computed.",
+        "For EAoffline, question and the answer(best) is concatenated to represents the document.",
+        "Based on the ?one sense per discourse?",
+        "assumption, one additional heuristic is used in EAoffline where, for the same Q&A pair, if same name mention is repeated multiple times across the question and the answer then one with the maximum D(em,?)",
+        "> ?na is annotated for all instances."
+      ]
+    },
+    {
+      "heading": "3.4 Annotation Experiments",
+      "text": [
+        "We used 2010 version of Wikipedia as our knowledge base.",
+        "It contains more than 2.5 million entities.",
+        "Annotations were done by volunteers fluent in english.",
+        "Volunteers were told to be as exhaustive as possible and tag all possible name mentions, even if to mark them as ?NA?.",
+        "Inter-annotator agreement=92.1%; Kappa coefficient = 0.72.",
+        "As our corpus, we collected 8.3K manual annotations spanning 1315 Q&A pairs.",
+        "2.8K of the annotations were assigned to NA.",
+        "2.1K annotations (out of 8.3K) were made in the question of which 551 were assigned to NA.",
+        "We use Precision, Recall and F1 score micro-averaged across documents as the evaluation measures.",
+        "We do a linear scan of data to identify entity mentions by first tokenizing and then identifying token sequences that maximally match an entity ID in the entity name dictionary (constructed using Wikipedia anchor text, redirect pages).",
+        "Figure 3 outlines the performance of EAoffline and EAonline.",
+        "We measured EAoffline in 3 test data configurations; (1) EAoffline: measured over entire",
+        "pare it with EAonline; 3) EAoffline?",
+        "is similar to (2), only difference is that for (2) entire Q&A pair is the context, while here only question part is the context.",
+        "This is done to check if separate annotators are required for online and online phase.",
+        "As seen in Figure 3, this indeed is necessary as EAoffline?",
+        "performs worse than EAonline.",
+        "Closer look at the feature weights revealed that in EAoffline context specific features have much more weightage when compared to its weight in EAonline, on the contrary EAonline weighs SP significantly higher."
+      ]
+    },
+    {
+      "heading": "4 Evaluation",
+      "text": [
+        "We now describe the empirical evaluation where we compare our techniques against the baseline techniques.",
+        "We use several standard measures (R-Precision, MAP, MRR, Precision@k) in evaluation.",
+        "We first describe the dataset used followed by describing an exhaustive set of results across techniques and performance measures."
+      ]
+    },
+    {
+      "heading": "4.1 Dataset",
+      "text": [
+        "We crawled a dataset of ?5 million questions and answers from Yahoo!",
+        "Answers spanning all the leaf level categories.",
+        "Tokenization and stop word removal were the only preprocessing steps performed.",
+        "We have used a stoplist10 having a vocabulary of 429 common words to remove the stopwords.",
+        "In our retrieval experiments we used 339 queries (average length 5.6 words).",
+        "We employed pooling technique used in the TREC conference series.",
+        "10http://truereader.com/manuals/onix/stopwords1.html We pooled the top 25 Q&A pairs from retrieval results generated by varying the retrieval algorithms and the search field.",
+        "Relevance judgments were marked by human annotators without disclosing the identity of method used for retrieval.",
+        "The annotators were asked to label candidate as ?relevant?",
+        "or ?irrelevant?",
+        "based on semantic similarity with the query.",
+        "Answer quality/correctness was not a criteria.",
+        "In case of disagreement between two volunteers, authors made the final judgment.",
+        "Inter-annotator agreement was 87.9% and Kappa coefficient = 0.68.",
+        "Over all we had collected more than 12K relevance judgements corresponding to these queries, of which >2.3K were marked as relevant."
+      ]
+    },
+    {
+      "heading": "4.2 Baselines",
+      "text": [
+        "To evaluate the effectiveness of our models we compared them against the following baselines Traditional models: VSM (Zobel and Moffat, 2006) and OKAPI BM25 (Robertson et al. 1996) (k1, b, and k3 are parameters that are set to 1.2, 0.75 and?",
+        "respectively).",
+        "Translation based language models: TLM (Jeon et al. 2005), TransLM (using answers) (Xue et al. 2008) and CTM (Lee et al. 2008).",
+        "For our experiments we used a set of 50 queries to select the model parameters.",
+        "Translation based language model use 2 parameters; smoothing parameter ?",
+        "in the Language Model and ?",
+        "to control the self-translation impact in the TransLM.",
+        "Final values of parameters used in our experiments were ?",
+        "= 0.2 (Zhai and Lafferty, 2004) and ?",
+        "= 0.75 (Xue et al., 2008).",
+        "For CTM, we used tf-idf based weighing scheme (Lee et al. 2008) to remove words from the (Q?A) corpus P .",
+        "Word elimination threshold of 20% was selected based on the above 50 queries.",
+        "Final values of ETLM parameters used in our experiments were ?",
+        "= 0.18 and ?",
+        "= 0.65."
+      ]
+    },
+    {
+      "heading": "4.3 Result Analysis",
+      "text": [
+        "Table 2 presents the performance of the various techniques.",
+        "Under each measure, we highlight the best performing technique.",
+        "Performance of all the translation based models is better than VSM and OKAPI thereby confirming the importance of addressing the lexical gap.",
+        "Using high confidence annotations for",
+        "t-test with p-value < 0.05.",
+        "%chg indicates change over CTM as it is the most competitive baseline query expansion in ETLM, leads to an improved performance as compared to the all the baseline methods that do not consider this signal.",
+        "This is validated by the fact that ETLMqa and ETLMwiki can achieve statistically significant improvements in terms of all the measures.",
+        "The reason for this improvement is the context sensitive computation of T (t|t?)",
+        "leading to reduced spurious expansions and improved top expansions, this is made possible because of entity disambiguation.",
+        "This computation in baselines happens on word by word basis without exploiting contextual information.",
+        "ETLMqa performs worse than ETLMwiki.",
+        "On close inspection of failure cases and translation probability tables we found that T (e|e?)",
+        "for ETLMqa was much worse than ETLMwiki.",
+        "This is because for getting good estimates of T (e|e?",
+        "), we need enough instances where both e and e?",
+        "need to be correctly annotated in the same Q&A pair.",
+        "Failure in this leads to sparse counts thereby reducing the gap in T (e|e?)",
+        "scores for related and unrelated e. Figure 4 shows the impact of choices made for learning the translation probabilities T (t|t?).",
+        "We found that ETLMwiki performs slightly better than ETLMwiki?",
+        ", indicating the utility of weighted co-citation measure for computing T (e|e?).",
+        "We believe that embedding other measures that are better in capturing relationships from Wikipedia, should improve the performance.",
+        "Similarly ETLMqa also performs better than ETLMqa?",
+        ".",
+        "This is because for creating Pentity all ne are removed.",
+        "This leads to count sparsity problem dis",
+        "cussed above, but slightly worse.",
+        "Due to absence of ne, in ETLMqa?",
+        "e?",
+        "in d are thought be being generated ?only?",
+        "from e in q.",
+        "On the contrary in ETLMqa, e?",
+        "had an option of mapping tone in q.",
+        "An interesting observation is that while the performances of different configurations vary, all of them perform better than CTM which is the best baseline."
+      ]
+    },
+    {
+      "heading": "4.4 Impact of Annotations on retrieval",
+      "text": [
+        "Since entities are central in our model, impact of entity annotation on quser is one of the most important aspect to be studied.",
+        "Figure 5 shows the plot of retrieval measures obtained by varying ?na in EAonline.",
+        "CTM is shown by horizontal lines.",
+        "As explained in Section 3, value of ?na is inversely proportional to aggressiveness of annotation.",
+        "Which implies for high values, EAonline will annotate only those mentions in query that its highly confident about.",
+        "Beyond a value no annotations are made.",
+        "represents value of ?na used to control annotation This is represented on the extreme right in Figure 5.",
+        "One important observation is that, even with no annotations made in query, performance of ETLMqa and ETLMwiki is competitive to CTM.",
+        "This is evidence for addressing the noise related issue for which CTM is designed.",
+        "For large range of values, all ETLM configurations are above CTM.",
+        "As we decrease ?na performance increases smoothly and then after a certain point (?na = 5) is starts decreasing."
+      ]
+    },
+    {
+      "heading": "4.5 ETLMcombo",
+      "text": [
+        "We believe that T (t|t?)",
+        "learnt from one source would encode word association characteristics which might not be exactly the same across sources.ETLMcombo tries to address this by combining the two models.",
+        "Values for mixing parameters are : ?",
+        "(e,e",
+        "The interpolation weights were obtained by optimizing the retrieval performance by doing a using grid search over the parameter space.",
+        "Same 50 queries were used for tuning.",
+        "As seen entity relationships obtained from Wikipedia are far superior to one from Q&A corpus.",
+        "As seen in Table 2 combining the two models improves the performance."
+      ]
+    },
+    {
+      "heading": "5 Related Work",
+      "text": [
+        "Recently Q&A retrieval has been garnering lot of attention.",
+        "Translation model (TLM) (Jeon et al. 2005) has been extensively employed in question search and has been shown to outperform the traditional IR methods significantly (VSM, BM25, LM).",
+        "Existing",
+        "work can be broadly grouped under the following topics: (a) Improved training of translation models by exploiting answer content/inter-word co-occurrence relations and restriction to reliable parallel corpora: Translation-based language model (TRLM) (Xue et al. 2008) improved stability of TLM by providing better probability estimates and also exploited answers for question retrieval.",
+        "It further improved the retrieval results and obtained the state-of-the-art performance.",
+        "Another line of work on translation models focused on providing suitable parallel data to learn the translation probabilities.",
+        "Compact translation models (CTM) (Lee et al. 2008) tried to further improve the translation probabilities based on question-answer pairs by selecting the most important terms to build compact translation models.",
+        "We show that such special-purpose models to control noisy translations may not be necessary because models learnt using entity annotations are robust to noise in Q&A data.",
+        "Instead of using noisy Q&A data, new approach (Bernhard and Gurevych, 2009) to build parallel corpus from reliable sources has showed improvements.",
+        "They proposed to use as a parallel training data comprising of set the definitions and glosses provided for the same term by different lexical semantic resources.",
+        "We move beyond terms and capture relationships between entities and terms using the page contents and link structure in Wikipedia.",
+        "Apart from translation models there are other approaches (Gao et al. 2004) that try to extend the existing language models for adhoc retrieval by incorporating term relationships or dependencies.",
+        "Some expand queries using word relationships derived from co-occurrence thesaurus (Bai et al. 2005; Qiu and Frei, 1993), hand-crafted thesaurus (Liu et al. 2004; Voorhees, 1994) and combination of both (Cao et al. 2005).",
+        "(b) Incorporation of query context information in translation models using latent factor modeling and smoothing approaches: All these existing approaches mentioned above are considered to be context independent, in that they do not take into account any contextual information in modeling word word relationships.",
+        "Topic signature model (Zhou et al. 2007) exploited contextual information",
+        "by decomposing a document into a set of weighted topic signatures and use it for model smoothing.",
+        "This model turns out to be inefficient when confronted with ambiguous words and phrases because it is unable to disambiguate the sense of topic signatures.",
+        "Others (Liu and Croft, 2004) perform semantic smoothing by means of clustering.",
+        "Recently (Tu et al. 2010; Cai et al. 2011; Zhou et al. 2011) showed improved performance by performing sense based smoothing for document retrieval, latent topic mining and phase based retrieval respectively.",
+        "Contrary to these approaches we used entity disambiguation to capture contextual information for improving Q&A retrieval.",
+        "(c) Complementary ideas for improving retrieval performance that can be used alongside translation models: Other work on question retrieval include the use of category information available (Cao et al., 2010), learning-to-rank techniques (Bian et al. 2008; Surdeanu et al. 2008; Bunescu and Huang, 2010), proposed a syntactic tree matching ((Wang et al., 2009) or question structure for important phrase matching (Duan et al. 2008)).",
+        "These methods seem orthogonal to ours, in some cases complementary and can be leveraged to get an even better performance There also exists work where exploiting entity based representation has been found helpful in information retrieval (Singh et al. 2009; Egozi et al. 2011; Meij et al. 2008; Grootjen and van der Weide, 2006).",
+        "In our work we use entity annotations in Q&A retrieval context.",
+        "There is also some work on using Wikipedia in general web search (Xu et al. 2009)."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "In this work we extend word based model to incorporate semantic concepts for addressing the lexical gap issue in retrieval models for large online Q&A collections.",
+        "Compared to the existing translation based model, our model is more robust and effective in that it can perform context aware expansions.",
+        "We proposed ways to embed rich information freely available in Wikipedia into our models and combine it one learnt from Q&A corpus.",
+        "Experiments performed on a large real Q&A data demonstrate that all configurations of ETLM significantly outperforms existing models for Q&A retrieval."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "Thanks to Srujana Merugu for helpful discussions.",
+        "Thanks to the anonymous reviewers for helping us improve the presentation."
+      ]
+    }
+  ]
+}

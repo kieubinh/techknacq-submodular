@@ -1,0 +1,208 @@
+{
+  "info": {
+    "authors": [
+      "Kevin Duh",
+      "Graham Neubig",
+      "Katsuhito Sudoh",
+      "Hajime Tsukada"
+    ],
+    "book": "ACL",
+    "id": "acl-P13-2119",
+    "title": "Adaptation Data Selection using Neural Language Models: Experiments in Machine Translation",
+    "url": "https://aclweb.org/anthology/P13-2119",
+    "year": 2013
+  },
+  "references": [
+    "acl-C90-3038",
+    "acl-D10-1044",
+    "acl-D10-1092",
+    "acl-D11-1033",
+    "acl-I08-2088",
+    "acl-N06-2001",
+    "acl-P02-1040",
+    "acl-P10-2041",
+    "acl-W04-3250",
+    "acl-W12-2702",
+    "acl-W12-2703",
+    "acl-W12-3139",
+    "acl-W12-3154"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Data selection is an effective approach to domain adaptation in statistical machine translation.",
+        "The idea is to use language models trained on small in-domain text to select similar sentences from large general-domain corpora, which are then incorporated into the training data.",
+        "Substantial gains have been demonstrated in previous works, which employ standard n-gram language models.",
+        "Here, we explore the use of neural language models for data selection.",
+        "We hypothesize that the continuous vector representation of words in neural language models makes them more effective than n-grams for modeling unknown word contexts, which are prevalent in general-domain text.",
+        "In a comprehensive evaluation of 4 language pairs (English to German, French, Russian, Spanish), we found that neural language models are indeed viable tools for data selection: while the improvements are varied (i.e. 0.1 to 1.7 gains in BLEU), they are fast to train on small in-domain data and can sometimes substantially outperform conventional n-grams."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "A perennial challenge in building Statistical Machine Translation (SMT) systems is the dearth of high-quality bitext in the domain of interest.",
+        "An effective and practical solution is adaptation data selection: the idea is to use language models (LMs) trained on in-domain text to select similar sentences from large general-domain corpora.",
+        "The selected sentences are then incorporated into the SMT training data.",
+        "Analyses have shown that this augmented data can lead to better statistical estimation or word coverage (Duh et al., 2010; Had-dow and Koehn, 2012).",
+        "Although previous works in data selection (Ax-elrod et al., 2011; Koehn and Haddow, 2012; Yasuda et al., 2008) have shown substantial gains, we suspect that the commonly-used n-gram LMs may be sub-optimal.",
+        "The small size of the in-domain text implies that a large percentage of general-domain sentences will contain words not observed in the LM training data.",
+        "In fact, as many as 60% of general-domain sentences contain at least one unknown word in our experiments.",
+        "Although the LM probabilities of these sentences could still be computed by resorting to back-off and other smoothing techniques, a natural question remains: will alternative, more robust LMs do better?",
+        "We hypothesize that the neural language model (Bengio et al., 2003) is a viable alternative, since its continuous vector representation of words is well-suited for modeling sentences with frequent unknown words, providing smooth probability estimates of unseen but similar contexts.",
+        "Neural LMs have achieved positive results in speech recognition and SMT reranking (Schwenk et al., 2012; Mikolov et al., 2011a).",
+        "To the best of our knowledge, this paper is the first work that examines neural LMs for adaptation data selection."
+      ]
+    },
+    {
+      "heading": "2 Data Selection Method",
+      "text": [
+        "We employ the data selection method of (Ax-elrod et al., 2011), which builds upon (Moore and Lewis, 2010).",
+        "The intuition is to select general-domain sentences that are similar to in-domain text, while being dissimilar to the average general-domain text.",
+        "To do so, one defines the score of an general-domain sentence pair (e, f) as:",
+        "where INE(e) is the length-normalized cross-entropy of e on the English in-domain LM.",
+        "GENE(e) is the length-normalized cross-entropy",
+        "of e on the English general-domain LM, which is built from a sub-sample of the general-domain text.",
+        "Similarly, INF (f) and GENF (f) are the cross-entropies of f on Foreign-side LM.",
+        "Finally, sentence pairs are ranked according to Eq.",
+        "1 and those with scores lower than some empirically-chosen threshold are added to the bitext for translation model training."
+      ]
+    },
+    {
+      "heading": "2.1 Neural Language Models",
+      "text": [
+        "The four LMs used to compute Eq.",
+        "1 have conventionally been n-grams.",
+        "N-grams of the form p(w(t)|w(t ?",
+        "1), w(t ?",
+        "2), .",
+        ".",
+        ".)",
+        "predict words by using multinomial distributions conditioned on the context (w(t?1), w(t?2), .",
+        ".",
+        ".).",
+        "But when the context is rare or contains unknown words, n-grams are forced to back-off to lower-order models, e.g. p(w(t)|w(t ?",
+        "1)).",
+        "These backoffs are unfortunately very frequent in adaptation data selection.",
+        "Neural LMs, in contrast, model word probabilities using continuous vector representations.",
+        "Figure 1 shows a type of neural LMs called recurrent neural networks (Mikolov et al., 2011b).1 Rather than representing context as an identity (n-gram hit-or-miss) function on [w(t ?",
+        "1), w(t ?",
+        "2), .",
+        ".",
+        ".",
+        "], neural LMs summarize the context by a hidden state vector s(t).",
+        "This is a continuous vector of dimension |S |whose elements are predicted by the previous word w(t ?",
+        "1) and previous state s(t ?",
+        "1).",
+        "This is robust to rare contexts because continuous representations enable sharing of statistical strength between similar contexts.",
+        "Bengio (2009) shows that such representations are better than multinomials in alleviating sparsity issues.",
+        "1Another major type of neural LMs are the so-called feed-forward networks (Bengio et al., 2003; Schwenk, 2007; Nakamura et al., 1990).",
+        "Both types of neural LMs have seen many improvements recently, in terms of computational scalability (Le et al., 2011) and modeling power (Arisoy et al., 2012; Wu et al., 2012; Alexandrescu and Kirchhoff, 2006).",
+        "We focus on recurrent networks here since there are fewer hyper-parameters and its ability to model infinite context using recursion is theoretically attractive.",
+        "But we note that feed-forward networks are just as viable.",
+        "Now, given state vector s(t), we can predict the probability of the current word.",
+        "Figure 1 is expressed formally in the following equations:",
+        "Here, w(t) is viewed as a vector of dimension |W |(vocabulary size) where each element wk(t) represents the probability of the k-th vocabulary item at sentence position t. The function g(zk) = ezk/?k ezk is a softmax function that ensures the neural LM outputs are proper probabilities, and f(z) = 1/(1 + e?z) is a sigmoid activation that induces the non-linearity critical to the neural network's expressive power.",
+        "The matrices V , U , and A are trained by maximizing likelihood on training data using a ?backpropagation-through-time?",
+        "method.2 Intuitively, U and A compress the context (|S |< |W |) such that contexts predictive of the same word w(t) are close together.",
+        "Since proper modeling of unknown contexts is important in our problem, training text for both n-gram and neural LM is preprocessed by converting all low-frequency words in the training data (frequency=1 in our case) to a special ?unknown?",
+        "token.",
+        "This is used only in Eq.",
+        "1 for selecting general-domain sentences; these words retain their surface forms in the SMT train pipeline."
+      ]
+    },
+    {
+      "heading": "3 Experiment Setup",
+      "text": [
+        "We experimented with four language pairs in the WIT3 corpus (Cettolo et al., 2012), with English (en) as source and German (de), Spanish (es), French (fr), Russian (ru) as target.",
+        "This is the in-domain corpus, and consists of TED Talk transcripts covering topics in technology, entertainment, and design.",
+        "As general-domain corpora, we collected bitext from the WMT2013 campaign, including CommonCrawl and NewsCommentary for all 4 languages, Europarl for de/es/fr, UN for es/fr, Gigaword for fr, and Yandex for ru.",
+        "The in",
+        "general-domain sentences with unknown words.",
+        "pipeline and neural LM training), a tuning set (for MERT), a validation set (for choosing the optimal threshold in data selection), and finally a testset of 1616 sentences.3 Table 1 lists data statistics.",
+        "For each language pair, we built a baseline in-data SMT system trained only on in-domain data, and an alldata system using combined in-domain and general-domain data.4 We then built 3 systems from augmented data selected by different LMs:",
+        "?",
+        "ngram: Data selection by 4-gram LMs with Kneser-Ney smoothing (Axelrod et al., 2011) ?",
+        "neuralnet: Data selection by Recurrent neural LM, with the RNNLM Toolkit.5 ?",
+        "combine: Data selection by interpolated LM using n-gram & neuralnet (equal weight).",
+        "All systems are built using standard settings in the Moses toolkit (GIZA++ alignment, grow-diagfinal-and, lexical reordering models, and SRILM).",
+        "Note that standard n-grams are used as LMs for SMT; neural LMs are only used for data selection.",
+        "Multiple SMT systems are trained by thresholding on {10k,50k,100k,500k,1M} general-domain sentence subsets, and we empirically determine the single system for testing based on results on a separate validation set (in practice, 500k was chosen for fr and 1M for es, de, ru.",
+        ").",
+        "sible.",
+        "but our interest is in comparing data selection methods.",
+        "The conclusions should transfer to advanced methods such as (Foster et al., 2010; Niehues and Waibel, 2012)."
+      ]
+    },
+    {
+      "heading": "4 Results",
+      "text": []
+    },
+    {
+      "heading": "4.1 LM Perplexity and Training Time",
+      "text": [
+        "First, we measured perplexity to check the generalization ability of our neural LMs as language models.",
+        "Recall that we train four LMs to compute each of the components of Eq.",
+        "1.",
+        "In Table 2, we compared each of the four versions of ngram, neuralnet, and combine LMs on in-domain test sets or general-domain held-out sets.",
+        "It reaffirms previous positive results (Mikolov et al., 2011a), with neuralnet outperforming ngram by 20-30% perplexity across all tasks.",
+        "Also, combine slightly improves the perplexity of neuralnet.",
+        "parenthesis is percentage improvement vs. ngram.",
+        "Second, we show that the usual concern of neural LM training time is not so critical for the in-domain data sizes used domain adaptation.",
+        "The complexity of training Figure 1 is dominated by computing Eq.",
+        "3 and scales as O(|W |?",
+        "|S|) in the number of tokens.",
+        "Since |W |can be large, one practical trick is to cluster the vocabulary so that the output dimension is reduced.",
+        "Table 3 shows the training times on a 3.3GHz XeonE5 CPU by varying these two main hyper-parameters (|S |and cluster size).",
+        "Note that the setting |S |= 200 and cluster size of 100 already gives good perplexity in reasonable training time.",
+        "All neural LMs in this paper use this setting, without additional tuning."
+      ]
+    },
+    {
+      "heading": "4.2 End-to-end SMT Evaluation",
+      "text": [
+        "Table 4 shows translation results in terms of BLEU (Papineni et al., 2002), RIBES (Isozaki et al., 2010), and TER (Snover et al., 2006).",
+        "We observe that all three data selection methods essentially outperform alldata and indata for all language pairs, and neuralnet tend to be the best in all metrics.",
+        "E.g., BLEU improvements over ngram are in the range of 0.4 for en-de, 0.5 for en-es, 0.1 for en-fr, and 1.7 for en-ru.",
+        "Although not all improvements are large in absolute terms, many are statistically significant (95% confidence).",
+        "We therefore believe that neural LMs are generally worthwhile to try for data selection, as it rarely underperform n-grams.",
+        "The open question is: what can explain the significant improvements in, for example Russian, Spanish, German, but the lack thereof in French?",
+        "One conjecture is that neural LMs succeeded in lowering testset out-of-vocabulary (OOV) rate, but we found that OOV reduction is similar across all selection methods.",
+        "The improvements appear to be due to better probability estimates of the translation/reordering models.",
+        "We performed a diagnostic by decoding the testset using LMs trained on the same testset, while varying the translation/reordering tables with those of ngram and neuralnet; this is a kind of pseudo forced-decoding that can inform us about which table has better coverage.",
+        "We found that across all language pairs, BLEU differences of translations under this diagnostic become insignificant, implying that the raw probability value is the differentiating factor between ngram and neuralnet.",
+        "Manual inspection of en-de revealed that many improvements come from lexical choice in morphological variants (?meinen Sohn?",
+        "vs. ?mein Sohn?",
+        "), segmentation changes (?baking soda?",
+        "?",
+        "?Backpulver?",
+        "vs. ?baken Soda?",
+        "), and handling of unaligned words at phrase boundaries.",
+        "Finally, we measured the intersection between the sentence set selected by ngram vs neural",
+        "results are bold-faced.",
+        "We also compare neural LMs to ngram using pairwise bootstrap (Koehn, 2004): ?+?",
+        "means statistically significant improvement and ???",
+        "means significant degradation.",
+        "net.",
+        "They share 60-75% of the augmented training data.",
+        "This high overlap means that ngram and neuralnet are actually not drastically different systems, and neuralnet with its slightly better selections represent an incremental improvement.6"
+      ]
+    },
+    {
+      "heading": "5 Conclusions",
+      "text": [
+        "We perform an evaluation of neural LMs for adaptation data selection, based on the hypothesis that their continuous vector representations are effective at comparing general-domain sentences, which contain frequent unknown words.",
+        "Compared to conventional n-grams, we observed end-to-end translation improvements from 0.1 to 1.7 BLEU.",
+        "Since neural LMs are fast to train in the small in-domain data setting and achieve equal or incrementally better results, we conclude that they are an worthwhile option to include in the arsenal of adaptation data selection techniques."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "We thank Amittai Axelrod for discussions about data selection implementation details, and an anonymous reviewer for suggesting the union idea for results analysis.",
+        "K. D. would like to credit Spy-ros Matsoukas (personal communication, 2010) for the trick of using LM-based pseudo forced-decoding for error analysis."
+      ]
+    }
+  ]
+}

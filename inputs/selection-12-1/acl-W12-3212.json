@@ -1,0 +1,157 @@
+{
+  "info": {
+    "authors": [
+      "Ulrich Schäfer",
+      "Benjamin Weitz"
+    ],
+    "book": "Proceedings of the ACL-2012 Special Workshop on Rediscovering 50 Years of Discoveries",
+    "id": "acl-W12-3212",
+    "title": "Combining OCR Outputs for Logical Document Structure Markup. Technical Background to the ACL 2012 Contributed Task",
+    "url": "https://aclweb.org/anthology/W12-3212",
+    "year": 2012
+  },
+  "references": [
+    "acl-P11-4002",
+    "acl-W12-3210"
+  ],
+  "sections": [
+    {
+      "text": [
+        "Proceedings of the ACL-2012 Special Workshop on Rediscovering 50 Years of Discoveries, pages 104?109, Jeju, Republic of Korea, 10 July 2012. c?2012 Association for Computational Linguistics Combining OCR Outputs for Logical Document Structure Markup Technical Background to the ACL 2012 Contributed Task"
+      ]
+    },
+    {
+      "heading": "Abstract",
+      "text": [
+        "We describe how paperXML, a logical document structure markup for scholarly articles, is generated on the basis of OCR tool outputs.",
+        "PaperXML has been initially developed for the ACL Anthology Searchbench.",
+        "The main purpose was to robustly provide uniform access to sentences in ACL Anthology papers from the past 46 years, ranging from scanned, typewriter-written conference and workshop proceedings papers, up to recent high-quality typeset, born-digital journal articles, with varying layouts.",
+        "PaperXML markup includes information on page and paragraph breaks, section headings, footnotes, tables, captions, boldface and italics character styles as well as bibliographic and publication meta-data.",
+        "The role of paperXML in the ACL Contributed Task Rediscovering 50 Years of Discoveries is to serve as fall-back source (1) for older, scanned papers (mostly published before the year 2000), for which born-digital PDF sources are not available, (2) for born-digital PDF papers on which the PDFExtract method failed, (3) for document parts where PDFExtract does not output useful markup such as currently for tables.",
+        "We sketch transformation of paperXML into the ACL Contributed Task's TEI P5 XML."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Work on the ACL Anthology Searchbench started in 2009.",
+        "The goal was to provide combined sentence-semantic, full-text and bibliographic search in the complete ACL Anthology (Sch?fer et al., 2011), and a graphical citation browser with citation sentence context information (Weitz & Sch?fer, 2012).",
+        "Since the ACL-HLT 2011 conference, the Searchbench is available as a free, public service1.",
+        "A fixed subset of the Anthology, the ACL Anthology Reference Corpus2 (ACL-ARC), contains various representations of the papers such as PDF, bitmap and text files.",
+        "The latter were generated with PDFBox3 and OCR (Omnipage4), applied to the PDF files or bitmap versions thereof.",
+        "Its static nature as infrequently released reference corpus and low character recognition quality especially of older, badly scanned papers, made us to look for alternatives.",
+        "For quick, automatic updates of the Searchbench index, a robust method for getting the text from old and new incoming PDF files was needed.",
+        "After a thorough comparison of different PDF-totext extraction tools, a decision was made to process every PDF paper in the Anthology with ABBYY PDF Transformer5, for various reasons.",
+        "It ran stably and delivered good character recognition rates on both scanned, typewriter-typeset proceeding papers as well as on born-digital PDF of various sources, even on papers where PDFbox failed to extract (usable) text.",
+        "Reading order recovery, table recognition and output rendering (HTML) was impressive and de-hyphenation for English text worked reasonably well.",
+        "All in all, ABBYY did not deliver perfect results, but at that time was the best and quickest solution to get most of the millions of sentences from the papers of 46 years.",
+        "The role of this OCR-based approach in the ACL",
+        "Contributed Task Rediscovering 50 Years of Discoveries (Sch?fer et al., 2012) is to serve as fall-back source when the more precise PDFExtract method (Berg et al., 2012) is not applicable."
+      ]
+    },
+    {
+      "heading": "2 Target Format",
+      "text": [
+        "The focus of the Searchbench text extraction process was to retrieve NLP-parsable sentences from scientific papers.",
+        "Hence distinguishing running text from section headings, figure and table captions or footnotes was an important intermediate task.",
+        "PaperXML is a simple logical document markup structure we specifically designed for scientific papers.",
+        "It features tags for section headings (with special treatment of abstract and references), footnotes, figure and table captions.",
+        "The full DTD is listed in the Appendix.",
+        "A sample document automatically generated by our extraction tool is displayed in Figure 2 on the next page.",
+        "In paperXML, figures are ignored, but table layouts and character style information such as boldface or italics are preserved."
+      ]
+    },
+    {
+      "heading": "3 Algorithm",
+      "text": [
+        "Volk et al. (2010) used two different OCR products (the above mentioned Omnipage and ABBYY) and tried to improve the overall recognition accuracy on scanned text by merging their outputs.",
+        "This approach adds the challenge of having to decide which version to trust in case of discrepancy.",
+        "Unlike them, we use a single OCR tool, ABBYY, but with two different output variants, layout and float, that in parts contain complementary information.",
+        "As no direct XML output mode exists, we rely on HTML output that can also be used to render PDF text extraction results in a Web browser."
+      ]
+    },
+    {
+      "heading": "3.1 Core rich text and document structure",
+      "text": [
+        "extraction Our algorithm uses the layout variant as primary source.",
+        "Layout tries to render the extracted text as closely as possible to the original layout.",
+        "It preserves page breaks and the two-column formatting that most ACL Anthology papers (except the CL Journal and some older proceedings) share.",
+        "In the float variant, page and line breaks as well as multiple column layout are removed in favour of a running text in reading order which is indispensable for our purposes.",
+        "However, some important layout-specific information such as page breaks is not available in the float format.",
+        "Both variants preserve table layouts and character style information such as boldface or italics.",
+        "Reading order in both variants may differ.",
+        "A special code part ensures that nothing is lost when aligning the variants.",
+        "We implemented a Python6 module that reads both HTML variants and generates a consolidated XML condensate, paperXML.",
+        "It interprets textual content, font and position information to identify the logical structure of a scientific paper.",
+        "tion to the two HTML variants, the code also reads BIBTEX metadata in XML format of each paper.",
+        "A rather large part in the document header of the generated paperXML addresses frontpage and bibliographic metadata.",
+        "Section 3.2 explains why and how this information is extracted and processed.",
+        "Using XSLT7, paperXML is then transformed into a tab-separated text file that basically contains one sentence per line plus additional sentence-related",
+        "<section number=\"1\" title=\"Introduction\"> <p>Parsing technologies have improved considerably in the past few years, and high-performance syntactic parsers are no longer limited to PCFG-based frameworks (Charniak, 2000; [...]</p> </section> <section number=\"2\" title=\"Syntactic Parsers and Their Representations\"> <p>This paper focuses on eight representative parsers that are classified into three parsing frameworks: <i>dependency parsing, phrase structure parsing, </i>and <i>deep parsing.</i> [...] </p> <subsection number=\"2.1\" title=\"Dependency parsing\"> <p>Because the shared tasks of CoNLL-2006 and CoNLL-2007 focused [...] </p> <p><b>mst </b>McDonald and Pereira (2006)'s dependency parser,<footnote anchor=\"1\"/> based on the Eisner algorithm for projective dependency parsing (Eisner, 1996) with the second-order factorization.</p>",
+        "characteristics such as type (paragraph text, heading, footnote, caption etc.)",
+        "page and offset.",
+        "This output format is used to feed NLP components such as taggers, parsers or term extraction for the Search-bench's index generation.",
+        "On the right hand side of the diagram, we sketch a potentional transformation of paperXML into TEI P5 for the Constributed Task.",
+        "It will be discussed in Section 4.",
+        "The extraction algorithm initially computes the main font of a paper based on the number of characters with the same style.",
+        "Based on this, heuristics allow to infer styles for headings, footnotes etc.",
+        "While headings typically are typeset in boldface in recent publications, old publications styles e.g. use uppercase letters with or without boldface.",
+        "On the basis of this information, special section headings such as abstract, and references are inferred.",
+        "Similarly, formatting properties in combination with regular expressions and Levenshtein distance (Levenshtein, 1966) are used to identify footnotes, figure and table captions etc.",
+        "and generate corresponding markup.",
+        "A special doubt element is inserted for text fragments that do not look like normal, running text."
+      ]
+    },
+    {
+      "heading": "3.2 Bibliographic metadata and author affiliations",
+      "text": [
+        "Conference or publication information can often be found on the first page footer or header or (in case of the CL journal) on every page.",
+        "Our code recognizes and moves it to dedicated XML elements.",
+        "The aim is not to interrupt running text by such ?noise?.",
+        "Publication authors, title and conference information as well as page number and PDF URL is commonly named bibliographic metadata.",
+        "Because this information was partly missing in the ACL Anthology, special care was taken to extract it from the papers.",
+        "In the paperXML generation code, author affiliations from the title page are mapped to author names using gazetteers, position information, heuristics etc.",
+        "as part of the paperXML generation process.",
+        "This experimental approach is imperfect, leads to errors and would definitely require manual correction.",
+        "A solution would be to use manually corrected author affiliation information from the ACL Anthology Reference Corpus (Bird et al., 2008).",
+        "This information, however, is not immediately available for recent proceedings or journal articles.",
+        "Therefore, we developed a tool with a graphical user interface that assists quick, manual correction of author affiliation information inferred from previous publications of the same author in the Anthology by means of the ACL ARC data.",
+        "Independently from the paperXML extraction process, bibliographic metadata for each paper in the ACL Anthology has been extracted from BIBTEX files and, where BIBTEX was missing, the Anthology index web pages.",
+        "We semi-automatically corrected encoding errors and generated easy-to-convert BIBTEXML 8 files for each paper.",
+        "Using the page number information extracted during the paperXML generation process, our code enriches BIBTEXML files with page number ranges where missing in the ACL Anthology's metadata.",
+        "This is of course only possible for papers that contain page numbers in the header or footer.",
+        "The resulting BIBTEXML metadata are available at DFKI's public SubVersioN repository9 along with the affiliation correction tool."
+      ]
+    },
+    {
+      "heading": "4 Transformation to TEI P5",
+      "text": [
+        "The ACL Contributed Task Rediscovering 50 Years of Discoveries (Sch?fer et al., 2012) proposes to use TEI P510 as an open standard for document structure markup.",
+        "The overall structure of paperXML is largely isomorphic to TEI P5, with minor differences such as in the position of page break markup.",
+        "In paperXML, page break markup is inserted after the sentence that starts before the page break, while in TEI P5, it appears exactly where it was in the original text, even within a hyphenated word.",
+        "The Python code that generates paperXML could be modified to make its output conforming to TEI.",
+        "Alternatively, transformation of paperXML into the TEI format could be performed using XSLT.",
+        "Table 1 summarizes mapping of important markup elements.",
+        "Details of the element and attribute structure differ, which makes a real mapping more complicated than it may seem from the table."
+      ]
+    },
+    {
+      "heading": "5 Summary and Outlook",
+      "text": [
+        "We have described a pragmatic and robust solution for generating logical document markup from scholarly papers in PDF format.",
+        "It is meant as an OCR-based fall-back solution in the ACL Contributed Task Rediscovering 50 Years of Discoveries (Sch?fer et al., 2012) when the more precise PDFExtract method (Berg et al., 2012) is not applicable because it can only handle born-digital PDF documents.",
+        "Moreover, the approach can serve as fall-back solution where PDFExtract fails or does not produce markup (e.g. currently tables).",
+        "Our solution has been shown to work even on typewriter-typeset, scanned papers from the 60ies.",
+        "Correctness of the produced markup is limited by heuristics that are necessary to select at markup and layout borders, reconstruct reading order, etc.",
+        "Levenshtein distance is used at several places in order to cope with variants such as those induced by character recognition errors.",
+        "The approach is implemented to produce XML documents conforming to the paperXML DTD that in turn could be transformed to TEI P5 using XSLT."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work has been funded by the German Federal Ministry of Education and Research, projects TAKE (FKZ 01IW08003) and Deependance (FKZ 01IW11003)."
+      ]
+    }
+  ]
+}

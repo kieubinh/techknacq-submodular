@@ -1,0 +1,227 @@
+{
+  "info": {
+    "authors": [
+      "Will Radford",
+      "James R. Curran"
+    ],
+    "book": "ACL",
+    "id": "acl-P13-2118",
+    "title": "Joint Apposition Extraction with Syntactic and Semantic Constraints",
+    "url": "https://aclweb.org/anthology/P13-2118",
+    "year": 2013
+  },
+  "references": [
+    "acl-C10-1089",
+    "acl-C10-2012",
+    "acl-D08-1031",
+    "acl-D08-1068",
+    "acl-D12-1096",
+    "acl-H05-1031",
+    "acl-H05-1083",
+    "acl-N07-1011",
+    "acl-P08-1117",
+    "acl-W03-0424",
+    "acl-W07-1418",
+    "acl-W08-1703",
+    "acl-W09-2105",
+    "acl-W11-1901",
+    "acl-W11-1902"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Appositions are adjacent NPs used to add information to a discourse.",
+        "We propose systems exploiting syntactic and semantic constraints to extract appositions from OntoNotes.",
+        "Our joint log-linear model outperforms the state-of-the-art Favre and Hakkani-Tu?r (2009) model by ?10% on Broadcast News, and achieves 54.3% F-score on multiple genres."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Appositions are typically adjacent coreferent noun phrases (NP) that often add information about named entities (NEs).",
+        "The apposition in Figure 1 consists of three comma-separated NPs ?",
+        "the first NP (HEAD) names an entity and the others (ATTRs) supply age and profession attributes.",
+        "Attributes can be difficult to identify despite characteristic punctuation cues, as punctuation plays many roles and attributes may have rich substructure.",
+        "While linguists have studied apposition in detail (Quirk et al., 1985; Meyer, 1992), most apposition extraction has been within other tasks, such as coreference resolution (Luo and Zitouni, 2005; Culotta et al., 2007) and textual entailment (Roth and Sammons, 2007).",
+        "Extraction has rarely been intrinsically evaluated, with Favre and Hakkani-Tu?r's work a notable exception.",
+        "We analyze apposition distribution in OntoNotes 4 (Pradhan et al., 2007) and compare rule-based, classification and parsing extraction systems.",
+        "Our best system uses a joint model to classify pairs of NPs with features that faithfully encode syntactic and semantic restrictions on appositions, using parse trees and WordNet synsets.",
+        "Our approach substantially outperforms Favre and Hakkani-Tu?r on Broadcast News (BN) at 54.9% F-score and has state-of-the-art performance 54.3% F-score across multiple genres.",
+        "Our results will immediately help the many systems that already use apposition extraction components, such as coreference resolution and IE."
+      ]
+    },
+    {
+      "heading": "2 Background",
+      "text": [
+        "Apposition is widely studied, but ?grammarians vary in the freedom with which they apply the term ?apposition??",
+        "(Quirk et al., 1985).",
+        "They are usually composed of two or more adjacent NPs, hierarchically structured, so one is the head NP (HEAD) and the rest attributes (ATTRs).",
+        "They are often flagged using punctuation in text and pauses in speech.",
+        "Pragmatically, they allow an author to introduce new information and build a shared context (Meyer, 1992).",
+        "Quirk et al. propose three tests for apposition: i) each phrase can be omitted without affecting sentence acceptability, ii) each fulfils the same syntactic function in the resultant sentences, iii) extralinguistic reference is unchanged.",
+        "Strict interpretations may exclude other information-bearing cases like pseudo-titles (e.g. ({President}a {Bush}h)NP), but include some adverbial phrases (e.g. {(John Smith)NP}h, {(formerly (the president)NP)AP}a).",
+        "We adopt the OntoNotes guidelines?",
+        "relatively strict interpretation: ?a noun phrase that modifies an immediately-adjacent noun phrase (these may be separated by only a comma, colon, or parenthesis).?",
+        "(BBN, 2004?2007).",
+        "Apposition extraction is a common component in many NLP tasks: coreference resolution (Luo and Zitouni, 2005; Culotta et al., 2007; Bengt-son and Roth, 2008; Poon and Domingos, 2008), textual entailment (Roth and Sammons, 2007; Cabrio and Magnini, 2010), sentence simplification (Miwa et al., 2010; Candido et al., 2009; Siddharthan, 2002) and summarization (Nenkova et al., 2005).",
+        "Comma ambiguity has been studied in the RTE (Srikumar et al., 2008) and generation domains (White and Rajkumar, 2008).",
+        "Despite this, few papers to our knowledge explicitly evaluate apposition extraction.",
+        "Moreover, apposition extraction is rarely the main research goal and descriptions of the methods used are often accordingly terse or do not match our guidelines.",
+        "Lee et al. (2011) use rules to extract appositions for coreference resolution, selecting only those that are explicitly flagged using commas or parentheses.",
+        "They do not separately mark HEAD and ATTR and permit relative clauses as an ATTR.",
+        "While such differences capture useful information for coreference resolution, these methods would be unfairly disadvantaged in a direct evaluation.",
+        "Favre and Hakkani-Tu?r (2009, FHT) directly evaluate three extraction systems on OntoNotes 2.9 news broadcasts.",
+        "The first retrains the Berkeley parser (Petrov and Klein, 2007) on trees labelled with appositions by appending the HEAD and ATTR suffix to NPs ?",
+        "we refer to this as a Labelled Berkeley Parser (LBP).",
+        "The second is a CRF labelling words using an IOB apposition scheme.",
+        "Token, POS, NE and BP-label features are used, as are presence of speech pauses.",
+        "The final system classifies parse tree phrases using an Adaboost classifier (Schapire and Singer, 2000) with similar features.",
+        "The LBP, IOB and phrase systems score 41.38%, 32.76% and 40.41%, while their best uses LBP tree labels as IOB features, scoring 42.31%.",
+        "Their focus on BN automated speech recognition (ASR) output, which precludes punctuation cues, does not indicate how well the methods perform on textual genres.",
+        "Moreover all systems use parsers or parse-label features and do not completely evaluate non-parser methods for extraction despite including baselines.",
+        "(top) and actual (bottom) tokens, e.g., H t A indicates an HEAD, one token then an ATTR."
+      ]
+    },
+    {
+      "heading": "3 Data",
+      "text": [
+        "We use apposition-annotated documents from the English section of OntoNotes 4 (Weischedel et al., 2011).",
+        "We manually adjust appositions that do not have exactly one HEAD and one or more ATTR1.",
+        "Some appositions are nested, and we keep only ?leaf?",
+        "appositions, removing the higher-level appositions.",
+        "We follow the CoNLL-2011 scheme to select TRAIN, DEV and TEST datasets (Pradhan et al., 2011).",
+        "OntoNotes 4 is made up of a wide variety of sources: broadcast conversation and news, magazine, newswire and web text.",
+        "Appositions are most frequent in newswire (one per 192 words) and least common in broadcast conversation (one per 645 words) with the others in between (around one per 315 words).",
+        "We also replicate the OntoNotes 2.9 BN data used by FHT, selecting the same sentences from OntoNotes 4 (TRAINF/DEVF/TESTF).",
+        "We do not ?speechify?",
+        "our data and take a different approach to nested apposition.",
+        "Table 1 shows the distribution of sentences and appositions (HEAD-ATTR pairs)."
+      ]
+    },
+    {
+      "heading": "3.1 Analysis",
+      "text": [
+        "Most appositions in TRAIN have one ATTR (97.4%) with few having two (2.5%) or three (0.1%).",
+        "HEADs are typically shorter (median 5 tokens, 95% < 7) than ATTRs (median 7 tokens, 95% < 15).",
+        "Table 2 shows frequent apposition forms.",
+        "Comma-separated apposition is the most common (63%) and 93% are separated by zero or one token.",
+        "HEADs are often composed of NEs: 52% PER and 13% ORG, indicating an entity about which the ATTR adds information."
+      ]
+    },
+    {
+      "heading": "4 Extracting Appositions",
+      "text": [
+        "We investigate different extraction systems using a range of syntactic information.",
+        "Our systems that use syntactic parses generate candidates (pairs of NPs: p1 and p2) that are then classified as apposition or not.",
+        "This paper contributes three complementary techniques for more faithfully modelling apposition.",
+        "Any adjacent NPs, disregarding intervening punctuation, could be considered candidates, however stronger syntactic constraints that only allow sibling NP children provide higher precision candidate sets.",
+        "Semantic compatibility features encoding that an ATTR provides consistent information for its HEAD.",
+        "A joint classifier models the complete apposition rather than combining separate phrase-wise decisions.",
+        "Taggers and parsers are trained on TRAIN and evaluated on DEV or TEST.",
+        "We use the C&C tools (Curran and Clark, 2003) for POS and NE tagging and the and the Berkeley Parser (Petrov and Klein, 2007), trained with default parameters.",
+        "Pattern POS, NE and lexical patterns are used to extract appositions avoiding parsing's computational overhead.",
+        "Rules are applied independently to tokenized and tagged sentences, yielding HEAD-ATTR tuples that are later deduplicated.",
+        "The rules were manually derived from TRAIN2 and Table 3 shows the top five of sixteen rules by recall over TRAIN.",
+        "The ?role?",
+        "gazetteer is the transitive closure of hyponyms of the WordNet (Miller, 1995) synset person.n.01 and ?relation?",
+        "manually constructed (e.g., ?father?, ?colleague?).",
+        "Tu-ples are post-processed to remove spurious appo2There is some overlap between TRAIN and DEVF/TESTF with appositions from the latter used in rule generation.",
+        "sitions such as comma-separated NE lists3.",
+        "Adjacent NPs This low precision, high recall baseline assumes all candidates, depending on generation strategy, are appositions.",
+        "Rule We only consider HEADs whose syntactic head is a PER, ORG, LOC or GPE NE.",
+        "We formalise semantic compatibility by requiring the ATTR head to match a gazetteer dependent on the HEAD's NE type.",
+        "To create PER, ORG and LOC gazetteers, we identified common ATTR heads in TRAIN and looked for matching WordNet synsets, selecting the most general hypernym that was still semantically compatible with the HEAD's NE type.",
+        "Gazetteer words are pluralized using pattern.en (De Smedt and Daelemans, 2012) and normalised.",
+        "We use partitive and NML-aware rules (Collins, 1999; Vadas and Curran, 2007) to extract syntactic heads from ATTRs.",
+        "These must match the type-appropriate gazetteer, with ORG and LOC/GPE falling back to PER (e.g., ?the champion, Apple?).",
+        "Extracted tuples are post-processed as for Pattern and reranked by the OntoNotes specificity scale (i.e., NNP > PRO > Def.",
+        "NP > Indef.",
+        "NP > NP), and the more specific unit is assigned HEAD.",
+        "Possible ATTRs further to the left or right are checked, allowing for cases such as Figure 1.",
+        "Labelled Berkeley Parser We train a LBP on TRAIN and recover appositions from parsed sentences.",
+        "Without syntactic constraints this is equivalent to FHT's LBP system (LBPF) and indicated by ?",
+        "in Tables.",
+        "Phrase Each NP is independently classified as HEAD, ATTR or None.",
+        "We use a log-linear model with a SGD optimizer from scikit-learn (Pedregosa",
+        "impact of removing constraints/features, +gold shows the impact of parse and tagging errors.",
+        "et al, 2011).",
+        "The binary features are calculated from a generated candidate phrase (p) and are the same as FHT's phrase system (PhraseF), denoted",
+        "?",
+        "in Tables.",
+        "In addition, we propose the features below and to decode classifications, adjacent apposition-classified NPs are reordered by specificity.",
+        "?",
+        "p precedes/follows punctuation/interjection ?",
+        "p starts with a DT or PRP$ (e.g., ?",
+        "{the",
+        "(p1, p2) as: HEAD-ATTR, ATTR-HEAD or None.",
+        "The system uses the phrase model features as above as well as pairwise features: ?",
+        "the crossproduct of selected features for p1 and p2: gazetteer matches, NE type, specificity rank.",
+        "This models the compatibility between p1 and p2.",
+        "For example, if the HEAD has the NE type PER and the ATTR has the syntactic head in the PER gazetteer, for ex",
+        "ample ?",
+        "{Tom Cruise}h, {famous actor}a,??",
+        "(p1: PER, p2: PER-gaz) ?",
+        "If semantic features are found in p1 and p2 ?",
+        "p1/p2 specificity (e.g., equal, p1 > p2) ?",
+        "whether p1 is an acronym of p2 or vice-versa"
+      ]
+    },
+    {
+      "heading": "5 Results",
+      "text": [
+        "We evaluate by comparing the extracted HEAD-ATTR pairs against the gold-standard.",
+        "Correct pairs match gold-standard bounds and label.",
+        "We report precision (P), recall (R) and F1-score (F).",
+        "Table 4 shows our systems?",
+        "performance on the multi-genre DEV dataset, the impact of removing syntactic constraints, semantic features and parse/tag error.",
+        "Pattern performance is reasonable at 39.2% F-score given its lack of full syntactic information.",
+        "All other results use parses and, although it has a low F-score, the Adjacent NPs?",
+        "65.1% recall, without syntactic constraints, is the upper bound for the parse-based systems.",
+        "Statistical models improve performance, with the joint models better than the higher-precision phrase model as the latter must make two independently correct classification decisions.",
+        "Our best system has an F-score of 58.9% using a joint model over the de-labelled trees produced by the LBP.",
+        "This indicates that although our model does not use the apposition labels from the tree, the tree is a more suitable structure for extraction.",
+        "This system substantially improves on our implementation of FHT's LBPF (?)",
+        "and PhraseF (?)",
+        "systems by 8.6% and 5.4%4.",
+        "Removing syntactic constraints mostly reduces performance in parse-based systems as the system must consider lower-quality candidates.",
+        "The F-score increase is driven by higher precision at minimal cost to recall.",
+        "Removing semantic features has less impact and removing both is most detrimental to performance.",
+        "These features have less impact on joint models; indeed, joint performance using BP trees increases without the features, perhaps as joint models already model the syntactic context.",
+        "We evaluate the impact of parser and tagger error by using gold-standard resources.",
+        "Gold-standard tags and trees improve recall in all cases leading to F-score improvements (+gold).",
+        "The pattern system is reasonably robust to automatic tagging errors, but parse-based models suffer considerably from automatic parses.",
+        "To compare the impact of tagging and parsing error, we configure the joint system to use gold parses and automatic NE tags and vice versa.",
+        "Using automatic tags does not greatly impact performance (-1.3%), whereas",
+        "using automatic parses causes a drop of around 20% to 57.7%, demonstrating that syntactic information is crucial for apposition extraction.",
+        "We compare our work with Favre and Hakkani-Tu?r (2009), training with TRAINF and evaluating over TESTF?",
+        "exclusively BN data.",
+        "Our implementations of their systems, PhraseF and LBPF, perform at 43.6% and 44.1%.",
+        "Our joint LBP system is substantially better, scoring 54.9%.",
+        "Table 5 shows the performance of our best systems on the TEST dataset and these follow the same trend as DEV.",
+        "Joint LBP performs the best at 54.3%, 4.5% above LBPF.",
+        "Finally, we test whether labelling appositions can help parsing.",
+        "We parse DEV trees with LBP and BP, remove apposition labels and analyse the impact of labelling using the Berkeley Parser Analyser (Kummerfeld et al., 2012).",
+        "Table 6 shows the LBP makes fewer errors, particularly NP internal structuring, PP and clause attachment classes at the cost of modifier attachment and coordination errors.",
+        "Rather than increasing parsing difficulty, apposition labels seem complementary, improving performance."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "We present three apposition extraction techniques.",
+        "Linguistic tests for apposition motivate strict syntactic constraints on candidates and semantic features encode the addition of compatible information.",
+        "Joint models more faithfully capture apposition structure and our best system achieves state-of-the-art performance of 54.3%.",
+        "Our results will immediately benefit the large number of systems with apposition extraction components for coreference resolution and IE."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "The authors would like to thank the anonymous reviewers for their suggestions.",
+        "Thanks must also go to Benoit Favre for his clear writing and help answering our questions as we replicated his dataset and system.",
+        "This work has been supported by ARC Discovery grant DP1097291 and the Capital Markets CRC Computable News project."
+      ]
+    }
+  ]
+}

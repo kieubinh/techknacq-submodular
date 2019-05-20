@@ -1,0 +1,366 @@
+{
+  "info": {
+    "authors": [
+      "Seyed Abolghasem Mirroshandel",
+      "Alexis Nasr",
+      "Benoît Sagot"
+    ],
+    "book": "NAACL",
+    "id": "acl-N13-1024",
+    "title": "Enforcing Subcategorization Constraints in a Parser Using Sub-parses Recombining",
+    "url": "https://aclweb.org/anthology/N13-1024",
+    "year": 2013
+  },
+  "references": [
+    "acl-C02-1118",
+    "acl-J93-2004",
+    "acl-L08-1210",
+    "acl-P05-1012",
+    "acl-P05-1022",
+    "acl-P05-1038",
+    "acl-P11-4015",
+    "acl-P91-1027",
+    "acl-P93-1032",
+    "acl-P97-1003"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Treebanks are not large enough to adequately model subcategorization frames of predicative lexemes, which is an important source of lexico-syntactic constraints for parsing.",
+        "As a consequence, parsers trained on such treebanks usually make mistakes when selecting the arguments of predicative lexemes.",
+        "In this paper, we propose an original way to correct subcategorization errors by combining sub-parses of a sentence S that appear in the list of the n-best parses of S. The subcategorization information comes from three different resources, the first one is extracted from a treebank, the second one is computed on a large corpora and the third one is an existing syntactic lexicon.",
+        "Experiments on the French Treebank showed a 15.24% reduction of erroneous subcategorization frames (SF) selections for verbs as well as a relative decrease of the error rate of 4% Labeled Accuracy Score on the state of the art parser on this treebank."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Automatic syntactic parsing of natural languages has witnessed many important changes in the last fifteen years.",
+        "Among these changes, two have modified the nature of the task itself.",
+        "The first one is the availability of treebanks such as the Penn Treebank (Marcus et al., 1993) or the French Treebank (Abeille?",
+        "et al, 2003), which have been used in the parsing community to train stochastic parsers, such as (Collins, 1997; Petrov and Klein, 2008).",
+        "Such work remained rooted in the classical language theoretic tradition of parsing, generally based on variants of generative context free grammars.",
+        "The second change occurred with the use of discriminative machine learning techniques, first to rerank the output of a stochastic parser (Collins, 2000; Charniak and Johnson, 2005) and then in the parser itself (Rat-naparkhi, 1999; Nivre et al., 2007; McDonald et al., 2005a).",
+        "Such parsers clearly depart from classical parsers in the sense that they do not rely anymore on a generative grammar: given a sentence S, all possible parses for S1 are considered as possible parses of S. A parse tree is seen as a set of lexico-syntactic features which are associated to weights.",
+        "The score of a parse is computed as the sum of the weights of its features.",
+        "This new generation of parsers allows to reach high accuracy but possess their own limitations.",
+        "We will focus in this paper on one kind of weakness of such parser which is their inability to properly take into account subcategorization frames (SF) of predicative lexemes2, an important source of lexico-syntactic constraints.",
+        "The proper treatment of SF is actually confronted to two kinds of problems: (1) the acquisition of correct SF for verbs and (2) the integration of such constraints in the parser.",
+        "The first problem is a consequence of the use of treebanks for training parsers.",
+        "Such treebanks are composed of a few thousands sentences and only a small subpart of acceptable SF for a verb actually 1Another important aspect of the new parsing paradigm is the use of dependency trees as a means to represent syntactic structure.",
+        "In dependency syntax, the number of possible syntactic trees associated to a sentence is bounded, and only depends on the length of the sentence, which is not the case with syntagmatic derivation trees.",
+        "occur in the treebank.",
+        "The second problem is a consequence of the parsing models.",
+        "For algorithmic complexity as well as data sparseness reasons, the parser only considers lexico-syntactic configurations of limited domain of locality (in the parser used in the current work, this domain of locality is limited to configurations made of one or two dependencies).",
+        "As described in more details in section 2, SF often exceed in scope such domains of locality and are therefore not easy to integrate in the parser.",
+        "A popular method for introducing higher order constraints in a parser consist in reranking the n best output of a parser as in (Collins, 2000; Charniak and Johnson, 2005).",
+        "The reranker search space is restricted by the output of the parser and high order features can be used.",
+        "One drawback of the reranking approach is that correct SF for the predicates of a sentence can actually appear in different parse trees.",
+        "Selecting complete trees can therefore lead to suboptimal solutions.",
+        "The method proposed in this paper merges parts of different trees that appear in an n best list in order to build a new parse.",
+        "Taking into account SF in a parser has been a major issue in the design of syntactic formalisms in the eighties and nineties.",
+        "Unification grammars, such as Lexical Functional Grammars (Bresnan, 1982), Generalized Phrase Structure Grammars (Gazdar et al., 1985) and Head-driven Phrase Structure Grammars (Pollard and Sag, 1994), made SF part of the grammar.",
+        "Tree Adjoining Grammars (Joshi et al., 1975) proposed to extend the domain of locality of Context Free Grammars partly in order to be able to represent SF in a generative grammar.",
+        "More recently, (Collins, 1997) proposed a way to introduce SF in a probabilistic context free grammar and (Arun and Keller, 2005) used the same technique for French.",
+        "(Carroll et al., 1998), used subcategorization probabilities for ranking trees generated by unification-based phrasal grammar and (Zeman, 2002) showed that using frame frequency in a dependency parser can lead to a significant improvement of the performance of the parser.",
+        "The main novelties of the work presented here is (1) the way a new parse is built by combining sub-parses that appear in the n best parse list and (2) the use of three very different resources that list the possible SF for verbs.",
+        "The organization of the paper is the following: in section 2, we will briefly describe the parsing model that we will be using for this work and give accuracy results on a French corpus.",
+        "Section 3 will describe three different resources that we have been using to correct SF errors made by the parser and give coverage results for these resources on a development corpus.",
+        "Section 4 will propose three different ways to take into account, in the parser, the resources described in section 3 and give accuracy results.",
+        "Section 5 concludes the paper."
+      ]
+    },
+    {
+      "heading": "2 The Parser",
+      "text": [
+        "The parser used in this work is the second order graph based parser (McDonald et al., 2005b) implementation of (Bohnet, 2010).",
+        "The parser was trained on the French Treebank (Abeille?",
+        "et al, 2003) which was transformed into dependency trees by (Candito et al., 2009).",
+        "The size of the treebank and its decomposition into train, development and test sets are represented in table 1. nb of sentences nb of tokens",
+        "The parser gave state of the art results for parsing of French, reported in table 2.",
+        "Table 2 reports the standard Labeled Accuracy Score (LAS) and Unla-beled Accuracy Score (UAS) which is the ratio of correct labeled (for LAS) or unlabeled (for UAS) dependencies in a sentence.",
+        "We also defined a more specific measure: the SF Accuracy Score (SAS) which is the ratio of verb occurrences that have been paired with the correct SF by the parser.",
+        "We have introduced this quantity in order to measure more accurately the impact of the methods described in this paper on the selection of a SF for the verbs of a sentence."
+      ]
+    },
+    {
+      "heading": "TEST DEV",
+      "text": [
+        "We have chosen a second order graph parser in this work for two reasons.",
+        "The first is that it is the parsing model that obtained the best results on the French Treebank.",
+        "The second is that it allows us to impose structural constraints in the solution of the parser, as described in (Mirroshandel and Nasr, 2011), a feature that will reveal itself precious when enforcing SF in the parser output."
+      ]
+    },
+    {
+      "heading": "3 The Resources",
+      "text": [
+        "Three resources have been used in this work in order to correct SF errors.",
+        "The first one has been extracted from a treebank, the second has been extracted from an automatically parsed corpus that is several order of magnitude bigger than the treebank.",
+        "The third one has been extracted from an existing lexico-syntactic resource.",
+        "The three resources are respectively described in sections 3.2, 3.3 and 3.4.",
+        "Before describing the resources, we describe in details, in section"
+      ]
+    },
+    {
+      "heading": "3.1 our definition of SF. In section 3.5, we evalu",
+      "text": [
+        "ate the coverage of these resources on the DEV corpus.",
+        "Coverage is an important characteristic of a resource: in case of an SF error made by the parser, if the correct SF that should be associated to a verb, in a sentence, does not appear in the resource, it will be impossible to correct the error."
+      ]
+    },
+    {
+      "heading": "3.1 Subcat Frames Description",
+      "text": [
+        "In this work, a SF is defined as a couple (G,L) where G is the part of speech tag of the element that licenses the SF.",
+        "This part of speech tag can either be a verb in infinitive form (VINF), a past participle (VPP), a finite tense verb (V) or a present participle (VPR).",
+        "L is a set of couples (f, c) where f is a syntactic function tag chosen among a set F and c is a part of speech tag chosen among the set C. Couple (f, c) indicates that function f can be realized as part of speech tag c. Sets F and C are respectively displayed in top and bottom tables of figure 1.",
+        "An anchored SF (ASF) is a couple (v, S) where v is a verb lemma and S is a SF, as described above.",
+        "A resource is defined as a collection of ASF (v, S), each associated to a count c, to represent the fact that verb v has been seen with SF S c times.",
+        "In the case of the resource extracted form an existing lexicon (section 3.4), the notion of count is not applicable and we will consider that it is always equal",
+        "to one.",
+        "Below is an example of three ASF for the french verb donner (to give).",
+        "The first one is a transitive SF where both the subject and the object are realized as nouns as in Jean donne un livre (Jean gives a book.).",
+        "The second one is ditransitive, it has both a direct object and an indirect one introduced by the preposition a` as in Jean donne un livre a` Marie.",
+        "(Jean gives a book to Marie).",
+        "The third one corresponds to a passive form as in le livre est donne?",
+        "a` Marie par Jean (The book is given to Marie by Jean).",
+        "One can note that when an argument corresponds to an indirect dependent of the verb (introduced either by a preposition or a subordinating conjunction), we do not represent in the SF, the category of the element that introduces the argument, but the category of the argument itself, a noun or a verb.",
+        "Two important choices have to be made when defining SF.",
+        "The first one concerns the dependents of the predicative element that are in the SF (argument/adjunct distinction) and the second is the level of abstraction at which SF are defined.",
+        "In our case, the first choice is constrained by the treebank annotation guidelines.",
+        "The FTB distinguishes seven syntactic functions which can be considered as arguments of a verb.",
+        "They are listed in the top table of figure 1.",
+        "Most of them are straight",
+        "forward and do not deserve an explanation.",
+        "Something has to be said though on the syntactic function P OBJ which is used to model arguments of the verb introduced by a preposition that is neither a` nor de, such as the agent in passive form, which is introduced by the preposition par.",
+        "We have added in the SF two elements that do not correspond to arguments of the verb: the reflexive pronoun, and the passive auxiliary.",
+        "The reason for adding these elements to the SF is that their presence influences the presence or absence of some arguments of the verb, and therefore the SF.",
+        "The second important choice that must be made when defining SF is the level of abstraction, or, in other words, how much the SF abstracts away from its realization in the sentence.",
+        "In our case, we have used two ways to abstract away from the surface realization of the SF.",
+        "The first one is factoring several part of speech tags.",
+        "We have factored pronouns, common nouns and proper nouns into a single category N. We have not gathered verbs in different modes into one category since the mode of the verb influences its syntactic behavior and hence its SF.",
+        "The second means of abstraction we have used is the absence of linear order between the arguments.",
+        "Taking into account argument order increases the number of SF and, hence, data sparseness, without adding much information for selecting the correct SF, this is why we have decided to to ignore it.",
+        "In our second example above, each of the three arguments can be realized as one out of eight parts of speech that correspond to the part of speech tag N and the 24 possible orderings are represented as one canonical ordering.",
+        "This SF therefore corresponds to 12 288 possible realizations."
+      ]
+    },
+    {
+      "heading": "3.2 Treebank Extracted Subcat Frames",
+      "text": [
+        "This resource has been extracted from the TRAIN corpus.",
+        "At a first glance, it may seen strange to extract data from the corpus that have been used for training our parser.",
+        "The reason is that, as seen in section 1, SF are not directly modeled by the parser, which only takes into account subtrees made of, at most, two dependencies.",
+        "The extraction procedure of SF from the treebank is straightforward : the tree of every sentence is visited and, for every verb of the sentence, its daughters are visited, and, depending whether they are considered as arguments of the verb (with respect to the conventions or section 3.1), they are added to the SF.",
+        "The number of different verbs extracted, as well as the number of different SF and the average number of SF per verb are displayed in table 3.",
+        "Column T (for Train) is the one that we are interested in here.",
+        "The extracted resource can directly be compared with the TREELEX resource (Kupsc and Abeille?, 2008), which has been extracted from the same treebank.",
+        "The result that we obtain is different, due to the fact that (Kupsc and Abeille?, 2008) have a more abstract definition of SF.",
+        "As a consequence, they define a smaller number of SF: 58 instead of 666 in our case.",
+        "The smaller number of SF yields a smaller average number of SF per verb: 1.72 instead of 4.83 in our case."
+      ]
+    },
+    {
+      "heading": "3.3 Automatically computed Subcat Frames",
+      "text": [
+        "The extraction procedure described above has been used to extract ASF from an automatically parsed corpus.",
+        "The corpus is actually a collection of three corpora of slightly different genres.",
+        "The first one is a collection of news reports of the French press agency Agence France Presse, the second is a collection of newspaper articles from a local French newspaper : l?Est Re?publicain.",
+        "The third one is a collection of articles from the French Wikipedia.",
+        "The size of the different corpora are detailed in table 4.",
+        "The corpus was first POS tagged with the MELT tagger (Denis and Sagot, 2010), lemmatized with the MACAON tool suite (Nasr et al., 2011) and parsed in order to get the best parse for every sentence.",
+        "Then the ASF have been extracted.",
+        "The number of verbs, number of SF and average number of SF per verb are represented in table 3, in column A0 (A stands for Automatic).",
+        "As one can see, the number of verbs and SF are unrealistic.",
+        "This is due to the fact that the data that we extract SF from is noisy: it consists of automatically produced syntactic trees which contain errors (recall",
+        "that the LAS on the DEV corpus is 88, 02%).",
+        "There are two main sources of errors in the parsed data: the preprocessing chain (tokenization, part of speech tagging and lemmatization) which can consider as a verb a word that is not, and, of course, parsing errors, which tend to create crazy SF.",
+        "In order to fight against noise, we have used a simple thresh-olding: we only collect ASF that occur more than a threshold i.",
+        "The result of the thresholding appears in columns A5 and A10 , where the subscript is the value of the threshold.",
+        "As expected both the number of verbs and SF decrease sharply when increasing the value of the threshold.",
+        "Extracting SF for verbs from raw data has been an active direction of research for a long time, dating back at least to the work of (Brent, 1991) and (Manning, 1993).",
+        "More recently (Messiant et al., 2008) proposed such a system for French verbs.",
+        "The method we use for extracting SF is not novel with respect to such work.",
+        "Our aim was not to devise new extraction techniques but merely to evaluate the resource produced by such techniques for statistical parsing."
+      ]
+    },
+    {
+      "heading": "3.4 Using an existing resource",
+      "text": [
+        "The third resource that we have used is the Lefff (Lexique des formes fle?chies du franc?ais ?",
+        "Lexicon of French inflected form), a large-coverage syntactic lexicon for French (Sagot, 2010).",
+        "The Lefff was developed in a semi-automatic way: automatic tools were used together with manual work.",
+        "The latest version of the Lefff contains 10,618 verbal entries for 7,835 distinct verbal lemmas (the Lefff covers all categories, but only verbal entries are used in this work).",
+        "A sub-categorization frame consists in a list of syntactic functions, using an inventory slightly more fine-grained than in the French Treebank, and for each of them a list of possible realizations (e.g., noun phrase, infinitive clause, or null-realization if the syntactic function is optional).",
+        "For each verbal lemma, we extracted all subcategorization frames for each of the four verbal part-of-speech tags (V, VINF, VPR, VPP), thus creating an inventory of SFs in the same sense and format as described in Section 3.1.",
+        "Note that such SFs do not contain alternatives concerning the way each syntactic argument is realized or not: this extraction process includes a de-factorization step.",
+        "Its output, hereafter L, contains 801,246 distinct (lemma, SF) pairs."
+      ]
+    },
+    {
+      "heading": "3.5 Coverage",
+      "text": [
+        "In order to be able to correct SF errors, the three resources described above must possess two important characteristics: high coverage and high accuracy.",
+        "Coverage measures the presence, in the resource, of the correct SF of a verb, in a given sentence.",
+        "Accuracy measures the ability of a resource to select the correct SF for a verb in a given context when several ones are possible.",
+        "We will give in this section coverage result, computed on the DEV corpus.",
+        "Accuracy will be described and computed in section 4.",
+        "The reason why the two measures are not described together is due to the fact that coverage can be computed on a reference corpus while accuracy must be computed on the output of a parser, since it is the parser that will propose different SF for a verb in a given context.",
+        "Given a reference corpus C and a resource R, two coverage measures have been computed, lexical coverage, which measures the ratio of verbs of C that appear in R and syntactic coverage, which measures the ratio of ASF of C that appear in R. Two variants of each measures are computed: on types and on occurrences.",
+        "The values of these measures computed on the DEV corpus are summarized in table 5.",
+        "The figures of table 5 show that lexical coverage of the three resources is quite high, ranging",
+        "from 89.56 to 99.52 when computed on types and from 96.98 to 99.85 when computed on occurrences.",
+        "The lowest coverage is obtained by the T resource, which does not come as a surprise since it is computed on a rather small number of sentences.",
+        "It is also interesting to note that lexical coverage of A does not decrease much when augmenting the threshold, while the size of the resource decreases dramatically (as shown in table 3).",
+        "This validates the hypothesis that the resource is very noisy and that a simple threshold on the occurrences of ASF is a reasonable means to fight against noise.",
+        "Syntactic coverage is, as expected, lower than lexical coverage.",
+        "The best results are obtained by A0: 95.78 on types and 97.13 on occurrences.",
+        "Thresh-olding on the occurrences of anchored SF has a bigger impact on syntactic coverage than it had on lexical coverage.",
+        "A threshold of 10 yields a coverage of 88.84 on types and 92.39 on occurrences."
+      ]
+    },
+    {
+      "heading": "4 Integrating Subcat Frames in the Parser",
+      "text": [
+        "As already mentioned in section 1, SF usually exceed the domain of locality of the structures that are directly modeled by the parser.",
+        "It is therefore difficult to integrate directly SF in the model of the parser.",
+        "In order to circumvent the problem, we have decided to work on the n-best output of the parser: we consider that a verb v, in a given sentence S, can be associated to any of the SF that v licenses in one of the n-best trees.",
+        "The main weakness of this method is that an SF error can be corrected only if the right SF appears at least in one of the n-best parse trees.",
+        "In order to estimate an upper bound of the SAS that such methods can reach (how many SF errors can actually be corrected), we have computed the oracle SAS on the 100 best trees of the DEV corpus DEV (for how many verbs the correct SF appears in at least one of the n-best parse trees).",
+        "The oracle score is equal to 95.16, which means that for 95.16% of the verb occurrences of the DEV, the correct SF appears somewhere in the 100-best trees.",
+        "95.16 is therefore the best SAS that we can reach.",
+        "Recall that the baseline SAS is equal to 79.88% the room for progress is therefore equal to 15.28% absolute.",
+        "Three experiments are described below.",
+        "In the first one, section 4.1, a simple technique, called Post Processing is used.",
+        "Section 4.2 describes a second technique, called Double Parsing, which is a is a refinement of Post Processing.",
+        "Both sections 4.1 and 4.2 are based on single resources.",
+        "Section 4.3 proposes a simple way to combine the different resources."
+      ]
+    },
+    {
+      "heading": "4.1 Post Processing",
+      "text": [
+        "The post processing method (PP) is the simplest one that we have tested.",
+        "It takes as input the different ASF that occur in the n-best output of the parser as well as a resource R. Given a sentence, let's note T1 .",
+        ".",
+        ".",
+        "Tn the trees that appear in the n-best output of the parser, in decreasing order of their score.",
+        "For every verb v of the sentence, we note S(v) the set of all the SF associated to v that appear in the trees T1 .",
+        ".",
+        ".",
+        "Tn.",
+        "Given a verb v and a SF s, we define the following functions: C(v, s) is the number of occurrences of the ASF (v, s) in the trees T1 .",
+        ".",
+        ".",
+        "Tn.",
+        "F(v) is the SF associated to v in T1 CR(v, s) the number of occurrences of the ASF (v, s) in the resource R. We define a selection function as a function that selects a SF for a given verb in a given sentence.",
+        "A selection function has to take into account the information given by the resource (whether an SF is acceptable/frequent for a given verb) as well as the information given by the parser (whether the parser has a strong preference to associate a given SF to a given verb).",
+        "In our experiments, we have tested two simple selection functions.",
+        "?R which selects the first SF s ?",
+        "S(v), such that CR(v, s) > 0 when traversing the trees T1 .",
+        ".",
+        ".",
+        "Tn in the decreasing order of score (best tree first).",
+        "The second function, ?R(v) compares the most frequent SF for v in the resourceRwith the SF of the first parse.",
+        "If the ratio of the number of occurrences in the n-best of the former and the latter is above a threshold ?, the former is selected.",
+        "More formally:",
+        "The coefficient?",
+        "has been optimized on DEV corpus.",
+        "Its value is equal to 2.5 for the Automatic resource, 2 for the Train resource and 1.5 for the Lefff.",
+        "The construction of the new solution proceeds as follows: for every verb v of the sentence, a SF is selected with the selection function.",
+        "It is important to note, at this point, that the SF selected for different verbs of the sentence can pertain to different parse trees.",
+        "The new solution is built based on tree T1.",
+        "For every verb v, its arguments are potentially modified in agreement with the SF selected by the selection function.",
+        "There is no guarantee at this point that the solution is well formed.",
+        "We will return to this problem in section 4.2.",
+        "We have evaluated the PP method with different selection functions on the TEST corpus.",
+        "The results of applying function ?R were more successful.",
+        "As a result we just report the results of this function in table 6.",
+        "Different levels of thresholding for resource A gave almost the same results, we therefore used A10 which is the smallest one.",
+        "The results of table 6 show two interesting facts.",
+        "First, the SAS is improved, it jumps from 80.84 to 83.11.",
+        "PP therefore corrects some SF errors made by the parser.",
+        "It must be noted however that this improvement is much lower than the oracle score.",
+        "The second interesting fact is the very moderate increase of both LAS and UAS.",
+        "This is due to the fact that the number of dependencies modified is small with respect to the total number of dependencies.",
+        "The impact on LAS and UAS is therefore weak.",
+        "The best results are obtained with resource T .",
+        "Although the coverage of T is low, the resource is very close to the train data, this fact probably explains the good results obtained with this resource.",
+        "It is interesting, at this point, to compare our method with a reranking approach.",
+        "In order to do so, we have compared the upper bound of the number of SF errors that can be corrected when using reranking and our approach.",
+        "The results of the comparison computed on a list of 100 best trees is reported in table 7 which shows the ratio of subcat frame errors that could be corrected with a reranking approach and the ratio of errors sub-parse recombining could reach.",
+        "theory, correct a much larger number of wrong SF assignments than reranking."
+      ]
+    },
+    {
+      "heading": "4.2 Double Parsing",
+      "text": [
+        "The post processing method shows some improvement over the baseline.",
+        "But it has an important drawback: it can create inconsistent parses.",
+        "Recall that the parser we are using is based on a second order model.",
+        "In other words, the score of a dependency depends on some neighboring dependencies.",
+        "When building a new solution, the post processing method modifies some dependencies independently of their context, which may give birth to very unlikely configurations.",
+        "In order to compute a new optimal parse tree that preserves the modified dependencies, we have used a technique proposed in (Mirroshandel and Nasr, 2011) that modifies the scoring function of the parser in such a way that the dependencies that we want to keep in the parser output get better scores than all competing dependencies.",
+        "The new solution is therefore the optimal solution that preserves the dependencies modified by the PP method.",
+        "The double parsing (DP) method is therefore a three stage method.",
+        "First, sentence S is parsed, producing the n-best parses.",
+        "Then, the post processing method is used, modifying the first best parse.",
+        "Let's note D the set of dependencies that were changed in this process.",
+        "In the last stage, a new parse is produced, that preserves D.",
+        "The results of DP on TEST are reported in table 8.",
+        "SAS did not change with respect to PP, because DP keeps the SF selected by PP.",
+        "As expected DP does increase LAS and UAS.",
+        "Recomputing an optimal solution therefore increases the quality of the parses.",
+        "Table 8 also shows that the three resources get alost the same LAS and UAS although SAS is better for resource T."
+      ]
+    },
+    {
+      "heading": "4.3 Combining Resources",
+      "text": [
+        "Due to the different generation techniques of our three resources, another direction of research is combining them.",
+        "We did different experiments concerning all possible combination of resources: A and L (AL), T and L (TL), T and A (TA), and all tree (TAL) resources.",
+        "The results of these combinations for PP and DP methods are shown in tables 9 and 10, respectively.",
+        "The resource are combined in a back-off schema: we search for a candidate ASF in a first resource.",
+        "If it is found, the search stops.",
+        "Otherwise, the next resource(s) are probed.",
+        "One question that arises is: which sequence is the optimal one for combining the resources.",
+        "To answer this question, we did several experiments on DEV set.",
+        "Our experiments have shown that it is better to search T resource, then A, and, eventually, L. The results of this combining method, using PP are reported in table 9.",
+        "The best results are obtained for the TL combination.",
+        "The SAS jumps from 83.11 to 83.76.",
+        "As it was the case with single resources, the LAS and UAS increase is moderate.",
+        "With DP (table 9), the order of resource combination is exactly the same as with PP.",
+        "As was the case with single resources, DP has a positive, but moderate, impact on LAS and UAS.",
+        "The results of tables 9 and 10 do not show considerable improvement over single resources.",
+        "This might be due to the large intersection between our resources.",
+        "In other words, they do not have complementary information, and their combination will not",
+        "introduce much information.",
+        "Another possible reason for this result is the combination technique used.",
+        "More sophisticated techniques might yield better results."
+      ]
+    },
+    {
+      "heading": "5 Conclusions",
+      "text": [
+        "Subcategorization frames for verbs constitute a rich source of lexico-syntactic information which is hard to integrate in graph based parsers.",
+        "In this paper, we have used three different resources for subcategorization frames.",
+        "These resources are from different origins with various characteristics.",
+        "We have proposed two different methods to introduce the useful information from these resources in a second order model parser.",
+        "We have conducted different experiments on French Treebank that showed a 15.24% reduction of erroneous SF selections for verbs.",
+        "Although encouraging, there is still plenty of room for better results since the oracle score for 100 best parses is equal to 95.16% SAS and we reached 83.76%.",
+        "Future work will concentrate on more elaborate selection functions as well as more sophisticated ways to combine the different resources."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work has been funded by the French Agence Nationale pour la Recherche, through the project"
+      ]
+    },
+    {
+      "heading": "EDYLEX (ANR-08-CORD-009). References",
+      "text": []
+    }
+  ]
+}

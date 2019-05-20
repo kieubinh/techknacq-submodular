@@ -1,0 +1,367 @@
+{
+  "info": {
+    "authors": [
+      "Abby Levenberg",
+      "Chris Dyer",
+      "Phil Blunsom"
+    ],
+    "book": "EMNLP",
+    "id": "acl-D12-1021",
+    "title": "A Bayesian Model for Learning SCFGs with Discontiguous Rules",
+    "url": "https://aclweb.org/anthology/D12-1021",
+    "year": 2012
+  },
+  "references": [
+    "acl-C96-2141",
+    "acl-D08-1033",
+    "acl-J03-1002",
+    "acl-J07-2003",
+    "acl-J92-1002",
+    "acl-J93-2003",
+    "acl-J97-3002",
+    "acl-N03-1017",
+    "acl-N10-1033",
+    "acl-P02-1040",
+    "acl-P06-1085",
+    "acl-P06-1124",
+    "acl-P08-1012",
+    "acl-P09-1088",
+    "acl-P10-4002",
+    "acl-P11-1064",
+    "acl-P11-1087",
+    "acl-W02-1018",
+    "acl-W07-0403"
+  ],
+  "sections": [
+    {
+      "text": [
+        "Proceedings of the 2012 Joint Conference on Empirical Methods in Natural Language Processing and Computational Natural Language Learning, pages 223?232, Jeju Island, Korea, 12?14 July 2012. c?2012 Association for Computational Linguistics A Bayesian Model for Learning SCFGs with Discontiguous Rules"
+      ]
+    },
+    {
+      "heading": "Abstract",
+      "text": [
+        "We describe a nonparametric model and corresponding inference algorithm for learning Synchronous Context Free Grammar derivations for parallel text.",
+        "The model employs a Pitman-Yor Process prior which uses a novel base distribution over synchronous grammar rules.",
+        "Through both synthetic grammar induction and statistical machine translation experiments, we show that our model learns complex translational correspondences?",
+        "including discontiguous, many-to-many alignments?and produces competitive translation results.",
+        "Further, inference is efficient and we present results on significantly larger corpora than prior work."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "In the twenty years since Brown et al1992) pioneered the first word-based statistical machine translation (SMT) models substantially more expressive models of translational equivalence have been developed.",
+        "The prevalence of complex phrasal, discontiguous, and non-monotonic translation phenomena in real-world applications of machine translation has driven the development of hierarchical and syntactic models based on synchronous context-free grammars (SCFGs).",
+        "Such models are now widely used in translation and represent the state-of-the-art in most language pairs (Galley et al2004; Chiang, 2007).",
+        "However, while the models used for translation have evolved, the way in which they are learnt has not: na?",
+        "?ve word-based models are still used to infer translational correspondences from parallel corpora.",
+        "In this work we bring the learning of the minimal units of translation in step with the representational power of modern translation models.",
+        "We present a nonparametric Bayesian model of translation based on SCFGs, and we use its posterior distribution to infer synchronous derivations for a parallel corpus using a novel Gibbs sampler.",
+        "Our model is able to: 1) directly model many-to-many alignments, thereby capturing non-compositional and idiomatic translations; 2) align discontiguous phrases in both the source and target languages; 3) have no restrictions on the length of a rule, the number of nonterminal symbols per rule, or their configuration.",
+        "Learning synchronous grammars is hard due to the high polynomial complexity of dynamic programming and the exponential space of possible rules.",
+        "As such most prior work for learning SCFGs has relied on inference algorithms that were heuristically constrained or biased by word-based alignment models and small experiments (Wu, 1997; Zhang et al., 2008; Blunsom et al2009; Neubig et al2011).",
+        "In contrast to these previous attempts, our SCFG model scales to large datasets (over 1.3M sentence pairs) without imposing restrictions on the form of the grammar rules or otherwise constraining the set of learnable rules (e.g., with a word alignment).",
+        "We validate our sampler by demonstrating its ability to recover grammars used to generate synthetic datasets.",
+        "We then evaluate our model by inducing word alignments for SMT experiments in several typologically diverse language pairs and across a range of corpora sizes.",
+        "Our results attest to our model's ability to learn synchronous grammars encoding complex translation phenomena."
+      ]
+    },
+    {
+      "heading": "2 Prior Work",
+      "text": [
+        "The goal of directly inducing phrasal translation models from parallel corpora has received a lot of attention in the NLP and SMT literature.",
+        "Marcu and Wong (2002) presented an ambitious maximum likelihood model and EM inference algorithm for learning phrasal translation representations.",
+        "The first issue this model faced was a massive parameter space and intractable inference.",
+        "However a more subtle issue is that likelihood based models of this form suffer from a degenerate solution, resulting in the model learning whole sentences as phrases rather than minimal units of translation.",
+        "DeNero et al2008) recognised this problem and proposed a nonparametric Bayesian prior for contiguous phrases.",
+        "This had the dual benefits of biasing the model towards learning minimal translation units, and integrating out the parameters such that a much smaller set of statistics would suffice for inference with a Gibbs sampler.",
+        "However this work fell short by not evaluating the model independently, instead only presenting results in which it was combined with a standard word-alignment initialisation, thus leaving open the question of its efficacy.",
+        "The fact that flat phrasal models lack a structured approach to reordering has led many researchers to pursue SCFG induction instead (Wu, 1997; Cherry and Lin, 2007; Zhang et al2008; Blunsom et al., 2009).",
+        "The asymptotic time complexity of the inside algorithm for even the simplest SCFG models is O(|s|3|t|3), too high to be practical for most real translation data.",
+        "A popular solution to this problem is to heuristically restrict inference to derivations which agree with an independent alignment model (Cherry and Lin, 2007; Zhang et al., 2008).",
+        "However this may have the unintended effect of biasing the model back towards the initial alignments that they attempt to improve upon.",
+        "More recently Neubig et al2011) reported a novel Bayesian model for phrasal alignment and extraction that was able to model phrases of multiple granularities via a synchronous Adaptor Grammar.",
+        "However this model suffered from the common problem of intractable inference and results were presented for a very small number of samples from a heuristically pruned beam, making interpreting the results difficult.",
+        "Blunsom et al2009) presented an approach similar to ours that implemented a Gibbs sampler for a nonparametric Bayesian model of ITG.",
+        "While that work managed to scale to a non-trivially sized corpus, like other works it relied on a state-of-the-art word alignment model for initialisation.",
+        "Our model goes further by allowing discontiguous phrasal translation units.",
+        "Surprisingly, the freedom that this extra power affords allows the Gibbs sampler we propose to mix more quickly, allowing state-of-the-art results from a simple initialiser."
+      ]
+    },
+    {
+      "heading": "3 Model",
+      "text": [
+        "We use a nonparametric generative model based on the 2-parameter Pitman-Yor process (PYP) (Pitman and Yor, 1997), a generalisation of the Dirichlet Process, which has been used for various NLP modeling tasks with state-of-the-art results such as language modeling, word segmentation, text compression and part of speech induction (Teh, 2006; Goldwater et al., 2006; Wood et al2011; Blunsom and Cohn, 2011).",
+        "In this section we first provide a brief definition of the SCFG formalism and then describe our PYP prior for them."
+      ]
+    },
+    {
+      "heading": "3.1 Synchronous Context-Free Grammar",
+      "text": [
+        "An synchronous context-free grammar (SCFG) is a 5-tuple ?",
+        "?,?, V, S,R?",
+        "that generalises context-free grammar to generate strings concurrently in two languages (Lewis and Stearns, 1968).",
+        "?",
+        "is a finite set of source language terminal symbols, ?",
+        "is a finite set of target language terminal symbols, V is a set of nonterminal symbols, with a designated start symbol S, and R is a set of synchronous rewrite rules.",
+        "A string pair is generated by starting with the pair ?S1 |S1?",
+        "and recursively applying rewrite rules of the form X ?",
+        "?s, t, a?",
+        "where the left hand side",
+        "In a probabilistic SCFG, rules are associated with probabilities such that the probabilities of all rewrites of a particular LHS category sum to 1.",
+        "Translation with SCFGs is carried out by parsing the source language with the monolingual source language projection of the grammar (using standard monolingual parsing algorithms), which induces a parallel tree structure and translation in the target language (Chiang, 2007).",
+        "Alignment or synchronous parsing is the process of concurrently parsing both the source and target sentences, uncovering the derivation or derivations that give rise to a string pair (Wu, 1997; Dyer, 2010).",
+        "Our goal is to infer the most probable SCFG derivations that explain a corpus of parallel sentences, given a nonparametric prior over probabilistic SCFGs.",
+        "In this work we will consider grammars with a single nonterminal category X."
+      ]
+    },
+    {
+      "heading": "3.2 Pitman-Yor Process SCFG",
+      "text": [
+        "Before training we have no way of knowing how many rules will be needed in our grammar to adequately represent the data.",
+        "By using the Pitman-Yor process as a prior on the parameters of a synchronous grammar we can formulate a model which prefers smaller numbers of rules that are reused often, thereby avoiding degenerate grammars consisting of large, overly specific rules.",
+        "However, as the data being fit grows, the model can become more complex.",
+        "The PYP is parameterised by a discount parameter d, a strength parameter ?, and the base distribution G0, which gives the prior probability of an event (in our case, events are rules) before any observations have occurred.",
+        "The discount is subtracted from each positive rule count and dampens the rich get richer effect where frequent rules are given higher probability compared to infrequent ones.",
+        "The strength parameter controls the variance, or concentration, about the base distribution.",
+        "In our model, a draw from a PYP is a distribution over SCFG rules with a particular LHS (in fact, it is a distribution over all well-formed rules).",
+        "From this distribution we can in turn draw individual rules: GX ?",
+        "PY(d, ?,G0), X ?",
+        "?s, t, a?",
+        "?",
+        "GX .",
+        "Although the PYP has no known analytical form, we can marginalise out the GX 's and reason about",
+        "grammar rule in our G0.",
+        "individual rules directly using the process described by Teh (2006).",
+        "In this process, at time n a rule rn is generated by stochastically deciding whether to make another copy of a previously generated rule or to draw a new one from the base distribution, G0.",
+        "Let ?",
+        "= (?1, ?2, .",
+        ".",
+        ".)",
+        "be the sequence of draws from G0; thus |?",
+        "|is the total number of draws from G0.",
+        "A rule rn corresponds to a selection of a ?k.",
+        "Let ck be a counter indicating the number of times ?k has been selected.",
+        "In particular, we set rn to ?k with probability ck ?",
+        "d ?",
+        "+ n , and increment ck, or with probability ?",
+        "+ d ?",
+        "|?| ?",
+        "+ n , we draw a new rule from G0, append it to ?, and use it for rn."
+      ]
+    },
+    {
+      "heading": "3.3 Base Distribution",
+      "text": [
+        "The base distribution G0 for the PYP assigns probability to a rule based our belief about what constitutes a good rule independent of observing any of",
+        "the data.",
+        "We describe a novel generative process for all rules X ?",
+        "?s, t, a?",
+        "that encodes these beliefs.",
+        "We describe the generative process generally here in text, and readers may refer to the example in Figure 1.",
+        "The process begins by generating the source length (total number of terminal and nonterminal symbols, written |s|) by drawing from a Poisson dis",
+        "This assigns high probability to shorter rules, but arbitrarily long rules are possible with a low probability.",
+        "Then, for every position in s, we decide whether it will contain a terminal or nonterminal symbol by repeated, independent draws from a Bernoulli distribution.",
+        "Since we believe that shorter rules should be relatively more likely to contain terminal symbols than longer rules, we define the probability of a terminal symbol to be ?|s |where",
+        "We next generate the length of the target side of the rule.",
+        "Let #NT(s) denote the number of nonterminal symbols we generated in s, i.e., the arity of the rule.",
+        "Our intuition here is that source and target lengths should be similar.",
+        "However, to ensure that the rule is well-formed, t must contain exactly as many nonterminal symbols as the source does.",
+        "We therefore draw the number of target terminal symbols from a Poisson whose mean is the number of terminal symbols in the source, plus a small constant ?0 to ensure that it is greater than zero:",
+        "We then determine whether each position in t is a terminal or nonterminal symbol by drawing uniformly from the bag of #NT(s) source nontermi-nals and |t |?",
+        "#NT(s) terminal indicators, without replacement.",
+        "At this point we have created a rule template which indicates how large the rule is, whether each position contains a terminal or nonterminal symbol, and the reordering of the source nonterminals a.",
+        "To conclude the process we must select the terminal types from the source and target vocabularies.",
+        "To do so, we use the following distribution:",
+        "where PM1?",
+        "(s, t) (PM1?",
+        "(s, t)) first generates the source (target) terminals from uniform draws from the vocabulary, then generates the string in the other language according to IBM MODEL 1, marginalizing over the alignments (Brown et al1993)."
+      ]
+    },
+    {
+      "heading": "4 Gibbs Sampler",
+      "text": [
+        "In this section we introduce a Gibbs sampler that enables us to perform posterior inference given a corpus of sentence pairs.",
+        "Our innovation is to represent the synchronous derivation of a sentence pair in a hierarchical 4-dimensional binary alignment grid, with elements z[s,t,u,v] ?",
+        "{0, 1}.",
+        "The settings of the grid variables completely determine the SCFG rules in the current derivation.",
+        "A setting of a binary variable z[s,t,u,v] = 1 represents a constituent linking the source span [s, t] and the target span [u, v] in the current derivation; variables with a value of 0 indicate no link between spans [s, t] and [u, v].2 This relationship from our grid representation is illustrated in Figure 2a.",
+        "Our Gibbs sampler operates over the space of all the random variables z[s,t,u,v], resampling one at a time.",
+        "Changes to a single variable imply that at most two additional rules must be generated, as illustrated in Figure 2b.",
+        "The probability of choosing a binary setting of 0 or 1 for a variable is proportional to the probability of generating the two derivations under the model described in the previous section.",
+        "Note that for a given sentence, most of the bispan variables must be set to 0 otherwise they would violate the strict nesting constraint required for valid SCFG derivations.",
+        "We discuss below how to exploit this fact to limit the number of binary variables that must be resampled for each sentence.",
+        "To be valid, a Gibbs sampler must be ergodic and satisfy detailed balance.",
+        "Ergodicity requires that there is non-zero probability that any state in the sampler be reachable from any other state.",
+        "Clearly 2Our grid representation is the synchronous generalisation of the well-known correspondence between CFG derivations and Boolean matrices; see Lee (2002) for an overview.",
+        "able (here, z[1,3,2,3], shown in blue) to determine whether it should be subtracted from the immediately dominating rule (bispan in red) and made into a child rule in the derivation.",
+        "This would require the addition of the following two rules:",
+        "our operator satisfies this since given any configuration of the alignment grid we can use the toggle operator to flatten the derivation to a single rule and then break it back down to reach any derivation.",
+        "Detailed balance requires that the probability of transitioning between two possible adjacent sampler states respects their joint probabilities in the stationary distribution.",
+        "One way to ensure this is to make the order in which bispan variables are visited deterministic and independent of the variables?",
+        "current settings.",
+        "Then, the probability of the sampler targeting any bispan in the grid is equal regardless of the current configuration of the alignment grid.",
+        "A naive instantiation of this strategy is to visit all |s|2|t|2 bispans in some order.",
+        "However, since we wish to be able to draw many samples, this is not computationally feasible.",
+        "A much more efficient approach avoids resampling variables that would result in violations without visiting each of them individually.",
+        "However, to ensure detailed balanced is maintained, the order that we resample bispans has to match the order we would sample them using any exhaustive approach.",
+        "We achieve this by always checking a derivation top-down, from largest to smallest bispan.",
+        "Under this ordering, whether or not a smaller bispan is visited will be independent of how the larger ones were resampled.",
+        "Furthermore, the set of variables that may be resampled is fixed given this ordering.",
+        "Therefore, the probability of sampling any possible bispan in the sentence pair is still uniform (ensuring detailed balance), while our sampler remains fast."
+      ]
+    },
+    {
+      "heading": "5 Evaluation",
+      "text": [
+        "The preceding sections have introduced a model, and accompanying inference technique, designed to induce a posterior distribution over SCFG derivations containing discontiguous and phrasal translation rules.",
+        "The evaluation that follows aims to determine our models ability to meet these design goals, and to do so in a range of translation scenarios.",
+        "In order to validate both the model and the sampler's ability to learn an SCFG we first conduct a synthetic experiment in which the true grammar is",
+        "known.",
+        "Subsequently we conduct a series of experiments on real parallel corpora of increasing sizes to explore the empirical properties of our model."
+      ]
+    },
+    {
+      "heading": "5.1 Synthetic Data Experiments",
+      "text": [
+        "Prior work on SCFG induction for SMT has validated modeling claims by reporting BLEU scores on real translation tasks.",
+        "However, the combination of noisy data and the complexity of SMT pipelines conspire to obscure whether models actually achieve their design goals, normally stated in terms of an ability to induce SCFGs with particular properties.",
+        "Here we include a small synthetic data experiment to clearly validate our models ability to learn an SCFG that includes discontiguous and phrasal translation rules with non-monotonic word order.",
+        "Using the probabilistic SCFG shown in the top half of Table 1 we stochastically generated three thousand parallel sentence pairs as training data for our model.",
+        "We then ran the Gibbs sampler for fifty iterations through the data.",
+        "The bottom half of Table 1 lists the five rules with the highest marginal probability estimated by the sampler.",
+        "Encouragingly our model was able to recover a grammar very close to the original.",
+        "Even for such a small grammar the space of derivations is enormous and the task of recovering it from a data sample is non-trivial.",
+        "The divergence from the true probabilities is due to the effect of the prior assigning shorter rules higher probability.",
+        "With a larger data sample we would expect the influence of the prior in the posterior to diminish."
+      ]
+    },
+    {
+      "heading": "5.2 Machine Translation Evaluation",
+      "text": [
+        "Ultimately the efficacy of a model for SCFG induction will be judged on its ability to underpin a state-of-the-art SMT system.",
+        "Here we evaluate our model by applying it to learning word alignments for parallel corpora from which SMT systems are induced.",
+        "We train models across a range of corpora sizes and for language pairs that exhibit the type of complex",
+        "alignment phenomena that we are interested in modeling: Chinese ?",
+        "English (ZH-EN), Urdu ?",
+        "English (UR-EN) and German ?",
+        "English (DE-EN)."
+      ]
+    },
+    {
+      "heading": "Data and Baselines",
+      "text": [
+        "The UR-EN corpus is the smallest of those used in our experiments and is taken from the NIST 2009"
+      ]
+    },
+    {
+      "heading": "GRAMMAR RULE TRUE PROBABILITY",
+      "text": [
+        "synthetic data, and the five most probable inferred rules by our model.",
+        "medium scale and comes from the FBIS corpus.",
+        "The DE-EN pair constitutes the largest corpus and is taken from Europarl, the proceedings of the European Parliament (Koehn, 2003).",
+        "Statistics for the data are shown in Table 2.",
+        "We measure translation quality via the BLEU score (Papineni et al2001).",
+        "All translation systems employ a Hiero translation model during decoding.",
+        "Baseline word alignments were obtained by running GIZA++ in both directions and symmetrizing using the grow-diag-final-and heuristic (Och and Ney, 2003; Koehn et al2003).",
+        "Decoding was performed with the cdec decoder (Dyer et al. 2010) with the synchronous grammar extracted using the techniques developed by Lopez (2008).",
+        "All translation systems include a 5-gram language model built from a five hundred million token subset",
+        "MODEL 1 INITIALISATION column is from the initialisation alignments using MODEL 1 and no sampling.",
+        "The PYP-SCFG columns show results for the 500th sample for both MODEL 1 and HMM initialisations.",
+        "of all the English data made available for the NIST 2009 shared task (Graff, 2003)."
+      ]
+    },
+    {
+      "heading": "Experimental Setup",
+      "text": [
+        "To obtain the PYP-SCFG word alignments we ran the sampler for five hundred iterations for each of the language pairs and experimental conditions described below.",
+        "We used the approach of Newman et al2007) to distribute the sampler across multiple threads.",
+        "The strength ?",
+        "and discount d hyper-parameters of the Pitman-Yor Processes, and the terminal penalty ?",
+        "(Section 3.3), were inferred using slice sampling (Neal, 2000).",
+        "The Gibbs sampler requires an initial set of derivations from which to commence sampling.",
+        "In our experiments we investigated both weak and a strong initialisations, the former based on word alignments from IBM Model 1 and the latter on alignments from an HMM model (Vogel et al. 1996).",
+        "For decoding we used the word alignments implied by the derivations in the final sample to extract a Hiero grammar with the same standard set of relative frequency, length, and language model features used for the baseline."
+      ]
+    },
+    {
+      "heading": "Weak Initialisation",
+      "text": [
+        "Our first translation experiments ascertain the degree to which our proposed Gibbs sampling inference algorithm is able to learn good synchronous derivations for the PYP-SCFG model.",
+        "A number of prior works on alignment with Gibbs samplers have only evaluated models initialised with the more complex GIZA++ alignment models (Blunsom et al2009; DeNero et al2008), as a result it can be difficult to separate the performance of the sampler from that of the initialisation.",
+        "In order to do this, we initialise the sampler",
+        "PYP-SCFG models after the 500th sample for the different initialisations.",
+        "using just the MODEL 1 distribution used in the PYP-SCFG model's base distribution.",
+        "We denote this a weak initialisation as no alignment models outside of those included in the PYP-SCFG model influence the resulting word alignments.",
+        "The BLEU scores for translation systems built from the five hundredth sample are show in the WEAK M1 INIT.",
+        "column of Table 3.",
+        "Additionally we build a translation system from the MODEL 1 alignment used to initialise the sampler without using using our PYP-SCFG model or sampling.",
+        "BLEU scores are shown in the MODEL 1 INITIALISATION column of Table 3.",
+        "Firstly it is clear MODEL 1 is indeed a weak initialiser as the resulting translation systems achieve uniformly low BLEU scores.",
+        "In contrast, the models built from the output of the Gibbs sampler for the PYP-SCFG model achieve BLEU scores comparable to those of the MODEL 4 BASELINE.",
+        "Thus the sampler has moved a good distance from its initialisation, and done so in a direction that results in better synchronous derivations."
+      ]
+    },
+    {
+      "heading": "Strong Initialisation",
+      "text": [
+        "Given we have established that the sampler can produce state-of-the-art translation results from a",
+        "weak initialisation, it is instructive to investigate whether initialising the model with a strong alignment system, the GIZA++ HMM (Vogel et al., 1996), leads to further improvements.",
+        "Column HMM INIT.",
+        "of Table 3 shows the results for initialising with the HMM word alignments and sampling for 500 iterations.",
+        "Starting with a stronger initial sample results in both quicker mixing and better translation quality for the same number of sampling iterations.",
+        "Table 4 compares the average lengths of the rules produced by the sampler with both the strong and weak initialisers.",
+        "As the size of the training corpora increases (UR-EN ?",
+        "ZH-EN ?",
+        "DE-EN) we see that the average size of the rules produced by the weakly initialised sampler also increases, while that of the strongly initialised model stays relatively uniform.",
+        "Initially both samplers start out with a large number of long rules and as the sampling progresses the rules are broken down into smaller, more generalisable, pieces.",
+        "As such we conclude from these metrics that after five hundred samples the strongly initialised model has converged to sampling from a mode of the distribution while the weakly initialised model converges more slowly and on the longer corpora is still travelling towards a mode.",
+        "This suggests that longer sampling runs, and Gibbs operators that make simultaneous updates to multiple parts of a derivation, would enable the weakly initialised model to obtain better translation results."
+      ]
+    },
+    {
+      "heading": "Grammar Analysis",
+      "text": [
+        "The BLEU scores are informative as a measure of translation quality but we also explored some of the differences in the grammars obtained from the PYP-SCFG model compared to the standard approach.",
+        "In Figures 3 and 4 we show some basic statistics of the grammars our model produces.",
+        "From Figure 3 we see that the number of unique rules in the PYP-SCFG grammar decreases steadily as the sampler iterates through the data, so the model is finding an increasingly sparser distribution with fewer but better quality rules as sampling progresses.",
+        "Note that the gradient of the curves appears to be a function of the size of the corpus and suggests that the model built from the large DE-EN corpus would benefit from a longer sampling run.",
+        "Figure 4 shows the distribution of rules with a given arity as a percentage",
+        "pair as a function of the number of samples.",
+        "The number of rule types decreases monotonically as sampling continues.",
+        "Rule counts are displayed by normalised corpus size (see Table 2).",
+        "the Hiero grammar built from the PYP-SCFG that are not in the baseline Hiero grammar (top), and the top five rules in the baseline Hiero grammar that are not in the PYP-SCFG grammar (bottom).",
+        "An * indicates a bad translation rule.",
+        "of the full grammar after the final sampling iteration.",
+        "The model prior biases the results to shorter rules as the vast majority of the model probability mass is on rules with zero, one or two nonterminals.",
+        "Tables 5 and 6 show the most probable rules in the Hiero translation system obtained using the PYP-SCFG alignments that are not present in the TM from the GIZA++ alignments and visa versa.",
+        "For both language pairs, four of the top five rules in",
+        "Hiero grammar from sampled PYP-SCFG alignments (top) versus the baseline UR-EN Hiero grammar rules not in the sampled grammar (bottom).",
+        "An * indicates a bad translation rule.",
+        "in the final grammar of the PYP-SCFG model.",
+        "the PYP-SCFG grammar that are not in the heuristically extracted grammar are correct and minimal phrasal units of translation, whereas only two of the top probability rules in the GIZA++ grammar are of good translation quality."
+      ]
+    },
+    {
+      "heading": "6 Conclusion and Further Work",
+      "text": [
+        "In this paper we have presented a nonparametric Bayesian model for learning SCFGs directly from parallel corpora.",
+        "We have also introduced a novel Gibbs sampller that allows for efficient posterior inference.",
+        "We show state-of-the-art results and learn complex translation phenomena, including discontiguous and many-to-many phrasal alignments, without applying any heuristic restrictions on the model to make learning tractable.",
+        "Our evaluation shows that we can use a principled approach to induce SCFGs designed specifically to utilize the full power of grammar based SMT instead of relying on complex word alignment heuristics with inherent bias.",
+        "Future work includes the obvious extension to learning SCFGs that contain multiple nonterminals instead of a single nonterminal grammar.",
+        "We also expect that expanding our sampler beyond strict binary sampling may allow us to explore the space of hierarchical word alignments more quickly allowing for faster mixing.",
+        "We expect with these extensions our model of grammar induction may further improve translation output."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "This work was supported by a grant from Google, Inc. and EPRSRC grant no.",
+        "EP/I010858/1 (Levenberg and Blunsom), the U. S. Army Research Laboratory and U. S. Army Research Office under contract/grant no.",
+        "W911NF-10-1-0533 (Dyer)."
+      ]
+    }
+  ]
+}

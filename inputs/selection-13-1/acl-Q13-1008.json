@@ -1,0 +1,388 @@
+{
+  "info": {
+    "authors": [
+      "Jiwei Li",
+      "Sujian Li"
+    ],
+    "book": "TACL",
+    "id": "acl-Q13-1008",
+    "title": "A Novel Feature-based Bayesian Model for Query Focused Multi-document Summarization",
+    "url": "https://aclweb.org/anthology/Q13-1008",
+    "year": 2013
+  },
+  "references": [
+    "acl-D09-1026",
+    "acl-H05-1115",
+    "acl-N06-1059",
+    "acl-N09-1041",
+    "acl-P06-1039",
+    "acl-P10-1084",
+    "acl-W02-0401",
+    "acl-W10-4327",
+    "acl-W11-0507"
+  ],
+  "sections": [
+    {
+      "text": [
+        "Transactions of the Association for Computational Linguistics, 1 (2013) 89?98.",
+        "Action Editor: Noah Smith.",
+        "Submitted 12/2012; Published 5/2013.",
+        "c?2013 Association for Computational Linguistics."
+      ]
+    },
+    {
+      "heading": "Abstract",
+      "text": [
+        "Supervised learning methods and LDA based topic model have been successfully applied in the field of multi-document summarization.",
+        "In this paper, we propose a novel supervised approach that can incorporate rich sentence features into Bayesian topic models in a principled way, thus taking advantages of both topic model and feature based supervised learning methods.",
+        "Experimental results on DUC2007, TAC2008 and TAC2009 demonstrate the effectiveness of our approach."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Query-focused multi-document summarization (Nenkova et al., 2006; Wan et al., 2007; Ouyang et al., 2010) can facilitate users to grasp the main idea of documents.",
+        "In query-focused summarization, a specific topic description, such as a query, which expresses the most important topic information is proposed before the document collection, and a summary would be generated according to the given topic.",
+        "Supervised models have been widely used in summarization (Li, et al., 2009, Shen et al., 2007, Ouyang et al., 2010).",
+        "Supervised models usually regard summarization as a classification or regression problem and use various sentence features to build a classifier based on labeled negative or positive samples.",
+        "However, existing supervised approaches seldom exploit the intrinsic structure among sentences.",
+        "This disadvantage usually gives rise to serious problems such as unbalance and low recall in summaries.",
+        "Recently, LDA-based (Blei et al., 2003) Bayesian topic models have widely been applied in multi-document summarization in that Bayesian approaches can offer clear and rigorous probabilistic interpretations for summaries(Daumé and Marcu, 2006; Haghighi and Vanderwende, 2009; Jin et al., 2010; Mason and Charniak, 2011; Delort and Alfon-seca, 2012).",
+        "Exiting Bayesian approaches label sentences or words with topics and sentences which are closely related with query or can highly generalize documents are selected into summaries.",
+        "However, LDA topic model suffers from the intrinsic disadvantages that it only uses word frequency for topic modeling and can not use useful text features such as position, word order etc (Zhu and Xing, 2010).",
+        "For example, the first sentence in a document may be more important for summary since it is more likely to give a global generalization about the document.",
+        "It is hard for LDA model to consider such information, making useful information lost.",
+        "It naturally comes to our minds that we can improve summarization performance by making full use of both useful text features and the latent semantic structures from by LDA topic model.",
+        "One related work is from Celikyilmaz and Hakkani-Tur (2010).",
+        "They built a hierarchical topic model called Hybh-sum based on LDA for topic discovery and assumed this model can produce appropriate scores for sentence evaluation.",
+        "Then the scores are used for tuning the weights of various features that helpful for summary generation.",
+        "Their work made a good step of combining topic model with feature based supervised learning.",
+        "However, what their approach confuses us is that whether a topic model only based on word frequency is good enough to generate an appropriate sentence score for regression.",
+        "Actually, how to incorporate features into LDA topic model has been a open problem.",
+        "Supervised topic models such as sLDA(Blei and MacAuliffe 2007) give us some inspiration.",
+        "In sLDA, each document is associated with a labeled feature and sLDA can integrate such feature into LDA for topic modeling in a prin",
+        "cipled way.",
+        "With reference to the work of supervised LDA models, in this paper, we propose a novel sentence feature based Bayesian model S-sLDA for multi-document summarization.",
+        "Our approach can naturally combine feature based supervised methods and topic models.",
+        "The most important and challenging problem in our model is the tuning of feature weights.",
+        "To solve this problem, we transform the problem of finding optimum feature weights into an optimization algorithm and learn these weights in a supervised way.",
+        "A set of experiments are conducted based on the benchmark data of DUC2007, TAC2008 and TAC2009, and experimental results show the effectiveness of our model.",
+        "The rest of the paper is organized as follows.",
+        "Section 2 describes some background and related works.",
+        "Section 3 describes our details of S-sLDA model.",
+        "Section 4 demonstrates details of our approaches, including learning, inference and summary generation.",
+        "Section 5 provides experiments results and Section 6 concludes the paper."
+      ]
+    },
+    {
+      "heading": "2 Related Work",
+      "text": [
+        "A variety of approaches have been proposed for query-focused multi-document summarizations such as unsupervised (semi-supervised) approaches, supervised approaches, and Bayesian approaches.",
+        "Unsupervised (semi-supervised) approaches such as Lexrank (Erkan and Radex, 2004), manifold (Wan et al., 2007) treat summarization as a graph-based ranking problem.",
+        "The relatedness between the query and each sentence is achieved by imposing querys influence on each sentence along with the propagation of graph.",
+        "Most supervised approaches regard summarization task as a sentence level two class classification problem.",
+        "Supervised machine learning methods such as Support Vector Machine(SVM) (Li, et al., 2009), Maximum Entropy (Osborne, 2002) , Conditional Random Field (Shen et al., 2007) and regression models (Ouyang et al., 2010) have been adopted to leverage the rich sentence features for summarization.",
+        "Recently, Bayesian topic models have shown their power in summarization for its clear probabilistic interpretation.",
+        "Daumé and Marcu (2006) proposed Bayesum model for sentence extraction based on query expansion concept in information retrieval.",
+        "Haghighi and Vanderwende (2009) proposed topic-sum and hiersum which use a LDA-like topic model and assign each sentence a distribution over background topic, doc-specific topic and content topics.",
+        "Celikyilmaz and Hakkani-Tur (2010) made a good step in combining topic model with supervised feature based regression for sentence scoring in summarization.",
+        "In their model, the score of training sentences are firstly got through a novel hierarchical topic model.",
+        "Then a featured based support vector regression (SVR) is used for sentence score prediction.",
+        "The problem of Celikyilmaz and Hakkani-Turs model is that topic model and feature based regression are two separate processes and the score of training sentences may be biased because their topic model only consider word frequency and fail to consider other important features.",
+        "Supervised feature based topic models have been proposed in recent years to incorporate different kinds of features into LDA model.",
+        "Blei (2007) proposed sLDA for document response pairs and Daniel et al. (2009) proposed Labeled LDA by defining a one to one correspondence between latent topic and user tags.",
+        "Zhu and Xing (2010) proposed conditional topic random field (CTRF) which addresses feature and independent limitation in LDA."
+      ]
+    },
+    {
+      "heading": "3 Model description",
+      "text": []
+    },
+    {
+      "heading": "3.1 LDA and sLDA",
+      "text": [
+        "The hierarchical Bayesian LDA (Blei et al., 2003) models the probability of a corpus on hidden topics as shown in Figure 1(a).",
+        "Let K be the number of topics , M be the number of documents in the corpus and V be vocabulary size.",
+        "The topic distribution of each document ?m is drawn from a prior Dirichlet distribution Dir(?",
+        "), and each document word wmn is sampled from a topic-word distribution ?z specified by a drawn from the topic-document distribution ?m.",
+        "?",
+        "is a K ?M dimensional matrix and each ?k is a distribution over the V terms.",
+        "The generating procedure of LDA is illustrated in Figure 2.",
+        "?m is a mixture proportion over topics of document m and zmn is a K dimensional variable that presents the topic assignment distribution of different words.",
+        "Supervised LDA (sLDA) (Blei and McAuliffe 2007) is a document feature based model and intro",
+        "1.",
+        "Draw a document proportion vector ?m|?",
+        "?",
+        "Dir(?)",
+        "2.",
+        "For each word in m",
+        "duces a response variable to each document for topic discovering, as shown in Figure 1(b).",
+        "In the generative procedure of sLDA, the document pairwise label is draw from y|?",
+        "?zm, ?, ?2 ?",
+        "p(y|?",
+        "?zm, ?, ?2), where?",
+        "?zm = 1N"
+      ]
+    },
+    {
+      "heading": "3.2 Problem Formulation",
+      "text": [
+        "Here we firstly give a standard formulation of the task.",
+        "Let K be the number of topics, V be the vocabulary size and M be the number of documents.",
+        "Each document Dm is represented with a collection of sentence Dm = {Ss}s=Nms=1 where Nm denotes the number of sentences in mth document.",
+        "Each sentence is represented with a collection of words {wmsn}n=Nmsn=1 where Nms denotes the number of words in current sentence.",
+        "??",
+        "?Yms denotes the feature vector of current sentence and we assume that these features are independent."
+      ]
+    },
+    {
+      "heading": "3.3 S-sLDA",
+      "text": [
+        "zms is the hidden variable indicating the topic of current sentence.",
+        "In S-sLDA, we make an assumption that words in the same sentence are generated from the same topic which was proposed by Gruber (2007).",
+        "zmsn denotes the topic assignment of current word.",
+        "According to our assumption, zmsn = Figure 3: Graph model for S-sLDA model",
+        "1.",
+        "Draw a document proportion vector ?m|?",
+        "?",
+        "Dir(?)",
+        "2.",
+        "For each sentence in m",
+        "zms for any n ?",
+        "[1, Nms].",
+        "The generative approach of S-sLDA is shown in Figure 3 and Figure 4.",
+        "We can see that the generative process involves not only the words within current sentence, but also a series of sentence features.",
+        "The mixture weights over features in S-sLDA are defined with a generalized linear model (GLM).",
+        "Here we assume that each sentence has T features and ??",
+        "?Yms is a T ?",
+        "1 dimensional vector.",
+        "?",
+        "is a K ?",
+        "T weight matrix of each feature upon topics, which largely controls the feature generation procedure.",
+        "Unlike s-LDA where ?",
+        "is a latent variable estimated from the maximum likelihood estimation algorithm, in S-sLDA the value of ?",
+        "is trained through a supervised algorithm which will be illustrated in detail in Section 3."
+      ]
+    },
+    {
+      "heading": "3.4 Posterior Inference and Estimation",
+      "text": [
+        "Given a document and labels for each sentence, the posterior distribution of the latent variables is: p(?, z1:N |w1:N , Y, ?, ?1:K , ?)",
+        "=",
+        "Eqn.",
+        "(2) cannot be efficiently computed.",
+        "By applying the Jensens inequality, we obtain a lower bound of the log likelihood of document",
+        "where H(q) = ?E[logq] and it is the entropy of variational distribution q is defined as",
+        "here ?",
+        "a K-dimensional Dirichlet parameter vector and multinomial parameters.",
+        "The first, third and forth terms of Eqn.",
+        "(3) are identical to the corresponding terms for unsupervised LDA (Blei et al., 2003).",
+        "The second term is the expectation of log probability of features given the latent topic assignments.",
+        "where E(zms)T is a 1 ?",
+        "K dimensional vector [?msk]k=Kk=1 .",
+        "The Bayes estimation for S-sLDA model can be got via a variational EM algorithm.",
+        "In EM procedure, the lower bound is firstly minimized with respect to ?",
+        "and ?, and then minimized with ?",
+        "and ?",
+        "by fixing ?",
+        "and ?.",
+        "E-step: The updating of Dirichlet parameter ?",
+        "is identical to that of unsupervised LDA, and does not involve feature vector ??",
+        "?Yms.",
+        "where ?(?)",
+        "denotes the log ?",
+        "function.",
+        "ms denotes the document that current sentence comes from and Yst denotes the tth feature of sentence s. M-step: The M-step for updating ?",
+        "is the same as the procedure in unsupervised LDA, where the probability of a word generated from a topic is proportional to the number of times this word assigned to the topic."
+      ]
+    },
+    {
+      "heading": "4 Our Approach",
+      "text": []
+    },
+    {
+      "heading": "4.1 Learning",
+      "text": [
+        "In this subsection, we describe how we learn the feature weight ?",
+        "in a supervised way.",
+        "The learning process of ?",
+        "is a supervised algorithm combined with variational inference of S-sLDA.",
+        "Given a topic description Q1 and a collection of training sentences S from related documents, human assessors assign a score v(v = ?2,?1, 0, 1, 1) to each sentence in S. The score is an integer between?2 (the least desired summary sentences) and +2 (the most desired summary sentences), and score 0 denotes neutral attitude.",
+        "Ov = {ov1, ov2, ..., vvk}(v = ?2,?1, 0, 1, 2) is the set containing sentences with score v. Let ?Qk denote the probability that query is generated from topic k. Since query does not belong to any document, we use the following strategy to leverage ?Qk",
+        "seen as the average probability that all documents in the corpus are talking about topic k. Eqn.",
+        "(9) is based on the assumption that query topic is relevant to the main topic discussed by the document corpus.",
+        "This is a reasonable assumption and most previous LDA summarization models are based on similar assumptions.",
+        "Next, we define ?Ov ,k for sentence set Ov, which can be interpreted as the probability that all sentences in collection Ov are generated from topic k.",
+        "|Ov |denotes the number of sentences in set Ov.",
+        "Inspired by the idea that desired summary sentences would be more semantically related with the query, we transform problem of finding optimum ?",
+        "to the following optimization problem:",
+        "where KL(Ov||Q) is the Kullback-Leibler divergence between the topic and sentence set Ov as shown in Eqn.",
+        "(12).",
+        "In Eqn.",
+        "(11), we can see that O2, which contain desirable sentences, would be given the largest penalty for its KL divergence from Query.",
+        "The case is just opposite for undesired set.",
+        "Our idea is to incorporate the minimization process of Eqn.",
+        "(11) into variational inference process of S-sLDA model.",
+        "Here we perform gradient based optimization method to minimize Eqn.(11).",
+        "Firstly, we derive the gradient of L(?)",
+        "with respect to ?."
+      ]
+    },
+    {
+      "heading": "4.2 Feature Space",
+      "text": [
+        "Lots of features have been proven to be useful for summarization (Louis et al., 2010).",
+        "Here we discuss several types of features which are adopted in S-sLDA model.",
+        "The feature values are either binary or normalized to the interval [0,1].",
+        "The following features are used in S-sLDA: Cosine Similarity with query: Cosine similarity is based on the tf-idf value of terms.",
+        "2This is reasonable because the influence of ?",
+        "and ?",
+        "have been embodied in ?",
+        "during each iteration.",
+        "Local Inner-document Degree Order: Local Inner document Degree Order is a binary feature which indicates whether Inner-document Degree (IDD) of sentence s is the largest among its neighbors.",
+        "IDD means the edge number between s and other sentences in the same document.",
+        "Document Specific Word: 1 if a sentence contains document specific word, 0 otherwise.",
+        "Average Unigram Probability (Nenkova and Vanderwende, 2005; Celikyilmaz and Hakkani-Tur 2010): As for sentence s, p(s) = ?w's 1|s|pD(w), where pD(w) is the observed unigram probability in document collection.",
+        "In addition, we also use the commonly used features including sentence position, paragraph position, sentence length and sentence bigram frequency.",
+        "E-step initialize ?0sk := 1/K for all i and s. initialize ?mi := ?mi +N)m/K for all i. initialize ?kt = 0 for all k and t. while not convergence for m = 1 : M update ?t+1m according to Eqn.",
+        "(6) for s = 1 : Nm for k = 1 : K update ?t+1sk according to Eqn.",
+        "(7) normalize the sum of ?t+1sk to 1.Minimize L(?)",
+        "according to Eqn.(11)-(15).",
+        "M-step: update ?",
+        "according to Eqn.",
+        "(8)"
+      ]
+    },
+    {
+      "heading": "4.3 Sentence Selection Strategy",
+      "text": [
+        "Next we explain our sentence selection strategy.",
+        "According to our intuition that the desired summary should have a small KL divergence with query, we propose a function to score a set of sentences Sum.",
+        "We use a decreasing logistic function ?",
+        "(x) = 1/(1+ ex) to refine the score to the range of (0,1).",
+        "Let Sum?",
+        "denote the optimum update summary.",
+        "We can get Sum?",
+        "by maximizing the scoring function.",
+        "1.",
+        "Learning: Given labeled set Ov, learn the feature weight vector ?",
+        "using algorithm in Figure 5.",
+        "2.",
+        "Given new data set and ?, use algorithm in section 3.3 for inference.",
+        "(The only difference between this step and step (1) is that in this step we do not need minimize L(?).",
+        "3.",
+        "Select sentences for summarization from algo",
+        "A greedy algorithm is applied by adding sentence one by one to obtain Sum?.",
+        "We use G to denote the sentence set containing selected sentences.",
+        "The algorithm first initializes G to ?",
+        "and X to SU .",
+        "During each iteration, we select one sentence from X which maximize Score(sm ?G).",
+        "To avoid topic redundancy in the summary, we also revise the MMR strategy (Goldstein et al., 1999; Ouyang et al., 2007) in the process of sentence selection.",
+        "For each sm, we compute the semantic similarity between sm and each sentence st in set Y in Eqn.",
+        "(18).",
+        "We need to assure that the value of semantic similarity between two sentences is less than Thsem.",
+        "The whole procedure for summarization using S-sLDA model is illustrated in Figure 6.",
+        "Thsem is set to 0.5 in the experiments."
+      ]
+    },
+    {
+      "heading": "5 Experiments 5.1 Experiments Set-up",
+      "text": [
+        "The query-focused multi-document summarization task defined in DUC3(Document Understanding Conference) and TAC4(Text Analysis Conference) evaluations requires generating a concise and well organized summary for a collection of related news documents according to a given query which describes the users information need.",
+        "The query usually consists of a title and one or more narra",
+        "250 words and 100 words.",
+        "Our experiment data is composed of DUC 2007, TAC5 2008 and TAC 2009 data which have 45, 48 and 44 collections respectively.",
+        "In our experiments, DUC 2007 data is used as training data and TAC (2008-2009) data is used as the test data.",
+        "Stop-words in both documents and queries are removed using a stop-word list of 598 words, and the remaining words are stemmed by Porter Stem-mer6.",
+        "As for the automatic evaluation of summarization, ROUGE (Recall-Oriented Understudy for Gisting Evaluation) measures, including ROUGE1, ROUGE-2, and ROUGE-SU47 and their corresponding 95% confidence intervals, are used to evaluate the performance of the summaries.",
+        "In order to obtain a more comprehensive measure of summary quality, we also conduct manual evaluation on TAC data with reference to (Haghighi and Vanderwende, 2009; Celikyilmaz and Hakkani-Tur, 2011; Delort and Alfonseca, 2011)."
+      ]
+    },
+    {
+      "heading": "5.2 Comparison with other Bayesian models",
+      "text": [
+        "In this subsection, we compare our model with the following Bayesian baselines: KL-sum: It is developed by Haghighi and Vanderwende (Lin et al., 2006) by using a KL-divergence based sentence selection strategy.",
+        "where Ps is the unigram distribution of candidate summary andQd denotes the unigram distribution of document collection.",
+        "Sentences with higher ranking score is selected into the summary.",
+        "HierSum: A LDA based approach proposed by Haghighi and Vanderwende (2009), where unigram distribution is calculated from LDA topic model in Equ.(14).",
+        "Hybhsum: A supervised approach developed by Celikyilmaz and Hakkani-Tur (2010).",
+        "For fair comparison, baselines use the same pro-precessing methods with our model and all sum",
+        "maries are truncated to the same length of 100 words.",
+        "From Table 1 and Table 2, we can",
+        "see that among all the Bayesian baselines, Hybhsum achieves the best result.",
+        "This further illustrates the advantages of combining topic model with supervised method.",
+        "In Table 1, we can see that our S-sLDA model performs better than Hybhsum and the improvements are 3.4% and 3.7% with respect to ROUGE-2 and ROUGE-SU4 on TAC2008 data.",
+        "The comparison can be extended to TAC2009 data as shown in Table 2: the performance of S-sLDA is above Hybhsum by 4.3% in ROUGE-2 and 5.1% in ROUGE-SU4.",
+        "It is worth explaining that these achievements are significant, because in the TAC2008 evaluation, the performance of the top ranking systems are very close, i.e. the best system is only 4.2% above the 4th best system on ROUGE2 and 1.2% on ROUGE-SU4."
+      ]
+    },
+    {
+      "heading": "5.3 Comparison with other baselines.",
+      "text": [
+        "In this subsection, we compare our model with some widely used models in summarization.",
+        "Manifold: It is the one-layer graph based semi-supervised summarization approach developed by Wan et al(2008).",
+        "The graph is constructed only considering sentence relations using tf-idf and neglects topic information.",
+        "LexRank: Graph based summarization approach (Erkan and Radev, 2004), which is a revised version of famous web ranking algorithm PageRank.",
+        "It is an unsupervised ranking algorithms compared with Manifold.",
+        "SVM: A supervised method - Support Vector Machine (SVM) (Vapnik 1995) which uses the same features as our approach.",
+        "MEAD: A centroid based summary algorithm by Radev et al. (2004).",
+        "Cluster centroids in MEAD consists of words which are central not only to one article in a cluster, but to all the articles.",
+        "Similarity is measure using tf-idf.",
+        "At the same time, we also present the top three participating systems with regard to ROUGE-2 on TAC2008 and TAC2009 for comparison, denoted as (denoted as SysRank 1st, 2nd and 3rd)(Gillick et al., 2008; Zhang et al., 2008; Gillick et al., 2009; Varma et al., 2009).",
+        "The ROUGE scores of the top TAC system are directly provided by the TAC evaluation.",
+        "From Table 3 and Table 4, we can see that our approach outperforms the baselines in terms of ROUGE metrics consistently.",
+        "When compared with the standard supervised method SVM, the relative improvements over the ROUGE-1, ROUGE-2 and ROUGE-SU4 scores are 4.3%, 13.1%, 8.3% respectively on TAC2008 and 7.2%, 14.9%, 14.3% on TAC2009.",
+        "Our model is not as good as top participating systems on TAC2008 and TAC2009.",
+        "But considering the fact that our model neither uses sentence compression algorithm nor leverage domain knowledge bases like Wikipedia or training data, such small difference in ROUGE scores is reasonable."
+      ]
+    },
+    {
+      "heading": "5.4 Manual Evaluations",
+      "text": [
+        "In order to obtain a more accurate measure of summary quality for our S-sLDA model and Hybhsum, we performed a simple user study concerning the following aspects: (1) Overall quality: Which summary is better overall?",
+        "(2) Focus: Which summary contains less irrelevant content?",
+        "(3)Responsiveness: Which summary is more responsive to the query.",
+        "(4) Non-Redundancy: Which summary is less redundant?",
+        "8 judges who specialize in NLP participated in the blind evaluation task.",
+        "Evaluators are presented with two summaries generated by S-sLDA",
+        "and Hybhsum, as well as the four questions above.",
+        "Then they need to answer which summary is better (tie).",
+        "We randomly select 20 document collections from TAC 2008 data and randomly assign two summaries for each collection to three different evaluators to judge which model is better in each aspect.",
+        "As we can see from Table 5, the two models almost tie with respect to Non-redundancy, mainly because both models have used appropriate MMR strategies.",
+        "But as for Overall quality, Focus and",
+        "Responsiveness, S-sLDA model outputs Hybhsum based on t-test on 95% confidence level.",
+        "Table 6 shows the example summaries generated respectively by two models for document collection D0803A-A in TAC2008, whose query is ?Describe the coal mine accidents in China and actions taken?.",
+        "From table 6, we can see that each sentence in these two summaries is somewhat related to topics of coal mines in China.",
+        "We also observe that the summary in Table 6(a) is better than that in Table 6(b), tending to select shorter sentences and provide more information.",
+        "This is because, in S-sLDA model, topic modeling is determined simultaneously by various features including terms and other ones such as sentence length, sentence position and so on, which can contribute to summary quality.",
+        "As we can see, in Table 6(b), sentences (3) and (5) provide some unimportant information such as ?somebody said?, though they contain some words which are related to topics about coal mines.",
+        "(1)China to close at least 4,000 coal mines this year: official (2)By Oct. 10 this year there had been 43 coal mine accidents that killed 10 or more people, (3)Officials had stakes in coal mines.",
+        "(4)All the coal mines will be closed down this year.",
+        "(5) In the first eight months, the death toll of coal mine accidents rose 8.5 percent last year.",
+        "(6) The government has issued a series of regulations and measures to improve the coun.try's coal mine safety situation.",
+        "(7)The mining safety technology and equipments have been sold to countries.",
+        "(8)More than 6,000 miners died in accidents in China (1) In the first eight months, the death toll of coal mine accidents across China rose 8.5 percent from the same period last year.",
+        "(2)China will close down a number of ill-operated coal mines at the end of this month, said a work safety official here Monday.",
+        "(3) Li Yizhong, director of the National Bureau of Production Safety Supervision and Administration, has said the collusion between mine owners and officials is to be condemned.",
+        "(4)from January to September this year, 4,228 people were killed in 2,337 coal mine accidents.",
+        "(5) Chen said officials who refused to register their stakes in coal mines within the required time"
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "In this paper, we propose a novel supervised approach based on revised supervised topic model for query-focused multi document summarization.",
+        "Our approach naturally combines Bayesian topic model with supervised method and enjoy the advantages of both models.",
+        "Experiments on benchmark demonstrate good performance of our model."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This research work has been supported by",
+        "also thank the three anonymous reviewers for their helpful comments.",
+        "Corresponding author: Sujian Li."
+      ]
+    }
+  ]
+}

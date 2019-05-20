@@ -1,0 +1,203 @@
+{
+  "info": {
+    "authors": [
+      "Yoh Okuno"
+    ],
+    "book": "Proceedings of the 4th Named Entity Workshop (NEWS) 2012",
+    "id": "acl-W12-4409",
+    "title": "Applying mpaligner to Machine Transliteration with Japanese-Specific Heuristics",
+    "url": "https://aclweb.org/anthology/W12-4409",
+    "year": 2012
+  },
+  "references": [
+    "acl-D09-1111",
+    "acl-I08-8003",
+    "acl-N07-1047",
+    "acl-P08-1103",
+    "acl-P11-2010",
+    "acl-W12-4401"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We developed a machine transliteration system combining mpaligner (an improvement of m2m-aligner), DirecTL+, and some Japanese-specific heuristics for the purpose of NEWS 2012.",
+        "Our results show that mpaligner is greatly better than m2m-aligner, and the Japanese-specific heuristics are effective for JnJk and EnJa tasks.",
+        "While m2m-aligner is not good at long alignment, mpaligner performs well at longer alignment without any length limit.",
+        "In JnJk and EnJa tasks, it is crucial to handle long alignment.",
+        "An experimental result revealed that de-romanization, which is reverse operation of romanization, is crucial for JnJk task.",
+        "In EnJa task, it is shown that mora is the best alignment unit for Japanese language."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "NEWS 2012 shared task regards transliteration as phonetic translation of proper nouns across different languages (Zhang et al., 2012).",
+        "The most common approach for automatic transliteration is to follow the manner of statistical machine translation (Finch and Sumita, 2008).",
+        "This approach mainly consists of 3 steps below.",
+        "1.",
+        "Align training data monotonically 2.",
+        "Train discriminative model given aligned data 3.",
+        "Decode input characters to n-best candidate",
+        "One of the most popular alignment tools is m2m-aligner (Jiampojamarn et al., 2007), which is released as an open source software 1.",
+        "DirecTL+ (Jiampojamarn et al., 2008) is a decoding and training tool 2 and can be used with m2m-aligner for transliteration generation task.",
+        "However, m2m-aligner is not good at long alignment with no length limit.",
+        "It tends to overfit for long alignment since its training is based on maximum likelihood estimation.",
+        "Finch and Sumita (2010) proposed non-parametric Bayesian co-segmentation and applied it to machine transliteration (Finch et al., 2011).",
+        "They penalized long alignment adopting Poisson distribution as prior of word length in the Bayesian model.",
+        "Another method to penalize long alignment is proposed by Kubo et al. (2011) and released as mpaligner 3, originally developed for the purpose of Japanese pronunciation prediction.",
+        "Just for its availability, we used mpaligner as an alternative of m2m-aligner.",
+        "Since m2m-aligner and mpaligner are both character-based alignment, there is a problem to produce phonetically invalid alignment.",
+        "That is, character-based alignment may divide atomic units of characters, called mora, into meaningless pieces.",
+        "Ideally, mora-to-mora alignment should be used for this task while no training data is provided for such purpose.",
+        "In this paper, we propose Japanese-specific heuristics to cope with this problem depending on"
+      ]
+    },
+    {
+      "heading": "2 Related Works",
+      "text": [
+        "Beside general researches for machine transliteration, there are other researches related to Japanese language.",
+        "Cherry and Suzuki (2009) applied discriminative training to English-name-to-Japanese-Katakana transliteration.",
+        "Hatori and Suzuki (2011) proposed a statistical machine translation approach for Japanese pronunciation prediction task.",
+        "Hagi-wara and Sekine (2011) used latent class model for transliteration including English-to-Japanese."
+      ]
+    },
+    {
+      "heading": "3 mpaligner: Minimum Pattern Aligner",
+      "text": [
+        "mpaligner (Kubo et al., 2011) is an improvement of m2m-aligner.",
+        "Their idea is simple; to penalize long alignment by scaling its probability using sum of their length.",
+        "More formally, mpaligner uses a model;",
+        "when deletion and insertion are not allowed.",
+        "Here, x and y are source and target strings, P (x, y) is probability of string pair (x, y), px,y is a parameter which is estimated by previous iteration, and |x|+|y| is sum of length of strings x and y.",
+        "Though the scaled probability is no longer normalized, M-step of EM algorithm performs a kind of normalization."
+      ]
+    },
+    {
+      "heading": "4 Japanese-Specific Heuristics",
+      "text": [
+        "Since mpaligner is a general-purpose alignment tool, we developed Japanese-specific heuristics as preprocessing for training data.",
+        "That is, our system regards combined characters as one character, and applies mpaligner to them."
+      ]
+    },
+    {
+      "heading": "4.1 Romanized Japanese Name to Japanese Kanji Back-Transliteration Task (JnJk)",
+      "text": [
+        "The most important heuristic for JnJk task is de-romanization, which is the reverse operation of romanization.",
+        "In Japanese language, consonants and vowels are coupled and expressed as Kana characters.",
+        "Since Kana characters should not be divided, de-romanization converts romanized Japanese to Kana characters.",
+        "This enables the system to align Kana character as minimal unit.",
+        "For this conversion, a common romanization table for Japanese input method is used 4.",
+        "Moreover, a silent character called Sokuon is combined with its previous character since it can not be aligned alone.",
+        "Table 1 shows basic conversion table.",
+        "We adopt longest-match algorithm to replace sequence of Roman characters to Kana characters.",
+        "Without these operations, characters like ?KA?",
+        "may wrongly divided into ?K?",
+        "and ?A?",
+        "and aligned to different Kanji characters.",
+        "More detailed examples are described in table 2.",
+        "The bold rows are correct alignemnts performed by deromanization."
+      ]
+    },
+    {
+      "heading": "4.2 English to Japanese Katakana Task (EnJa)",
+      "text": [
+        "In EnJa task, the alignment unit of target side should be mora, not character.",
+        "For this purpose, our system combines lower case characters with their previous characters.",
+        "Moreover, Japanese hyphen is also combined with the previous one since they form one mora.",
+        "As a result, ??",
+        "?, ??",
+        "?, ??",
+        "?, ??",
+        "?, ??",
+        "?, ??",
+        "?, ??",
+        "?, ??",
+        "?, ??",
+        "?, ??",
+        "?, ??",
+        "?, ???",
+        "are combined with their previous characters and treated as one mora.",
+        "Table 3 shows alignment examples with and without this heuristics."
+      ]
+    },
+    {
+      "heading": "5 Experiments",
+      "text": [
+        "In this section, we show the official scores for 8 language pairs and further investigation for JnJk and EnJa tasks."
+      ]
+    },
+    {
+      "heading": "5.1 Official Scores for 8 Language Pairs",
+      "text": [
+        "Table 4 shows the official scores for 8 language pairs.",
+        "In the official submits, we used mpaligner for alignment and DirecTL+ for training and decoding.",
+        "We tried two version of mpaligner, 0.9 and 0.97, and chose better one as the primary submission.",
+        "The version of DirecTL+ is 1.1, and the iteration number is selected automatically by the development set.",
+        "For JnJk and EnJa tasks, we used our heuristics described above.",
+        "For other language pairs, we just applied mpaligner and DirecTL+ using their default settings.",
+        "The results seem good, and we can find that ChEn, EnCh, EnHe and JnJk are difficult tasks in both measures ACC and F-Score."
+      ]
+    },
+    {
+      "heading": "5.2 Investigation for JnJk Task",
+      "text": [
+        "We further investigated the results for JnJk task to compare baseline and proposed system.",
+        "Table 5 shows the results of JnJk task for development set.",
+        "The settings of tools are determined by preliminary experiments.",
+        "We used m2m-aligner with length limit of maxX == 6 and maxY == 1, mpaligner with no length limit, and DirecTL+ with context size 7 and n-gram order 1.",
+        "Proposed system is combined with Japanese-specific heuristics including de-romanization.",
+        "The results show two facts; mpaligner greatly beats m2m-aligner, and proposed de-romanization improves more both baseline systems."
+      ]
+    },
+    {
+      "heading": "5.3 Investigation for EnJa Task",
+      "text": [
+        "In this subsection, we show the results for EnJa task to compare baseline and proposed system.",
+        "Table 6 shows the results of EnJa task for development set.",
+        "All of the settings of tools are set default in this investigation.",
+        "Again, mpaligner beats m2m-aligner and our mora-based alignment improves scores of baseline systems in this system."
+      ]
+    },
+    {
+      "heading": "6 Disccussion",
+      "text": [
+        "We compared mpaligner and m2m-aligner in the framework of statistical machine transliteration.",
+        "In Japanese language, mpaligner performs better than m2m-aligner.",
+        "This fact shows that maximum likelihood estimation approach adopted by m2m-aligner is not suitable for the purpose of machine transliteration.",
+        "More importantly in practice, mpaligner is free from hand-tuning for length limits.",
+        "We proposed two Japanese-specific heuristics, deromanization for JnJk task and mora-based alignment for EnJa task.",
+        "They are implemented as preprocessing for training data, and improved the results of transliteration by eliminating linguistically invalid alignments.",
+        "This shows the possibility that character-based alignment may not be the best solution for machine transliteration.",
+        "Beside Japanese, there can be efficient heuristics for other languages.",
+        "But, more interesting issue is whether we can find such heuristics automatically or not."
+      ]
+    },
+    {
+      "heading": "7 Conclusion",
+      "text": [
+        "We applied mpaligner to machine transliteration task for the first time and we proposed Japanese-specific heuristics for JnJk and EnJa tasks.",
+        "We confirmed that the maximum likelihood estimation approach adopted by m2m-aligner performs poor for the purpose of machine transliteration.",
+        "One of methods to cope with this issue is to penalize long alignment using mpaligner.",
+        "We proposed de-romanization for JnJk task, and mora-based alignment for EnJa task.",
+        "In the experiments, they demonstrated their capability to improve accuracy greatly.",
+        "Our proposed heuristics are language-dependent while they can be combined with any other language-independent methods including (Finch et al., 2011) or (Hagiwara and Sekine, 2011).",
+        "For future work, language-dependent heuristics beside Japanese or methods to find such heuristics automatically should be developed."
+      ]
+    },
+    {
+      "heading": "Acknowledgments References",
+      "text": [
+        "Colin Cherry and Hisami Suzuki.",
+        "2009.",
+        "Discriminative substring decoding for transliteration.",
+        "In Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing, pages 1066?1075, Singapore, August.",
+        "Association for Computational Linguistics.",
+        "Andrew Finch and Eiichiro Sumita.",
+        "2008.",
+        "Phrase-based machine transliteration.",
+        "In Proceedings of the Workshop on Technologies and Corpora for Asia-Pacific"
+      ]
+    }
+  ]
+}

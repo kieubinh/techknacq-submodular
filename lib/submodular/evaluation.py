@@ -10,7 +10,8 @@ class Evaluation:
         self.output = {}
         self.answer = {}
         self.sumCorrect = 0
-        return None
+        self.MAP = None
+        self.MRR = None
 
     def calFscore(self, output_ids=[], ground_ids=[]):
         # print(len(output_ids))
@@ -84,27 +85,39 @@ class Evaluation:
     def getAvgFscore(self):
         return self.avgFscore
 
+    #------------------STATISTICS---------------------------
+
     def getStatistics(self):
         sumout = 0
         sumans = 0
         for name in self.output.keys():
             sumout += len(self.output[name])
+        for name in self.answer.keys():
             sumans += len(self.answer[name])
 
-        print("# output: %i, #answer: %i, total refs of answer: %i, #correct: %i" % (len(self.output), len(self.answer), sumans, self.sumCorrect))
+        print("# output: %i, #answer: %i" % (len(self.output), len(self.answer)))
+
+        print("# total refs of output: %i, total refs of answer: %i, #correct: %i"
+              % (sumout, sumans, self.sumCorrect))
 
         print("# average output: " + str(1.0 * sumout / len(self.output)))
-        print("# average answer: " + str(1.0 * sumans / len(self.output)))
+        print("# average answer: " + str(1.0 * sumans / len(self.answer)))
 
+        print("# Precision: "+str(1.0*self.sumCorrect / sumout))
+        print("# Recall: " + str(1.0 * self.sumCorrect / sumans))
+
+    # ------------------MAP SCORE---------------------------
     # Calculating MAP score
     def calPrec(self, ground_ids=[], output_ids=[]):
         count = 0
-        for id in output_ids:
-            if id in ground_ids:
+        for doc_id in output_ids:
+            if doc_id in ground_ids:
                 count += 1
         return count / len(output_ids)
 
     def calAvgPrec(self, output_ids=[], ground_ids=[]):
+        if len(ground_ids) == 0:
+            return 1.0
         # print(len(output_ids))
         if len(output_ids) == 0:
             print("No output list!")
@@ -113,18 +126,56 @@ class Evaluation:
         prec = 0.0
         for index in range(0, len(output_ids)):
             if output_ids[index] in ground_ids:
-                prec += self.calPrec(ground_ids, output_ids[0:index+1])
+                prec += self.calPrec(ground_ids, output_ids[0:index + 1])
 
         return prec / len(ground_ids)
 
     def calMAP(self):
         map_score = 0.0
+        count_zero = 0
         for name in self.output.keys():
 
             avg_prec = self.calAvgPrec(self.output[name], self.answer[name])
-            print(name+" : "+str(avg_prec))
+            print(name + " : " + str(avg_prec))
             map_score += avg_prec
-        self.mapScore = map_score / len(self.output)
+            if avg_prec < 0.01:
+                count_zero += 1
+        self.MAP = map_score / len(self.output)
+        print(count_zero)
+        self.MAP2 = map_score / (len(self.output) - count_zero)
 
     def getMAP(self):
-        return self.mapScore
+        if self.MAP is None:
+            self.calMAP()
+        return self.MAP
+
+    def getMAP2(self):
+        return self.MAP2
+
+    # ------------------ MRR SCORE - Mean Reciprocal Rank ---------------------------
+    def calIR(self, output_ids=[], answer_ids=[]):
+        if len(answer_ids)==0:
+            return 1.0
+        if len(output_ids)==0:
+            return 0.0
+        count = 0
+        for doc_id in output_ids:
+            count += 1
+            if doc_id in answer_ids:
+                return 1.0 / (1.0*count)
+        return 0.0
+
+    def calMRR(self):
+        mrr_score = 0.0
+        for name in self.output.keys():
+            inverse_rank = self.calIR(self.output[name], self.answer[name])
+            print(name + " : " + str(inverse_rank))
+            mrr_score += inverse_rank
+
+        self.MRR = mrr_score / (1.0 * len(self.output))
+
+    def getMRR(self):
+        if self.MRR is None:
+            self.calMRR()
+        return self.MRR
+

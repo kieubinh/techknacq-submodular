@@ -1,0 +1,234 @@
+{
+  "info": {
+    "authors": [
+      "Majid Razmara",
+      "Anoop Sarkar"
+    ],
+    "book": "ACL",
+    "id": "acl-P13-2060",
+    "title": "Stacking for Statistical Machine Translation",
+    "url": "https://aclweb.org/anthology/P13-2060",
+    "year": 2013
+  },
+  "references": [
+    "acl-C10-1035",
+    "acl-D08-1017",
+    "acl-D09-1114",
+    "acl-J03-1002",
+    "acl-N10-1091",
+    "acl-P03-1021",
+    "acl-P05-1033",
+    "acl-P06-1121",
+    "acl-P08-1108",
+    "acl-P10-1076",
+    "acl-P12-1099",
+    "acl-W07-0717"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "We propose the use of stacking, an ensemble learning technique, to the statistical machine translation (SMT) models.",
+        "A diverse ensemble of weak learners is created using the same SMT engine (a hierarchical phrase-based system) by manipulating the training data and a strong model is created by combining the weak models on-the-fly.",
+        "Experimental results on two language pairs and three different sizes of training data show significant improvements of up to 4 BLEU points over a conventionally trained SMT model."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Ensemble-based methods have been widely used in machine learning with the aim of reducing the instability of classifiers and regressors and/or increase their bias.",
+        "The idea behind ensemble learning is to combine multiple models, weak learners, in an attempt to produce a strong model with less error.",
+        "It has also been successfully applied to a wide variety of tasks in NLP (Tomeh et al., 2010; Surdeanu and Manning, 2010; F. T. Martins et al., 2008; Sang, 2002) and recently has attracted attention in the statistical machine translation community in various work (Xiao et al., 2013; Song et al., 2011; Xiao et al., 2010; Lagarda and Casacuberta, 2008).",
+        "In this paper, we propose a method to adopt stacking (Wolpert, 1992), an ensemble learning technique, to SMT.",
+        "We manipulate the full set of training data, creating k disjoint sets of held-out and held-in data sets as in k-fold cross-validation and build a model on each partition.",
+        "This creates a diverse ensemble of statistical machine translation models where each member of the ensemble has different feature function values for the SMT log-linear model (Koehn, 2010).",
+        "The weights of model are then tuned using minimum error rate training (Och, 2003) on the held-out fold to provide k weak models.",
+        "We then create a strong ?This research was partially supported by an NSERC, Canada (RGPIN: 264905) grant and a Google Faculty Award to the second author.",
+        "model by stacking another meta-learner on top of weak models to combine them into a single model.",
+        "The particular second-tier model we use is a model combination approach called ensemble decoding which combines hypotheses from the weak models on-the-fly in the decoder.",
+        "Using this approach, we take advantage of the diversity created by manipulating the training data and obtain a significant and consistent improvement over a conventionally trained SMT model with a fixed training and tuning set."
+      ]
+    },
+    {
+      "heading": "2 Ensemble Learning Methods",
+      "text": [
+        "Two well-known instances of general framework of ensemble learning are bagging and boosting.",
+        "Bagging (Breiman, 1996a) (bootstrap aggregating) takes a number of samples with replacement from a training set.",
+        "The generated sample set may have 0, 1 or more instances of each original training instance.",
+        "This procedure is repeated a number of times and the base learner is applied to each sample to produce a weak learner.",
+        "These models are aggregated by doing a uniform voting for classification or averaging the predictions for regression.",
+        "Bagging reduces the variance of the base model while leaving the bias relatively unchanged and is most useful when a small change in the training data affects the prediction of the model (i.e. the model is unstable) (Breiman, 1996a).",
+        "Bagging has been recently applied to SMT (Xiao et al., 2013; Song et al., 2011) Boosting (Schapire, 1990) constructs a strong learner by repeatedly choosing a weak learner and applying it on a re-weighted training set.",
+        "In each iteration, a weak model is learned on the training data, whose instance weights are modified from the previous iteration to concentrate on examples on which the model predictions were poor.",
+        "By putting more weight on the wrongly predicted examples, a diverse ensemble of weak learners is created.",
+        "Boosting has also been used in SMT (Xiao et al., 2013; Xiao et al., 2010; Lagarda",
+        "1: D1, .",
+        ".",
+        ".",
+        ",Dk ?",
+        "SPLIT(D, k) 2: for i = 1?",
+        "k do 3: T i ?",
+        "D ?Di .",
+        "Use all but current partition as training set.",
+        "4: ?i?",
+        "TRAIN(T i) .",
+        "Train feature functions.",
+        "5: Mi?",
+        "TUNE(?i, Di) .",
+        "Tune the model on thecurrent partition.",
+        "6: end for 7: s?",
+        "COMBINEMODELS(M1 , .",
+        ".",
+        ".,Mk) .",
+        "Combine all",
+        "the base models to produce a strong stacked model.",
+        "and Casacuberta, 2008).",
+        "Stacking (or stacked generalization) (Wolpert, 1992) is another ensemble learning algorithm that uses a second-level learning algorithm on top of the base learners to reduce the bias.",
+        "The first level consists of predictors g1, .",
+        ".",
+        ".",
+        ", gk where gi : Rd ?",
+        "R, receiving input x ?",
+        "Rd and producing a prediction gi(x).",
+        "The next level consists of a single function h : Rd+k ?",
+        "R that takes ?x, g1(x), .",
+        ".",
+        ".",
+        ", gk(x)?",
+        "as input and produces an ensemble prediction y?",
+        "= h(x, g1(x), .",
+        ".",
+        ".",
+        ", gk(x)).",
+        "Two categories of ensemble learning are homogeneous learning and heterogeneous learning.",
+        "In homogeneous learning, a single base learner is used, and diversity is generated by data sampling, feature sampling, randomization and parameter settings, among other strategies.",
+        "In heterogeneous learning different learning algorithms are applied to the same training data to create a pool of diverse models.",
+        "In this paper, we focus on homogeneous ensemble learning by manipulating the training data.",
+        "In the primary form of stacking (Wolpert, 1992), the training data is split into multiple disjoint sets of held-out and held-in data sets using k-fold cross-validation and k models are trained on the held-in partitions and run on held-out partitions.",
+        "Then a meta-learner uses the predictions of all models on their held-out sets and the actual labels to learn a final model.",
+        "The details of the first-layer and second-layer predictors are considered to be a ?black art?",
+        "(Wolpert, 1992).",
+        "Breiman (1996b) linearly combines the weak learners in the stacking framework.",
+        "The weights of the base learners are learned using ridge regression: s(x) = ?k ?kmk(x), where mk is a base model trained on the k-th partition of the data and s is the resulting strong model created by linearly interpolating the weak learners.",
+        "Stacking (aka blending) has been used in the system that won the Netflix Prize1, which used a multilevel stacking algorithm.",
+        "Stacking has been actively used in statistical parsing: Nivre and McDonald (2008) integrated two models for dependency parsing by letting one model learn from features generated by the other; F. T. Martins et al. (2008) further formalized the stacking algorithm and improved on Nivre and McDonald (2008); Surdeanu and Manning (2010) includes a detailed analysis of ensemble models for statistical parsing: i) the diversity of base parsers is more important than the complexity of the models; ii) unweighted voting performs as well as weighted voting; and iii) ensemble models that combine at decoding time significantly outperform models that combine multiple models at training time."
+      ]
+    },
+    {
+      "heading": "3 Our Approach",
+      "text": [
+        "In this paper, we propose a method to apply stacking to statistical machine translation (SMT) and our method is the first to successfully exploit stacking for statistical machine translation.",
+        "We use a standard statistical machine translation engine and produce multiple diverse models by partitioning the training set using the k-fold cross-validation technique.",
+        "A diverse ensemble of weak systems is created by learning a model on each k?1 fold and tuning the statistical machine translation log-linear weights on the remaining fold.",
+        "However, instead of learning a model on the output of base models as in (Wolpert, 1992), we combine hypotheses from the base models in the decoder with uniform weights.",
+        "For the base learner, we use Kriya (Sankaran et al., 2012), an in-house hierarchical phrase-based machine translation system, to produce multiple weak models.",
+        "These models are combined together using Ensemble Decoding (Razmara et al., 2012) to produce a strong model in the decoder.",
+        "This method is briefly explained in next section."
+      ]
+    },
+    {
+      "heading": "3.1 Ensemble Decoding",
+      "text": [
+        "SMT Log-linear models (Koehn, 2010) find the most likely target language output e given the source language input f using a vector of feature",
+        "Ensemble decoding combines several models dynamically at decoding time.",
+        "The scores are combined for each partial hypothesis using a user-defined mixture operation ?",
+        "over component models.",
+        "We previously successfully applied ensemble decoding to domain adaptation in SMT and showed that it performed better than approaches that pre-compute linear mixtures of different models (Razmara et al., 2012).",
+        "Several mixture operations were proposed, allowing the user to encode belief about the relative strengths of the component models.",
+        "These mixture operations receive two or more probabilities and return the mixture",
+        "probability p(e?",
+        "|f?)",
+        "for each rule e?, f?",
+        "used in the decoder.",
+        "Different options for these operations are: ?",
+        "Weighted Sum (wsum) is defined as:",
+        "where m denotes the index of component models, M is the total number of them and ?m is the weight for component m.",
+        "?",
+        "Model Switching (Switch): Each cell in the CKY chart is populated only by rules from one of the models and the other models?",
+        "rules are discarded.",
+        "Each component model is considered as an expert on different spans of the source.",
+        "A binary indicator function ?(f?",
+        ",m) picks a component model for each span:",
+        "different language pairs.",
+        "(SW:MAX), i.e. for each cell, the model that has the highest weighted score wins: ?(f?",
+        ", n) = ?n maxe (wn ?",
+        "?n(e?, f?))",
+        "Alternatively, we can pick the model with highest weighted sum of the probabilities of the rules (SW:SUM).",
+        "This sum has to take into account the translation table limit (ttl), on the number of rules suggested by each model for each cell:",
+        "The probability of each phrase-pair (e?, f?)",
+        "is then:"
+      ]
+    },
+    {
+      "heading": "4 Experiments & Results",
+      "text": [
+        "We experimented with two language pairs: French to English and Spanish to English on the Europarl corpus (v7) (Koehn, 2005) and used ACL/WMT 2005 2 data for dev and test sets.",
+        "For the base models, we used an in-house implementation of hierarchical phrase-based systems, Kriya (Sankaran et al., 2012), which uses the same features mentioned in (Chiang, 2005): forward and backward relative-frequency and lexical TM probabilities; LM; word, phrase and glue-rules penalty.",
+        "GIZA++ (Och and Ney, 2003) has been used for word alignment with phrase length limit of 10.",
+        "Feature weights were optimized using MERT (Och, 2003).",
+        "We built a 5-gram language model on the English side of Europarl and used the Kneser-Ney smoothing method and SRILM (Stol-cke, 2002) as the language model toolkit."
+      ]
+    },
+    {
+      "heading": "4.1 Training on devset",
+      "text": [
+        "We first consider the scenario in which there is no parallel data between a language pair except a small bi-text used as a devset.",
+        "We use no specific training data and construct a SMT system completely on the devset by using our approach and compare to two different baselines.",
+        "A natural baseline when having a limited parallel text is to do re-substitution validation where the model is trained on the whole devset and is tuned on the same set.",
+        "This validation process suffers seriously from over-fitting.",
+        "The second baseline is the mean of BLEU scores of all base models.",
+        "Table 2 summarizes the BLEU scores on the testset when using stacking only on the devset on two different language pairs.",
+        "As the table shows, increasing the number of folds results in higher BLEU scores.",
+        "However, doing such will generally lead to higher variance among base learners.",
+        "Figure 1 shows the BLEU score of each of the base models resulted from a 20-fold partitioning of the devset alng with the strong models?",
+        "BLEU scores.",
+        "As the figure shows, the strong models are generally superior to the base models whose mean is represented as a horizontal line."
+      ]
+    },
+    {
+      "heading": "4.2 Training on train+dev",
+      "text": [
+        "When we have some training data, we can use the cross-validation-style partitioning to create k splits.",
+        "We then train a system on k ?",
+        "1 folds and tune on the devset.",
+        "However, each system eventually wastes a fold of the training data.",
+        "In order to take advantage of that remaining fold, we concatenate the devset to the training set and partition the whole union.",
+        "In this way, we use all data available to us.",
+        "We experimented with two sizes of training data: 10k sentence pairs and 100k, that with the addition of the devset, we have 12k and 102k sentence-pair corpora.",
+        "Table 1 summarizes statistics of the data sets used in this scenario.",
+        "Table 3 reports the BLEU scores when using stacking on these two corpus sizes.",
+        "The baselines are the conventional systems which are built on the training-set only and tuned on the devset as well as Bayesian Model Averaging (BMA, see ?5).",
+        "For the 100k+dev corpus, we sampled 11 partitions from all 51 possible partitions by taking every fifth partition as training data.",
+        "The results in Table 3 show that stacking can improve over the baseline BLEU scores by up to 4 points.",
+        "Examining the performance of the different mixture operations, we can see that WSUM and WMAX typically outperform other mixture operations.",
+        "Different mixture operations can be dominant in different language pairs and different sizes of training sets."
+      ]
+    },
+    {
+      "heading": "5 Related Work",
+      "text": [
+        "Xiao et al. (2013) have applied both boosting and bagging on three different statistical machine translation engines: phrase-based (Koehn et al., 2003), hierarchical phrase-based (Chiang, 2005) and syntax-based (Galley et al., 2006) and showed SMT can benefit from these methods as well.",
+        "Duan et al. (2009) creates an ensemble of models by using feature subspace method in the machine learning literature (Ho, 1998).",
+        "Each member of the ensemble is built by removing one non-LM feature in the log-linear framework or varying the order of language model.",
+        "Finally they use a sentence-level system combination on the outputs of the base models to pick the best system for each",
+        "horizontal line shows the mean of base models?",
+        "scores.",
+        "sentence.",
+        "Though, they do not combine the hypotheses search spaces of individual base models.",
+        "Our work is most similar to that of Duan et al.",
+        "(2010) which uses Bayesian model averaging (BMA) (Hoeting et al., 1999) for SMT.",
+        "They used sampling without replacement to create a number of base models whose phrase-tables are combined with that of the baseline (trained on the full training-set) using linear mixture models (Foster and Kuhn, 2007).",
+        "Our approach differs from this approach in a number of ways: i) we use cross-validation-style partitioning for creating training subsets while they do sampling without replacement (80% of the training set); ii) in our approach a number of base models are trained and tuned and they are combined on-the-fly in the decoder using ensemble decoding which has been shown to be more effective than offline combination of phrase-table-only features; iii) in Duan et al. (2010)'s method, each system gives up 20% of the training data in exchange for more diversity, but in contrast, our method not only uses all available data for training, but promotes diversity through allowing each model to tune on a different data set; iv) our approach takes advantage of held out data (the tuning set) in the training of base models which is beneficial especially when little parallel data is available or tuning/test sets and training sets are from different domains.",
+        "Empirical results (Table 3) also show that our approach outperforms the Bayesian model averaging approach (BMA)."
+      ]
+    },
+    {
+      "heading": "6 Conclusion & Future Work",
+      "text": [
+        "In this paper, we proposed a novel method on applying stacking to the statistical machine translation task.",
+        "The results when using no, 10k and 100k sentence-pair training sets (along with a development set for tuning) show that stacking can yield an improvement of up to 4 BLEU points over conventionally trained SMT models which use a fixed training and tuning set.",
+        "Future work includes experimenting with larger training sets to investigate how useful this approach can be when having different sizes of training data."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,236 @@
+{
+  "info": {
+    "authors": [
+      "Chenguang Wang",
+      "Nan Duan",
+      "Ming Zhou",
+      "Ming Zhang"
+    ],
+    "book": "ACL",
+    "id": "acl-P13-2008",
+    "title": "Paraphrasing Adaptation for Web Search Ranking",
+    "url": "https://aclweb.org/anthology/P13-2008",
+    "year": 2013
+  },
+  "references": [
+    "acl-P00-1037",
+    "acl-P00-1056",
+    "acl-P02-1040",
+    "acl-P03-1021",
+    "acl-P05-1033",
+    "acl-P05-1074",
+    "acl-P09-1094",
+    "acl-W04-3219"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Mismatch between queries and documents is a key issue for the web search task.",
+        "In order to narrow down such mismatch, in this paper, we present an in-depth investigation on adapting a paraphrasing technique to web search from three aspects: a search-oriented paraphrasing model; an NDCG-based parameter optimization algorithm; an enhanced ranking model leveraging augmented features computed on paraphrases of original queries.",
+        "Experiments performed on the large scale query-document data set show that, the search performance can be significantly improved, with +3.28% and +1.14% ND-CG gains on dev and test sets respectively."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Paraphrasing is an NLP technique that generates alternative expressions to convey the same meaning of the input text in different ways.",
+        "Researchers have made great efforts to improve paraphrasing from different perspectives, such as paraphrase extraction (Zhao et al., 2007), paraphrase generation (Quirk et al., 2004), model optimization (Zhao et al., 2009) and etc.",
+        "But as far as we know, none of previous work has explored the impact of using a well designed paraphrasing engine for web search ranking task specifically.",
+        "In web search, mismatches between queries and their relevant documents are usually caused by expressing the same meaning in different natural language ways.",
+        "E.g., X is the author of Y and Y was written by X have identical meaning in most cases, but they are quite different in literal sense.",
+        "The capability of paraphrasing is just right to alleviate such issues.",
+        "Motivated by this, this paper presents ?",
+        "This work has been done while the author was visiting Microsoft Research Asia.",
+        "an in-depth study on adapting paraphrasing to web search.",
+        "First, we propose a search-oriented paraphrasing model, which includes specifically designed features for web queries that can enable a paraphrasing engine to learn preferences on different paraphrasing strategies.",
+        "Second, we optimize the parameters of the paraphrasing model according to the Normalized Discounted Cumulative Gain (NDCG) score, by leveraging the minimum error rate training (MERT) algorithm (Och, 2003).",
+        "Third, we propose an enhanced ranking model by using augmented features computed on paraphrases of original queries.",
+        "Many query reformulation approaches have been proposed to tackle the query-document mismatch issue, which can be generally summarized as query expansion and query substitution.",
+        "Query expansion (Baeza-Yates, 1992; Jing and Croft, 1994; Lavrenko and Croft, 2001; Cui et al., 2002; Yu et al., 2003; Zhang and Yu, 2006; Craswell and Szummer, 2007; Elsas et al., 2008; Xu et al., 2009) adds new terms extracted from different sources to the original query directly; while query substitution (Brill and Moore, 2000; Jones et al., 2006; Guo et al., 2008; Wang and Zhai, 2008; Dang and Croft, 2010) uses probabilistic models, such as graphical models, to predict the sequence of rewritten query words to form a new query.",
+        "Comparing to these works, our paraphrasing engine alters queries in a similar way to statistical machine translation, with systematic tuning and decoding components.",
+        "Zhao et al. (2009) proposes an unified paraphrasing framework that can be adapted to different applications using different usability models.",
+        "Our work can be seen as an extension along this line of research, by carrying out in-depth study on adapting paraphrasing to web search.",
+        "Experiments performed on the large scale data set show that, by leveraging additional matching features computed on query paraphrases, significant NDCG gains can be achieved on both dev",
+        "(+3.28%) and test (+1.14%) sets."
+      ]
+    },
+    {
+      "heading": "2 Paraphrasing for Web Search",
+      "text": [
+        "In this section, we first summarize our paraphrase extraction approaches, and then describe our paraphrasing engine for the web search task from three aspects, including: 1) a search-oriented paraphrasing model; 2) an NDCG-based parameter optimization algorithm; 3) an enhanced ranking model with augmented features that are computed based on the extra knowledge provided by the paraphrase candidates of the original queries."
+      ]
+    },
+    {
+      "heading": "2.1 Paraphrase Extraction",
+      "text": [
+        "Paraphrases can be mined from various resources.",
+        "Given a bilingual corpus, we use Bannard and Callison-Burch (2005)'s pivot-based approach to extract paraphrases.",
+        "Given a monolingual corpus, Lin and Pantel (2001)'s method is used to extract paraphrases based on distributional hypothesis.",
+        "Additionally, human annotated data can also be used as high-quality paraphrases.",
+        "We use Miller (1995)'s approach to extract paraphrases from the synonym dictionary of WordNet.",
+        "Word alignments within each paraphrase pair are generated using GIZA++ (Och and Ney, 2000)."
+      ]
+    },
+    {
+      "heading": "2.2 Search-Oriented Paraphrasing Model",
+      "text": [
+        "Similar to statistical machine translation (SMT), given an input query Q, our paraphrasing engine generates paraphrase candidates1 based on a linear model.",
+        "H(Q) is the hypothesis space containing all paraphrase candidates of Q, hm is the mth feature function with weight ?m, Q?",
+        "denotes one candidate.",
+        "In order to enable our paraphrasing model to learn the preferences on different paraphrasing strategies according to the characteristics of web queries, we design search-oriented features2 based on word alignments within Q and Q?, which can be described as follows:",
+        "ate query reformulations.",
+        "?",
+        "Word Addition feature hWADD(Q,Q?",
+        "), which is defined as the number of words in the paraphrase candidate Q?",
+        "without being aligned to any word in the original query Q. ?",
+        "Word Deletion feature hWDEL(Q,Q?",
+        "), which is defined as the number of words in",
+        "the original query Q without being aligned to any word in the paraphrase candidate Q?.",
+        "?",
+        "Word Overlap feature hWO(Q,Q?",
+        "), which is defined as the number of word pairs that align identical words between Q and Q?.",
+        "?",
+        "Word Alteration feature hWA(Q,Q?",
+        "), which is defined as the number of word pairs that align different words between Q and Q?.",
+        "?",
+        "Word Reorder feature hWR(Q,Q?",
+        "), which is modeled by a relative distortion probability distribution, similar to the distortion model in (Koehn et al., 2003).",
+        "?",
+        "Length Difference feature hLD(Q,Q?",
+        "), which is defined as |Q?",
+        "|?",
+        "|Q|.",
+        "?",
+        "Edit Distance feature hED(Q,Q?",
+        "), which is",
+        "defined as the character-level edit distance between Q and Q?.",
+        "Besides, a set of traditional SMT features (Koehn et al., 2003) are also used in our paraphrasing model, including translation probability, lexical weight, word count, paraphrase rule count3, and language model feature."
+      ]
+    },
+    {
+      "heading": "2.3 NDCG-based Parameter Optimization",
+      "text": [
+        "We utilize minimum error rate training (MERT) (Och, 2003) to optimize feature weights of the paraphrasing model according to NDCG.",
+        "We define D as the entire document set.",
+        "R is a ranking model4 that can rank documents in D based on each input query.",
+        "{Qi,DLabeli }Si=1 is a human-labeled development set.",
+        "Qi is the ith query and DLabeli ?",
+        "D is a subset of documents, in which the relevance between Qi and each document is labeled by human annotators.",
+        "MERT is used to optimize feature weights of our linear-formed paraphrasing model.",
+        "For",
+        "each query Qi in {Qi}Si=1, we first generate N-best paraphrase candidates {Qji}Nj=1, and compute NDCG score for each paraphrase based on documents ranked by the ranker R and labeled documents DLabeli .",
+        "We then optimize the feature weights according to the following criterion:",
+        "The objective of MERT is to find the optimal feature weight vector ?",
+        "?M1 that minimizes the error criterionErr according to the NDCG scores of top-1 paraphrase candidates.",
+        "The error function Err is defined as:",
+        "where Q?i is the best paraphrase candidate according to the paraphrasing model based on the weight vector ?M1 , N (DLabeli , Q?i,R) is the NDCG score of Q?i computed on the documents ranked byR of Q?i and labeled document set DLabeli of Qi.",
+        "The relevance rating labeled by human annotators can be represented by five levels: ?Perfect?, ?Excellent?, ?Good?, ?Fair?, and ?Bad?.",
+        "When computing NDCG scores, these five levels are commonly mapped to the numerical scores 31, 15, 7, 3, 0 respectively."
+      ]
+    },
+    {
+      "heading": "2.4 Enhanced Ranking Model",
+      "text": [
+        "In web search, the key objective of the ranking model is to rank the retrieved documents based on their relevance to a given query.",
+        "Given a query Q and its retrieved document set D = {DQ}, for each DQ ?",
+        "D, we use the following ranking model to compute their relevance, which is formulated as a weighted combination of matching features:",
+        "tures that measure the matching degrees between Q and DQ, Fk(Q,DQ) ?",
+        "F is the kth matching feature, ?k is its corresponding feature weight.",
+        "How to learn the weight vector {?k}Kk=1 is a standard learning-to-rank task.",
+        "The goal of learning is to find an optimal weight vector {?",
+        "?k}Kk=1, such that for any two documentsDiQ ?",
+        "D andDjQ ?",
+        "D, the following condition holds: R(Q,DiQ) > R(Q,DjQ)?",
+        "rDiQ > rDjQ where rDQ denotes a numerical relevance rating labeled by human annotators denoting the relevance between Q and DQ.",
+        "As the ultimate goal of improving paraphrasing is to help the search task, we present a straightforward but effective method to enhance the ranking modelR described above, by leveraging paraphrase candidates of the original query as the extra knowledge to compute matching features.",
+        "Formally, given a query Q and its N best paraphrase candidates {Q?1, ..., Q?N}, we enrich the original feature vector F to {F,F1, ...,FN} for Q and DQ, where all features in Fn have the same meanings as they are in F, however, their feature values are computed based onQ?n andDQ, instead of Q and DQ.",
+        "In this way, the paraphrase candidates act as hidden variables and expanded matching features between queries and documents, making our ranking model more tunable and flexible for web search."
+      ]
+    },
+    {
+      "heading": "3 Experiment",
+      "text": []
+    },
+    {
+      "heading": "3.1 Data and Metric",
+      "text": [
+        "Paraphrase pairs are extracted as we described in Section 2.1.",
+        "The bilingual corpus includes 5.1M sentence pairs from the NIST 2008 constrained track of Chinese-to-English machine translation task.",
+        "The monolingual corpus includes 16.7M queries from the log of a commercial search engine.",
+        "Human annotated data contains 0.3M synonym pairs from WordNet dictionary.",
+        "Word alignments of each paraphrase pair are trained by GIZA++.",
+        "The language model is trained based on a portion of queries, in which the frequency of each query is higher than a predefined threshold, 5.",
+        "The number of paraphrase pairs is 58M.",
+        "The minimum length of paraphrase rule is 1, while the maximum length of paraphrase rule is 5.",
+        "We randomly select 2, 838 queries from the log of a commercial search engine, each of which attached with a set of documents that are annotated with relevance ratings described in Section 2.3.",
+        "We use the first 1, 419 queries together with their annotated documents as the development set to tune paraphrasing parameters (as we discussed in Section 2.3), and use the rest as the test set.",
+        "The ranking model is trained based on the development set.",
+        "NDCG is used as the evaluation metric of the web search task."
+      ]
+    },
+    {
+      "heading": "3.2 Baseline Systems",
+      "text": [
+        "The baselines of the paraphrasing and the ranking model are described as follows: The paraphrasing baseline is denoted as BL-Para, which only uses traditional SMT features described at the end of Section 2.2.",
+        "Weights are optimized by MERT using BLEU (Papineni et al., 2002) as the error criterion.",
+        "Development data are generated based on the English references of NIST 2008 constrained track of Chinese-to-English machine translation task.",
+        "We use the first reference as the source, and the rest as its paraphrases.",
+        "The ranking model baseline (Liu et al., 2007) is denoted as BL-Rank, which only uses matching features computed based on original queries and different meta-streams of web pages, including URL, page title, page body, meta-keywords, meta-description and anchor texts.",
+        "The feature functions we use include unigram/bigram/trigram BM25 and original/normalized Perfect-Match.",
+        "The ranking model is learned based on SVM rank toolkit (Joachims, 2006) with default parameter setting."
+      ]
+    },
+    {
+      "heading": "3.3 Impacts of Search-Oriented Features",
+      "text": [
+        "We first evaluate the effectiveness of the search-oriented features.",
+        "To do so, we add these features into the paraphrasing model baseline, and denote it as BL-Para+SF, whose weights are optimized in the same way with BL-Para.",
+        "The ranking model baseline BL-Rank is used to rank the documents.",
+        "We then compare the NDCG@1 scores of the best documents retrieved using either original query, or query paraphrases generated by BL-Para and BL-Para+SF respectively, and list comparison results in Table 1, where Cand@1 denotes the best paraphrase candidate generated by each paraphrasing model.",
+        "From Table 1, we can see, even using the best query paraphrase, its corresponding NDCG score is still lower than the NDCG score of the original query.",
+        "This performance dropping makes sense, as changing user queries brings the risks of query drift.",
+        "When adding search-oriented features into the baseline, the performance changes little, as these two models are optimized based on BLEU score only, without considering characteristics of mismatches in search."
+      ]
+    },
+    {
+      "heading": "3.4 Impacts of Optimization Algorithm",
+      "text": [
+        "We then evaluate the impact of our NDCG-based optimization method.",
+        "We add the optimization algorithm described in Section 2.3 into BL-Para+SF, and get a paraphrasing model BL-Para+SF+Opt.",
+        "The ranking model baseline BL-Rank is used.",
+        "Similar to the experiment in Table 1, we compare the NDCG@1 scores of the best documents retrieved using query paraphrases generated by BL",
+        "the error criterion for MERT, search-oriented features benefit more (+0.53% NDCG) in selecting the best query paraphrase from the whole paraphrasing search space.",
+        "The improvement is statistically significant (p < 0.001) by t-test (Smucker et al., 2007).",
+        "The quality of the top-1 paraphrase generated by BL-Para+SF+Opt is very close to the original query."
+      ]
+    },
+    {
+      "heading": "3.5 Impacts of Enhanced Ranking Model",
+      "text": [
+        "We last evaluate the effectiveness of the enhanced ranking model.",
+        "The ranking model baseline BL-Rank only uses original queries to compute matching features between queries and documents; while the enhanced ranking model, denoted as BL-Rank+Para, uses not only the original query but also its top-1 paraphrase candidate generated by BL-Para+SF+Opt to compute augmented matching features described in Section 2.4.",
+        "From Table 3, we can see that NDCG@k (k = 1, 5) scores of BL-Rank+Para outperforms BL-Rank on both dev and test sets.",
+        "T-test shows that",
+        "the improvement is statistically significant (p < 0.001).",
+        "Such end-to-end NDCG improvements come from the extra knowledge provided by the hidden paraphrases of original queries.",
+        "This narrows down the query-document mismatch issue to a certain extent."
+      ]
+    },
+    {
+      "heading": "4 Conclusion and Future Work",
+      "text": [
+        "In this paper, we present an in-depth study on using paraphrasing for web search, which pays close attention to various aspects of the application including choice of model and optimization technique.",
+        "In the future, we will compare and combine paraphrasing with other query reformulation techniques, e.g., pseudo-relevance feedback (Yu et al., 2003) and a conditional random field-based approach (Guo et al., 2008)."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work is supported by the National Natural Science Foundation of China (NSFC Grant No.",
+        "61272343) as well as the Doctoral Program of Higher Education of China (FSSP Grant No.",
+        "20120001110112)."
+      ]
+    }
+  ]
+}

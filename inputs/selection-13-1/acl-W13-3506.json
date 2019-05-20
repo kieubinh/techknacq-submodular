@@ -1,0 +1,400 @@
+{
+  "info": {
+    "authors": [
+      "Tomoya Iwakura"
+    ],
+    "book": "CoNLL",
+    "id": "acl-W13-3506",
+    "title": "A Boosted Semi-Markov Perceptron",
+    "url": "https://aclweb.org/anthology/W13-3506",
+    "year": 2013
+  },
+  "references": [
+    "acl-C94-1032",
+    "acl-D08-1072",
+    "acl-D10-1095",
+    "acl-H05-1059",
+    "acl-N01-1025",
+    "acl-N03-1028",
+    "acl-P01-1069",
+    "acl-P05-1001",
+    "acl-P05-1024",
+    "acl-P06-1059",
+    "acl-P08-1076",
+    "acl-P09-1054",
+    "acl-W02-1001",
+    "acl-W02-2004",
+    "acl-W08-2103"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper proposes a boosting algorithm that uses a semi-Markov perceptron.",
+        "The training algorithm repeats the training of a semi-Markov model and the update of the weights of training samples.",
+        "In the boosting, training samples that are incorrectly segmented or labeled have large weights.",
+        "Such training samples are aggressively learned in the training of the semi-Markov perceptron because the weights are used as the learning ratios.",
+        "We evaluate our training method with Noun Phrase Chunking, Text Chunking and Extended Named Entity Recognition.",
+        "The experimental results show that our method achieves better accuracy than a semi-Markov perceptron and a semi-Markov Conditional Random Fields."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Natural Language Processing (NLP) basic tasks, such as Noun Phrase Chunking, Text Chunking, and Named Entity Recognition, are realized by segmenting words and labeling to the segmented words.",
+        "To realize these tasks, supervised learning algorithms have been applied successfully.",
+        "In the early stages, algorithms for training classifiers, including Maximum Entropy Models (Tsuruoka and Tsujii, 2005), AdaBoost-based learning algorithms (Carreras et al., 2002), and Support Vector Machines (SVMs) (Kudo and Matsumoto, 2001) were widely used.",
+        "Recently, learning algorithms for structured prediction, such as linear-chain structured predictions, and semi-Markov model-based ones, have been widely used.",
+        "The examples of linear-chain structured predictions include Conditional Random Fields (CRFs) (Lafferty et al., 2001) and structured perceptron (Collins, 2002).",
+        "The examples of semi-Markov model-based ones include semi-Markov model perceptron (Cohen and Sarawagi, 2004), and semi-Markov CRFs (Sarawagi and Cohen, 2005).",
+        "Among these methods, semi-Markov-based ones have shown good performance in terms of accuracy (Cohen and Sarawagi, 2004; Sarawagi and Cohen, 2005; Okanohara et al., 2006; Iwakura et al., 2011).",
+        "One of the reasons is that a semi-Markov learner trains models that assign labels to hypothesized segments (i.e., word chunks) instead of labeling to individual words.",
+        "This enables use of features that cannot be easily used in word level processing such as the beginning word of a segment, the end word of a segment, and so on.",
+        "To obtain higher accuracy, boosting methods have been applied to learning methods for training classifiers.",
+        "Boosting is a method to create a final hypothesis by repeatedly generating a weak hypothesis and changing the weights of training samples in each training iteration with a given weak learner such as a decision stump learner (Schapire and Singer, 2000) and a decision tree learner (Car-reras et al., 2002).",
+        "However, to the best of our knowledge, there are no approaches that apply boosting to learning algorithms for structured prediction.",
+        "In other words, if we can successful apply boosting to learning algorithms for structured prediction, we expect to obtain higher accuracy.",
+        "This paper proposes a boosting algorithm for a semi-Markov perceptron.",
+        "Our learning method uses a semi-Markov perceptron as a weak learner, and AdaBoost is used as the boosting algorithm.",
+        "To apply boosting to the semi-Markov perceptron, the following methods are proposed; 1) Use the weights of training samples decided by AdaBoost as the learning ratios of the semi-Markov perceptron, and 2) Training on AdaBoost with the loss between the correct output of a training sample and the incorrect output that has the highest score.",
+        "By the first method, the semi-Markov perceptron can aggressively learn training samples that are in",
+        "correctly classified at previous iteration because such training samples have large weights.",
+        "The second method is a technique to apply AdaBoost to learning algorithms for structured prediction that generate negative samples from N-best outputs (Cohen and Sarawagi, 2004), or consider all possible candidates (Sarawagi and Cohen, 2005).",
+        "We also prove the convergence of our training method.",
+        "This paper is organized as follows: In Section 2, we describe AdaBoost and Semi-Markov perceptron is described in Section 3.",
+        "Our proposed method is described in Section 4, and the experimental setting, the experimetal results and related work are described in Section 5, 6, and 7."
+      ]
+    },
+    {
+      "heading": "2 AdaBoost",
+      "text": [
+        "Let X be a domain or sample space and Y be a set of labels {?1,+1}.",
+        "The goal is to induce a mapping F : X ?",
+        "Y.",
+        "Let S be {(x1, y1), ..., (xm, ym)}, which is a set of training samples, where xi is a sample in X , and each yi belongs toY .",
+        "Each boosting learner learns T types of weak hypothesis with a given weak learner to produce a final hypothesis F :",
+        "?tht(x)).",
+        "where sign(x) is 1 if x is positive, otherwise, it returns -1.",
+        "The ht (1 ?",
+        "t ?",
+        "T ) is the t-th weak hypothesis learned by the weak learner.",
+        "ht(x) is the prediction to x ?",
+        "X with ht, and ?t is the confidence value of ht that is calculated by the boosting learner.",
+        "The given weak learner learns a weak hypothesis ht from training samples S = {(xi, yi)}mi=1 and weights over samples {wt,1, ..., wt,m} at round t. wt,i is the weight of sample number i at round t for 1 ?",
+        "i ?",
+        "m. We set w1,i to 1/m.",
+        "After obtaining t-th weak hypothesis ht, the boosting learner calculates the confidence-value ?t for ht.",
+        "Then, the boosting learner updates the weight of each sample.",
+        "We use the AdaBoost framework (Freund and Schapire, 1997; Schapire and Singer, 1999).",
+        "The update of the sample weights in AdaBoost is defined as follows:",
+        "# The learning rations of S: {?i}mi=1 # The maximum iteration of perceptron: P",
+        "Let pi be any predicate and [[pi]] be 1 if pi holds and 0 otherwise.",
+        "The following upper bound holds for the training error of F consisting of T weak hypotheses (Schapire and Singer, 1999):",
+        "Eq.",
+        "(1) and Eq.",
+        "(3) suggest AdaBoost-based learning algorithms will converge by repeatedly selecting a confidence-value of ?t for ht at each round, that satisfies the following Eq.",
+        "(4) at each round: Zt(?t) < 1.",
+        "(4)"
+      ]
+    },
+    {
+      "heading": "3 Semi-Markov Perceptron",
+      "text": [
+        "In a semi-Markov learner, instead of labeling individual words, hypothesized segments are labeled.",
+        "For example, if a training with an input ?I win?",
+        "and a label set {NP ,V P } is conducted, considered segments with their labels are the follow",
+        "Figure 1 shows a pseudo code of a semi-Markov perceptron (Semi-PER) (Cohen and Sarawagi, 2004).",
+        "We used the averaged perceptron (Collins,",
+        "2002) based on the efficient implementation described in (Daume?",
+        "III, 2006).",
+        "Let S = {(Xi,Yi)}mi=1 be a set of m training data, Xi be i-th training sample represented by a word sequence, and Yi be the correct segments and the correct labeling of Xi.",
+        "Yi consists of |Yi |segments.",
+        "Yi(j) means the j-th segment of Yi, and l(Yi(j)) means the label ofYi(j).",
+        "?",
+        "(X,Y) is a mapping to a D-dimensional feature vector defined as",
+        "where ?d is a feature represented by an indicator function that maps an inputX and a segment with its label Y(j) to a D-dimensional vector.",
+        "For example, ?100(X,Y(j)) might be the 100-th dimension's value is 1 if the beginning word of Y(j) is ?Mr.?",
+        "and the label l(Y(j)) is ?NP?.",
+        "w is a weight vector trained with a semi-Markov perceptron.",
+        "w??",
+        "(X,Y) is the score given to segments with their labels Y of X, and Y(X) is the all possible segments with their labels for X.",
+        "The learning ratios of the training samples are {?i}mi=1, and the ratios are set to 1 in a usual semi-Markov perceptron training.",
+        "In the training of the Semi-PER, for a givenXi, the learner finds Y?i with the Viterbi decoding as described in (Cohen and Sarawagi, 2004):",
+        "The algorithm takes P passes over the training samples."
+      ]
+    },
+    {
+      "heading": "4 A Boosted Semi-Markov Perceptron",
+      "text": [
+        "This section describes how we apply AdaBoost to a semi-Markov perceptron training."
+      ]
+    },
+    {
+      "heading": "4.1 Applying Boosting",
+      "text": [
+        "Figure 2 shows a pseudo code for our boosting-based Semi-PER.",
+        "To train the Semi-PER within an AdaBoost framework, we used the weights of samples decided by AdaBoost as learning ratios.",
+        "The initial weight value of i-th sample at boosting",
+        "# Training data: S = {(Xi,Yi)}mi=1 # A weight vector at boosting round t: Wt # The weights of S at round t: {wt,i}mi=1 # The iteration of perceptron training: P # The iteration of boosting training: T",
+        "round 1 is w1,i = 1/m.",
+        "In the first iteration, Semi-PER is trained with the initial weights of samples.",
+        "Then, we update the weights of training samples.",
+        "Our boosting algorithm assigns larger weights to training samples incorrectly segmented or labeled.",
+        "To realize this, we first define a loss for Xi at boosting round t as follows:",
+        "st(X,Y) is a score of a word sequence X that is segmented and labeled as Y, and wt is a weight vector trained by Semi-PER at boosting round t. When a given input is correctly segmented and labeled, the second best output is generated with a forward-DP backward-A* N-best search algorithm (Nagata, 1994).",
+        "Then we find a confidence-value ?t that satisfies Z?t(?t) < 1:",
+        "After obtaining ?t, the weight of each sample is updated as follows:",
+        "If st(Xi,Yi) is greater than st(Xi,Yti) (i.e., 0 < dt(Xi)), the weight of Xi is decreased because Xi is correctly segmented and labeled.",
+        "Otherwise (dt(Xi) < 0), Xi has a larger weight value.",
+        "The updated weights are used as the learning ratios in the training of Semi-PER at the next boosting round.",
+        "Finally, we update the weight vector Wt trained with boosting as follows:",
+        "This process is repeated T times, and a model WT , which consists of T types of Semi-PER-based models, is obtained.",
+        "In test phase, the segments and labels of a word sequenceX is decided as follows:"
+      ]
+    },
+    {
+      "heading": "4.2 Learning a Confidence Value",
+      "text": [
+        "Since our algorithm handles real valued scores of samples given by Semi-PER on the exponential loss of AdaBoost, it's difficult to analytically determine a confidence-value ?t that satisfies Z?t(?t) < 1 at boosting round t. Therefore, we use a bisection search to find a confidence-value.",
+        "To detemin the range for the bisection search, we use a range between 0 and the confidence-value for a weak hypothesis ht that returns its prediction as one of {-1,+1}.",
+        "We define ht(Xi) as sign(dt(Xi)).",
+        "Schapire and Singer proposed an algorithm based on AdaBoost, called real AdaBoost (Schapire and Singer, 1999).",
+        "The real AdaBoost analytically calculates the confidence-value that minimizes Eq.",
+        "(2).",
+        "The derivation of",
+        "Finally, we select the value that minimizes Eq.",
+        "(5) from the range between 0 and 2 ?",
+        "?",
+        "?t with the bisection search as the confidence-value ?t.",
+        "This is because we expect to find a better confidence-value from a wider range."
+      ]
+    },
+    {
+      "heading": "4.3 Convergence Analysis",
+      "text": [
+        "If we repeatedly find a confidence-value (0 < ?t) that satisfies Z?t(?t) < 1 at each boosting round, the training of the semi-Markov model will be converged as in the classification case described in Section 2.1 The following bound on the training error can be proved:",
+        "These give the stated bound on training error;",
+        "training of Semi-PER in our experiments."
+      ]
+    },
+    {
+      "heading": "5 Experimental Settings",
+      "text": []
+    },
+    {
+      "heading": "5.1 Noun Phrase Chunking",
+      "text": [
+        "The Noun Phrase (NP) chunking task was chosen because it is a popular benchmark for testing a structured prediction.",
+        "In this task, noun phrases called base NPs are identified.",
+        "?",
+        "[He] (NP) reckons [the current account deficit] (NP)...?",
+        "is an example.",
+        "The training set consists of 8,936 sentences, and the test set consists of 2,012 sentences.2 To tune parameters for each algorithm, we used the 90% of the train data for the training of parameter tuning, and the 10% of the training data was used as a development data for measuring accuracy at parameter tuning.",
+        "A final model was trained from all the training data with the parameters that showed the highest accuracy on the development data."
+      ]
+    },
+    {
+      "heading": "5.2 Text Chunking",
+      "text": [
+        "We used a standard data set prepared for CoNLL2000 shared task.3 This task aims to identify 10 types of chunks, such as, NP, VP, PP, ADJP, ADVP, CONJP, INITJ, LST, PTR, and SBAR.",
+        "?",
+        "[He] (NP) [reckons] (VP) [the current account deficit] (NP)...?",
+        "is an example of text chunking.",
+        "The data consists of subsets of Penn Wall Street Journal treebank; training (sections 15-18) and test (section 20).",
+        "To tune parameters for each algorithm, we used the same approach of the NP chunking one."
+      ]
+    },
+    {
+      "heading": "5.3 Japanese Extended NE Recognition",
+      "text": [
+        "To evaluate our algorithm on tasks that include large number of classes, we used an extended NE recognition (ENER) task (Sekine et al., 2002).",
+        "This Japanese corpus for ENER (Hashimoto et al., 2008) consists of about 8,500 articles from 2005 Mainichi newspaper.",
+        "The corpus includes 240,337 tags for 191 types of NEs.",
+        "To segment words from Japanese sentences, we used ChaSen.4 Words may include partial NEs because words segmented with ChaSen do not always correspond with NE boundaries.",
+        "If such problems occur when we segment the training data, we annotated a word chunk with the type of the NE included in the word chunk.",
+        "The evaluations are performed based on the gold",
+        "[tj , CLj ], [tj ,WBj ], [tj , PBj ], [tj , wbp], [tj , pbp], [tj , wep], [tj , pep], [tj , wip],[tj , pip] , [tj , wbp, wep], [tj , pbp, pep], [tj , wbp, pep], [tj , pbp, wep], [tj , wbp?1], [tj , pbp?1], [tj , wbp?2], [tj , pbp?2], [tj , wep+1], [tj , pep+1], [tj , wep+2], [tj , pep+2], [tj , pbp?2, pbp?1], [tj , pep+1, pep+2], [tj , pbp?2, pbp?1, pbp], [tj , pep, pep+1, pep+2] % Features used for only Text Chunking and NP Chunking [tj , wbp, wip], [tj , wbp, pip], [tj , wbp, pip], [tj , pbp, pip], [tj , wep, wip], [tj , wep, pip], [tj , wep, pip], [tj , pep, pip], [tj , wbp, wep, wip], [tj , wbp, wep, pip], [tj , wbp, wep, pip], [tj , wbp, pep, pip] standard data for the test.",
+        "We created the following sets for this experiment.",
+        "Training data is news articles from January to October 2005 in the corpus, which includes 205,876 NEs.",
+        "Development data is news articles in November 2005 in the corpus, which includes 15,405 NEs.",
+        "Test data is news articles in December 2005 in the corpus, which includes 19,056 NEs."
+      ]
+    },
+    {
+      "heading": "5.4 Evaluation Metrics",
+      "text": [
+        "Our evaluation metrics are recall (RE), precision (PR), and F-measure (FM ) defined as follows:",
+        "where Cok is the number of correctly recognized chunks with their correct labels,Call is the number of all chunks in a gold standard data, and Crec is the number of all recognized chunks."
+      ]
+    },
+    {
+      "heading": "5.5 Features",
+      "text": [
+        "Table 1 lists features used in our experiments.",
+        "For NP Chunking and Text Chunking, we added features derived from segments in addition to ENER features.5 wk is the k-th word, and pk is the Part-Of-Speech (POS) tag of k-th word.",
+        "bp is the position of the first word of the current segment in a given",
+        "word sequence.",
+        "ep indicates the position of the last word of the current segment.",
+        "ip is the position of words inside the current segment (bp < ip < ep).",
+        "If the length of the current segment is 2, we use features that indicate there is no inside word as the features of ip-th words.",
+        "tj is the NE class label of j-th segment.",
+        "CLj is the length of the current segment, whether it be 1, 2, 3, 4, or longer than 4.",
+        "WBj indicates word bigrams, and PBj indicates POS bigrams inside the current segment."
+      ]
+    },
+    {
+      "heading": "5.6 Algorithms to be Compared",
+      "text": [
+        "The following algorithms are compared with our method.",
+        "?",
+        "Semi-Markov perceptron (Semi-PER) (Cohen and Sarawagi, 2004): We used one-best output for training.",
+        "This Semi-PER is also used as the weak learner of our boosting algorithm.",
+        "?",
+        "Semi-Markov CRF (Semi-CRF) (Sarawagi and Cohen, 2005): To train Semi-CRF, a",
+        "stochastic gradient descent (SGD) training for L1-regularized with cumulative penalty (Tsuruoka et al., 2009) was used.",
+        "The batch size of SGD was set to 1.",
+        "These algorithms are based on sequentially classifying segments of several adjacent words, rather than single words.",
+        "Ideally, all the possible word segments of each input should be considered for this algorithm.",
+        "However, the training of these algorithms requires a great deal of memory.",
+        "Therefore, we limit the maximum size of the word-segments.",
+        "We use word segments consisting of up to ten words due to the memory limitation.",
+        "We set the maximum iteration for Semi-PER to 100, and the iteration number for Semi-CRF trained with SGD to 100 ?",
+        "m, where m is the number of training samples.",
+        "The regularization parameter C of Semi-CRF and the number of iteration for Semi-PER are tuned on development data.6 For our boosting algorithm, the number of boosting iteration is tuned on development data with the number of iteration for Semi-PER tuned on development data.",
+        "We set the maximum itera"
+      ]
+    },
+    {
+      "heading": "6 Experimental Results",
+      "text": [
+        "We used a machine with Intel(R) Xeon(R) CPU X5680@ 3.33GHz and 72 GBmemory.",
+        "In the following, our proposed method is referred as SemiBoost."
+      ]
+    },
+    {
+      "heading": "6.1 NP Chunking",
+      "text": [
+        "Table 2 shows the experimental results on NP Chunking.",
+        "Semi-Boost showed the best accuracy.",
+        "Semi-Boost showed 0.28 higher F-measure than Semi-PER and Semi-CRF.",
+        "To compare the results, we employed a McNemar paired test on the labeling disagreements as was done in (Sha and Pereira, 2003).",
+        "All the results indicate that there is a significant difference (p < 0.01).",
+        "This result shows that Semi-Boost showed high accuracy."
+      ]
+    },
+    {
+      "heading": "6.2 Text Chunking",
+      "text": [
+        "Table 3 shows the experimental results on Text Chunking.",
+        "Semi-Boost showed 0.36 higher F-measure than Semi-CRF, and 0.05 higher F-measure than Semi-PER.",
+        "The result of McNemar test indicates that there is a significant difference (p < 0.01) between Semi-Boost and Semi-CRF.",
+        "However, there is no significant difference between Semi-Boost and Semi-PER."
+      ]
+    },
+    {
+      "heading": "6.3 Extended Named Entity Recognition",
+      "text": [
+        "Table 4 shows the experimental results on ENER.",
+        "We could not train Semi-CRF because of the lack of memory for this task.",
+        "Semi-Boost showed 0.24 higher F-measure than that of Semi-PER.",
+        "The results indicate there is a significant difference (p <"
+      ]
+    },
+    {
+      "heading": "6.4 Training Speed",
+      "text": [
+        "We compared training speed under the following condition; The iteration for Semi-PER is 100, the iteration number for Semi-CRF trained with SGD is 100?m, wherem is the number of training samples, and the one time iteration of boosting with the perceptron iteration 100.",
+        "Therefore, all training methods attempted 100?m times estimation.",
+        "Table 5 shows the training time of each learner.",
+        "In NP Chunking, the training time of Semi-PER, Semi-CRF, and Semi-Boost were 475 seconds, 2,120 seconds, and 499 seconds.",
+        "In Text Chunking, the training time of Semi-PER, Semi-CRF, and our method were 559 seconds, 8,228 seconds, and 619 seconds.",
+        "Semi-Boost shows competitive training speed with Semi-PER and 4 to 13 times faster training speed in terms of the total number",
+        "of parameter estimations The difference of time between Semi-PER and our method is the time for calculating confidence-value of boosting.",
+        "When Semi-Boost trained a model for ENER, the training speed was degraded.",
+        "The training time of Semi-Boost was 32,370 and the training time of Semi-PER was 13,559.",
+        "One of the reasons is the generation of an incorrect output of each train",
+        "ing sample.",
+        "In our observation, when the number of classes is increased, the generation speed of incorrect outputs with N-best search is degraded.",
+        "To improve training speed, we used 20 cores for generating incorrect outputs.",
+        "When the training with 20 cores was conducted, the training data was split to 20 portions, and each portion was processed with one of each core.",
+        "The training time with the 20 cores was 19,598 for ENER.",
+        "However, the training time of NP Chunking was marginally improved and that of Text Chunking was slightly increased.",
+        "This result implies that multi-core processing is effective for the training of large classes like ENER in Semi-Boost.",
+        "In fact, since Semi-Boost requires additional boosting iterations, the training time of SemiBoost increases.",
+        "However, the training time increases linearly by the number of boosting iteration.",
+        "Therefore, Semi-Boost learned models from the large training data of ENER."
+      ]
+    },
+    {
+      "heading": "6.5 Memory Usage",
+      "text": [
+        "Semi-Boost consumed more memory than Semi-PER.",
+        "This is because our learning method maintains a weight vector for boosting in addition to the weight vector of Semi-PER.",
+        "Compared with Semi-CRF, Semi-Boost showed lower memory consumption.",
+        "On the training data for Text Chunking, the memory size of Semi-Boost, Semi-PER, and Semi-CRF are 4.4 GB, 4.1 GB, and 18.0 GB.",
+        "When we trained models for ENER, Semi-PER consumed 32 GB and Semi-Boost consumed 33 GB.",
+        "However, Semi-CRF could not train models because of the lack of memory.",
+        "This is because Semi-CRF maintains a weight vector and a parameter vector for L1-norm regularization and Semi-CRF considers all possible patterns generated from given sequences in training.",
+        "In contrast, Semi-PER and Semi-Boost only consider features that appeared in correct ones and incorrectly recognized ones.",
+        "These results indicate that SemiBoost can learn models from large training data."
+      ]
+    },
+    {
+      "heading": "7 Related Work",
+      "text": []
+    },
+    {
+      "heading": "7.1 NP Chunking",
+      "text": [
+        "Table 6 shows the previous best results for NP Chunking.",
+        "The F-measure of Semi-Boost is 94.60 that is 0.23 higher than that of (Sun et al., 2009) and 0.38 higher than that of (Kudo and Matsumoto, 2001)."
+      ]
+    },
+    {
+      "heading": "7.2 Text Chunking",
+      "text": [
+        "Table 7 shows the previous best results for Text Chunking.",
+        "We see that our method attained a higher accuracy than the previous best results obtained without any additional lexical resources such as chunking methods based on SVM (Kudo and Matsumoto, 2001), CRF with rerank-ing (Kudo et al., 2005), Maximum Entropy (Tsuruoka and Tsujii, 2005), and CRF (Tsuruoka et al., 2009).",
+        "This result indicates that our method performs well in terms of accuracy.",
+        "The previous results with lexical resources or semi-supervised ones showed higher accuracy than that of our method.",
+        "For example, lexical resources such as lists of names, locations, abbreviations and stop words were used (Daume?",
+        "III and Marcu, 2005), and a full parser output was used in (Zhang et al., 2001).",
+        "Semi-supervised ones used a generative model trained from automatically labeled data (Suzuki and Isozaki, 2008), the candidate tags of words collected from automatically labeled data (Iwakura and Okamoto, 2008), or automatically created classifiers by learning from thousands of automatically generated auxiliary classification problems from unlabeled data (Ando and Zhang, 2005).",
+        "Our algorithm can also incorporate the lexical resources and the semi-supervised approaches.",
+        "Future work should evaluate the effectiveness of the incorporation of them."
+      ]
+    },
+    {
+      "heading": "7.3 Extended Named Entity Recognition",
+      "text": [
+        "For ENER, the best result was the Semi-PER one (Iwakura et al., 2011).",
+        "The F-measure of Semi-PER was 81.95, and the result was higher than NE chunker based on structured perceptron (Collins, 2002), and NE chunkers based on shift-reduce-parsers (Iwakura et al., 2011).",
+        "Our method showed 0.15 higher F-measure than that of the Semi-PER one.",
+        "This result is also evidence that our method performs well in terms of accuracy."
+      ]
+    },
+    {
+      "heading": "7.4 Training Methods",
+      "text": [
+        "There have been methods proposed to improve the training speed for semi-Markov-based learners.",
+        "With regard to reducing the space of lattices built into the semi-Markov-based algorithms, a method was proposed to filter nodes in the lattices with a naive Bayes classifier (Okanohara et al., 2006).",
+        "To improve training speed of Semi-CRF, a succinct representation of potentials common across overlapping segments of semi-Markov model was proposed (Sarawagi, 2006).",
+        "These methods can also be applied to Semi-PER.",
+        "Therefore, we can expect improved training speed with these methods.",
+        "Recent online learners update both parameters and the estimate of their confidence (Dredze and Crammer, 2008; Crammer et al., 2009; Mejer and Crammer, 2010; Wang et al., 2012).",
+        "In these algorithms, less confident parameters are updated more aggressively than more confident ones.",
+        "These algorithms maintain the confidences of features.",
+        "In contrast, our boosting approach maintains the weights of training samples.",
+        "In future work, we?d like to consider the use of these algorithms in boosting of semi-Markov learners."
+      ]
+    },
+    {
+      "heading": "8 Conclusion",
+      "text": [
+        "This paper has proposed a boosting algorithm with a semi-Markov perceptron.",
+        "The experimental results on Noun Phrase Chunking, Text Chunking and Japanese Extended Named Entity Recognition have shown that our method achieved better accuracy than a semi-Markov perceptron and a semi-Markov CRF.",
+        "In future work, we?d like to evaluate the boosting algorithm with structured prediction tasks such as POS tagging and parsing."
+      ]
+    }
+  ]
+}

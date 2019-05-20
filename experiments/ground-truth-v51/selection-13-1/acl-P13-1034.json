@@ -1,0 +1,336 @@
+{
+  "info": {
+    "authors": [
+      "Michael Lucas",
+      "Doug Downey"
+    ],
+    "book": "ACL",
+    "id": "acl-P13-1034",
+    "title": "Scaling Semi-supervised Naive Bayes with Feature Marginals",
+    "url": "https://aclweb.org/anthology/P13-1034",
+    "year": 2013
+  },
+  "references": [
+    "acl-P07-1056",
+    "acl-P10-1040"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Semi-supervised learning (SSL) methods augment standard machine learning (ML) techniques to leverage unlabeled data.",
+        "SSL techniques are often effective in text classification, where labeled data is scarce but large unlabeled corpora are readily available.",
+        "However, existing SSL techniques typically require multiple passes over the entirety of the unlabeled data, meaning the techniques are not applicable to large corpora being produced today.",
+        "In this paper, we show that improving marginal word frequency estimates using unlabeled data can enable semi-supervised text classification that scales to massive unlabeled data sets.",
+        "We present a novel learning algorithm, which optimizes a Naive Bayes model to accord with statistics calculated from the unlabeled corpus.",
+        "In experiments with text topic classification and sentiment analysis, we show that our method is both more scalable and more accurate than SSL techniques from previous work."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Semi-supervised Learning (SSL) is a Machine Learning (ML) approach that utilizes large amounts of unlabeled data, combined with a smaller amount of labeled data, to learn a target function (Zhu, 2006; Chapelle et al., 2006).",
+        "SSL is motivated by a simple reality: the amount of available machine-readable data is exploding, while human capacity for hand-labeling data for any given ML task remains relatively constant.",
+        "Experiments in text classification and other domains have demonstrated that by leveraging unlabeled data, SSL techniques improve machine learning performance when human input is limited (e.g., (Nigam et al., 2000; Mann and McCallum, 2010)).",
+        "However, current SSL techniques have scalability limitations.",
+        "Typically, for each target concept to be learned, a semi-supervised classifier is trained using iterative techniques that execute multiple passes over the unlabeled data (e.g., Expectation-Maximization (Nigam et al., 2000) or Label Propagation (Zhu and Ghahramani, 2002)).",
+        "This is problematic for text classification over large unlabeled corpora like the Web: new target concepts (new tasks and new topics of interest) arise frequently, and performing even a single pass over a large corpus for each new target concept is intractable.",
+        "In this paper, we present a new SSL text classification approach that scales to large corpora.",
+        "Instead of utilizing unlabeled examples directly for each given target concept, our approach is to pre-compute a small set of statistics over the unlabeled data in advance.",
+        "Then, for a given target class and labeled data set, we utilize the statistics to improve a classifier.",
+        "Specifically, we introduce a method that extends Multinomial Naive Bayes (MNB) to leverage marginal probability statistics P (w) of each word w, computed over the unlabeled data.",
+        "The marginal statistics are used as a constraint to improve the class-conditional probability estimates P (w|+) and P (w|?)",
+        "for the positive and negative classes, which are often noisy when estimated over sparse labeled data sets.",
+        "We refer to the technique as MNB with Frequency Marginals (MNB-FM).",
+        "In experiments with large unlabeled data sets and sparse labeled data, we find that MNB-FM is both faster and more accurate on average than standard SSL methods from previous work, including Label Propagation, MNB with Expectation-Maximization,, and the recent Semi-supervised Frequency Estimate (SFE) algorithm (Su et al., 2011).",
+        "We also analyze how MNB-343 FM improves accuracy, and find that surprisingly MNB-FM is especially useful for improving class-conditional probability estimates for words that never occur in the training set.",
+        "The paper proceeds as follows.",
+        "We formally define the task in Section 2.",
+        "Our algorithm is defined in Section 3.",
+        "We present experimental results in Section 4, and analysis in Section 5.",
+        "We discuss related work in Section 6 and conclude in Section"
+      ]
+    },
+    {
+      "heading": "7 with a discussion of future work. 2 Problem Definition",
+      "text": [
+        "We consider a semi-supervised classification task, in which the goal is to produce a mapping from an instance space X consisting of T -tuples of non-negative integer-valued features w = (w1, .",
+        ".",
+        ".",
+        ", wT ), to a binary output space Y = {?,+}.",
+        "In particular, our experiments will focus on the case in which the wi's represent word counts in a given document, in a corpus of vocabulary size T .",
+        "We assume the following inputs: ?",
+        "A set of zero or more labeled documents",
+        "The goal of the task is to output a classifer f : X ?",
+        "Y that performs well in predicting the classes of given unlabeled documents.",
+        "The metrics of evaluation we focus on in our experiments are detailed in Section 4.",
+        "Our semi-supervised technique utilizes statistics computed over the labeled corpus, denoted as follows.",
+        "We use N+w to denote the sum of the occurrences of word w over all documents in the positive class in the labeled data DL.",
+        "Also, let",
+        "w be the sum value of all word counts in the labeled positive documents.",
+        "The count of the remaining words in the positive documents is represented as N+?w = N+ ?N+w .",
+        "The quantitiesN?,N?w , andN?",
+        "?w are defined similarly for the negative class."
+      ]
+    },
+    {
+      "heading": "3 MNB with Feature Marginals",
+      "text": [
+        "We now introduce our algorithm, which scalably utilizes large unlabeled data stores for classification tasks.",
+        "The technique builds upon the multinomial Naive Bayes model, and is denoted as MNB with Feature Marginals (MNB-FM)."
+      ]
+    },
+    {
+      "heading": "3.1 MNB-FM Method",
+      "text": [
+        "In the text classification setting , each feature value wd represents count of observations of word w in document d. MNB makes the simplifying assumption that word occurrences are conditionally independent of each other given the class (+ or ?)",
+        "of the example.",
+        "Formally, let the probability P (w|+) of the w in the positive class be denoted as ?+w .",
+        "Let P (+) denote the prior probability that a document is of the positive class, and P (?)",
+        "= 1?P (+) the prior for the negative class.",
+        "Then MNB represents the class probability of an example as:",
+        "MNB estimates the parameters ?+w from the corresponding counts in the training set.",
+        "The maximum-likelihood estimate of ?+w is N+w /N+, and to prevent zero-probability estimates we employ ?add-1?",
+        "smoothing (typical in MNB) to obtain the estimate:",
+        "After MNB calculates ?+w and ?",
+        "?w from the training set for each feature in the feature space, it can then classify test examples using Equation 1.",
+        "MNB-FM attempts to improve MNB's estimates of ?+w and ?",
+        "?w , using statistics computed over the unlabeled data.",
+        "Formally, MNB-FM leverages the equality:",
+        "The left-hand-side of Equation 2, P (w), represents the probability that a given randomly drawn token from the unlabeled data happens to be the word w. We write Pt(+) to denote the probability that a randomly drawn token (i.e. a word occurrence) from the corpus comes from the positive class.",
+        "Note that Pt(+) can differ from P (+), the prior probability that a document is positive, due to variations in document length.",
+        "Pt(?)",
+        "is defined similarly for the negative class.",
+        "MNB-FM is motivated by the insight that the left-hand-side of344 Equation 2 can be estimated in advance, without knowledge of the target class, simply by counting the number of tokens of each word in the unlabeled data.",
+        "MNB-FM then uses this improved estimate of P (w) as a constraint to improve the MNB parameters on the right-hand-side of Equation 2.",
+        "We note that Pt(+) and Pt(?",
+        "), even for a small training set, can typically be estimated reliably?",
+        "every token in the training data serves as an observation of these quantities.",
+        "However, for large and sparse feature spaces common in settings like text classification, many features occur in only a small fraction of examples?meaning ?+w and ?",
+        "?w must be estimated from only a handful of observations.",
+        "MNB-FM attempts to improve the noisy estimates ?+w and ?",
+        "?w utilizing the robust estimate for P (w) computed over unlabeled data.",
+        "Specifically, MNB-FM proceeds by assuming the MLEs for P (w) (computed over unlabeled data), Pt(+), and Pt(?)",
+        "are correct, and re-estimates ?+w and ?",
+        "?w under the constraint in Equation 2.",
+        "First, the maximum likelihood estimates of ?+w and ?",
+        "?w given the training data DL are:",
+        "We can rewrite the constraint in Equation 2 as:",
+        "where for compactness we represent:",
+        "Substituting the constraint into Equation 3 shows that we wish to choose ?+w as:",
+        "Both ?+w and ?",
+        "?w are constrained to valid probabilities in [0,1] when ?+w ?",
+        "[0, KL ].",
+        "If N+?w and N?w have non-zero counts, vertical asymptotes exist at 0 and KL and guarantee a solution in thisrange.",
+        "Otherwise, a valid solution may not exist.",
+        "In that case, we default to the add-1 Smoothing estimates used by MNB.",
+        "Finally, after optimizing the values ?+w and ?",
+        "?w for each word w as described above, we normalize the estimates to obtain valid conditional probability distributions, i.e."
+      ]
+    },
+    {
+      "heading": "3.2 MNB-FM Example",
+      "text": [
+        "The following concrete example illustrates how MNB-FM can improve MNB parameters using the statistic P (w) computed over unlabeled data.",
+        "The example comes from the Reuters Aptemod text classification task addressed in Section 4, using bag-of-words features for the Earnings class.",
+        "In one experiment with 10 labeled training examples, we observed 5 positive and 5 negative examples, with the word ?resources?",
+        "occurring three times in the set (once in the positive class, twice in the negative class).",
+        "MNB uses add-1 smoothing to estimate the conditional probability of the word ?resources?",
+        "in each class as ?+w = 1+1216+33504 = 5.93e-5, and",
+        "implying that ?resources?",
+        "is a negative indicator of the Earnings class.",
+        "However, this estimate is inaccurate.",
+        "In fact, over the full dataset, the parameter values we observe are ?+w = 93168549 =5.70e-4 and ?",
+        "?w = 263564717 = 4.65e-4, with a ratio of ?+w?",
+        "?w = 1.223.",
+        "Thus, in actuality, the word ?re-sources?",
+        "is a mild positive indicator of the Earnings class.",
+        "Yet because MNB estimates its parameters from only the sparse training data, it can be inaccurate.",
+        "The optimization in MNB-FM seeks to accord its parameter estimates with the feature frequency, computed from unlabeled data, of P (w) = 4.89e4.",
+        "We see that compared with P (w), the ?+w and ?",
+        "?w that MNB estimates from the training data are both too low by almost an order of magnitude.",
+        "Further, the maximum likelihood estimate for ?",
+        "?w (based on an occurrence count of 2 out of 547 observations) is somewhat more reliable than that for ?+w (1 of 216 observations).",
+        "As a result, ?+w is adjusted upward relatively more than ?",
+        "?w via MNB",
+        "fies the word ?resources?",
+        "as an indicator of the positive class.",
+        "The above example illustrates how MNB-FM can leverage frequency marginal statistics computed over unlabeled data to improve MNB's conditional probability estimates.",
+        "We analyze how frequently MNB-FM succeeds in improving MNB's estimates in practice, and the resulting impact on classification accuracy, below."
+      ]
+    },
+    {
+      "heading": "4 Experiments",
+      "text": [
+        "In this section, we describe our experiments quantifying the accuracy and scalability of our proposed technique.",
+        "Across multiple domains, we find that MNB-FM outperforms a variety of approaches from previous work."
+      ]
+    },
+    {
+      "heading": "4.1 Data Sets",
+      "text": [
+        "We evaluate on two text classification tasks: topic classification, and sentiment detection.",
+        "In topic classification, the task is to determine whether a test document belongs to a specified topic.",
+        "We train a classifier separately (i.e., in a binary classification setting) for each topic and measure classification performance for each class individually.",
+        "The sentiment detection task is to determine whether a document is written with a positive or negative sentiment.",
+        "In our case, the goal is to determine if the given text belongs to a positive review of a product.",
+        "The Reuters RCV1 corpus is a standard large corpus used for topic classification evaluations (Lewis et al., 2004).",
+        "It includes 804,414 documents with several nested target classes.",
+        "We consider the 5 largest base classes after punctuation and stop-words were removed.",
+        "The vocabulary consisted of 288,062 unique words, and the total number of tokens in the data set was 99,702,278.",
+        "Details of the classes can be found in Table 1.",
+        "While MNB-FM is designed to improve the scalability of SSL to large corpora, some of the comparison methods from previous work were not tractable on the large topic classification data set RCV1.",
+        "To evaluate these methods, we also experimented with the Reuters ApteMod dataset (Yang and Liu, 1999), consisting of 10,788 documents belonging to 90 classes.",
+        "We consider the 10 most",
+        "frequent classes, with varying degrees of positive/negative skew.",
+        "Punctuation and stopwords were removed during preprocessing.",
+        "The Aptemod data set contained 33,504 unique words and a total of 733,266 word tokens.",
+        "Details of the classes can be found in Table 2.",
+        "In the domain of Sentiment Classification, we tested on the Amazon dataset from (Blitzer et al., 2007).",
+        "Stopwords listed in an included file were ignored for our experiments and we only the considered unigram features.",
+        "Unlike the two Reuters data sets, each category had a unique set of documents of varying size.",
+        "For our experiments, we only used the 10 largest categories.",
+        "Details of the categories can be found in Table 3.",
+        "In the Amazon Sentiment Classification data set, the task is to determine whether a review is positive or negative based solely on the reviewer's submitted text.",
+        "As such, the positive and negative",
+        "labels are equally relevant.",
+        "For our metrics, we calculate the scores for both the positive and negative class and report the average of the two (in contrast to the Reuters data sets, in which we only report the scores for the positive class)."
+      ]
+    },
+    {
+      "heading": "4.2 Comparison Methods",
+      "text": [
+        "In addition to Multinomial Naive Bayes (discussed in Section 3), we evaluate against a variety of supervised and semi-supervised techniques from previous work, which provide a representation of the state of the art.",
+        "Below, we detail the comparison methods that we reimplemented for our experiments.",
+        "We implemented a semi-supervised version of Naive Bayes with Expectation Maximization, based on (Nigam et al., 2000).",
+        "We found that 15 iterations of EM was sufficient to ensure approximate convergence of the parameters.",
+        "We also experimented with different weighting factors to assign to the unlabeled data.",
+        "While performing per-data-split cross-validation was computationally prohibitive for NB+EM, we performed experiments on one class from each data set that revealed weighting unlabeled examples at 1/5 the weight of a labeled example performed best.",
+        "We found that our reimplementation of NB+EM slightly outperformed published results on a separate data set (Mann and McCallum, 2010), validating our design choices.",
+        "We implemented Logistic Regression using L2-Normalization, finding this to outperform L1-Normalized and non-normalized versions.",
+        "The strength of the normalization was selected for each training data set of each size utilized in our experiments.",
+        "The strength of the normalization in the logistic regression required cross-validation, which we limited to 20 values logarithmically spaced between 10?4 and 104.",
+        "The optimal value was selected based upon the best average F1 score over the 10 folds.",
+        "We selected a normalization parameter separately for each subset of the training data during experimentation.",
+        "For our large unlabeled data set sizes, we found that a standard Label Propogation (LP) approach, which considers propagating information between all pairs of unlabeled examples, was not tractable.",
+        "We instead implemented a constrained version of LP for comparison.",
+        "In our implementation, we limit the number of edges in the propagation graph.",
+        "Each node propagates to only to its 10 nearest neighbors, where distance is calculated as the cosine distance between the tf-idf representation of two documents.",
+        "We found the tf-idf weighting to improve performance over that of simple cosine distance.",
+        "Propagation was run for 100 iterations or until the entropy dropped below a predetermined threshold, whichever occurred first.",
+        "Even with these aggressive constraints, Label Propagation was intractable to execute on some of the larger data sets, so we do not report LP results for the RCV1 dataset or for the 5 largest Amazon categories.",
+        "We also reimplemented a version of the recent Semi-supervised Frequency Estimate approach (Su et al., 2011).",
+        "SFE was found to outperform MNB and NB+EM in previous work.",
+        "Consistent with our MNB implementation, we use Add1 Smoothing in our SFE calculations although its use is not specifically mentioned in (Su et al., 2011).",
+        "SFE also augments multinomial Naive Bayes with the frequency information P (w), although in a manner distinct from MNB-FM.",
+        "In particular, SFE uses the equality P (+|w) = P (+, w)/P (w) and estimates the rhs using P (w) computed over all the unlabeled data, rather than using only labeled data as in standard MNB.",
+        "The primary distinction between MNB-FM and SFE is that SFE adjusts sparse estimates P (+, w) in the same way as non-sparse estimates, whereas MNB-FM is designed to adjust sparse estimates more than non-sparse ones.",
+        "Further, it can be shown that as P (w) of a word w in the unlabeled data becomes larger than that in the labeled data, SFE's estimate of the ratio P (w|+)/P (w|?)",
+        "approaches one.",
+        "Depending on the labeled data, such an estimate can be arbitrarily inaccurate.",
+        "MNB-FM does not have this limitation."
+      ]
+    },
+    {
+      "heading": "4.3 Results",
+      "text": [
+        "For each data set, we evaluate on 50 randomly drawn training splits, each comprised of 1,000 randomly selected documents.",
+        "Each set included at least one positive and one negative document.",
+        "We347",
+        "respected the order of the training splits such that each sample was a strict subset of any larger training sample of the same split.",
+        "We evaluate on the standard metric of F1 with respect to the target class.",
+        "For Amazon, in which both the ?positive?",
+        "and ?negative?",
+        "classes are potential target classes, we evaluate using macro-averaged scores.",
+        "The primary results of our experiments are shown in Table 4.",
+        "The results show that MNB-FM improves upon the MNB classifier substantially, and also tends to outperform the other SSL and supervised learning methods we evaluated.",
+        "MNB-FM is the best performing method over all data sets when the labeled data is limited to 10 and 100 documents, except for training sets of size 10 in Aptemod, where MNB has a slight edge.",
+        "Tables 5 and 6 present detailed results of the experiments on the RCV1 data set.",
+        "These experiments are limited to the 5 largest base classes and show the F1 performance of MNB-FM and the various comparison methods, excluding Label",
+        "The runtimes of our methods can be seen in Table 7.",
+        "The results show the runtimes of the SSL methods discussed in this paper as the size of the unlabeled dataset grows.",
+        "As expected, we find that MNB-FM has runtime similar to MNB, and scales much better than methods that take multiple passes over the unlabeled data."
+      ]
+    },
+    {
+      "heading": "5 Analysis",
+      "text": [
+        "From our experiments, it is clear that the performance of MNB-FM improves on MNB, and in many cases outperforms all existing SSL algorithms we evaluated.",
+        "MNB-FM improves the conditional probability estimates in MNB and, surprisingly, we found that it can often improve these estimates for words that do not even occur in the training set.",
+        "Tables 8 and 9 show the details of the improvements MNB-FM makes on the feature marginal estimates.",
+        "We ran MNB-FM and MNB on the RCV1 class MCAT and stored the computed feature marginals for direct comparison.",
+        "For each word in the vocabulary, we compared each classifier's conditional probability ratios, i.e.",
+        "?+/?",
+        "?, to the true value over the entire data set.",
+        "We computed which classifier was closer to the correct ratio for each word.",
+        "These results were averaged over 5 iterations.",
+        "From the data, we can see that MNB-FM improves the estimates for many words not seen in the training set as well as the most common words, even with small training sets."
+      ]
+    },
+    {
+      "heading": "5.1 Ranking Performance",
+      "text": [
+        "We also analyzed how well the different methods rank, rather than classify, the test documents.",
+        "We evaluated ranking using the R-precision metric, equal to the precision (i.e. fraction of positive documents classified correctly) of the R highest-ranked test documents, where R is the total number of positive test documents.",
+        "Logistic Regression performed particularly well on the R-Precision Metric, as can be seen in Tables 10, 11, and 12.",
+        "Logistic Regression performed less well in the F1 metric.",
+        "We find that NB+EM348",
+        "indicates words occurring in both positive and negative training examples, ?Half Known?",
+        "indicates words occurring in only positive or negative training examples, while ?Unknown?",
+        "indicates words that never occur in labelled examples.",
+        "Data is for the RCV1 MCAT category.",
+        "MNB-FM improves estimates by a substantial amount for unknown words and also the most common known and half-known words.",
+        "for the RCV1 MCAT category (see Table 8).",
+        "MNB-FM improves estimates by a substantial amount for unknown words and also the most common known and half-known words.",
+        "performs particularly well on the R-precision metric on ApteMod, suggesting that its modelling assumptions are more accurate for that particular data set (NB+EM performs significantly worse on the other data sets, however).",
+        "MNB-FM performs essentially equivalently well, on average, to the best competing method (Logistic Regression) on the large RCV1 data set.",
+        "However, these experiments show that MNB-FM offers more advantages in document classification than in document ranking.",
+        "The ranking results show that LR may be preferred when ranking is important.",
+        "However, LR underperforms in classification tasks (in terms of F1, Tables 4-6).",
+        "The reason for this is that LR's learned classification threshold becomes less accurate when datasets are small and classes are highly",
+        "skewed.",
+        "In these cases, LR classifies too frequently in favor of the larger class which is detrimental to its performance.",
+        "This effect is visible in Tables 5 and 6, where LR's performance significantly drops for the ECAT and GPOL classes.",
+        "ECAT and GPOL represent only 14.91% and 7.07% of the RCV1 dataset, respectively."
+      ]
+    },
+    {
+      "heading": "6 Related Work",
+      "text": [
+        "To our knowledge, MNB-FM is the first approach that utilizes a small set of statistics computed over",
+        "a large unlabeled data set as constraints to improve a semi-supervised classifier.",
+        "Our experiments demonstrate that MNB-FM outperforms previous approaches across multiple text classification techniques including topic classification and sentiment analysis.",
+        "Further, the MNB-FM approach offers scalability advantages over most existing semi-supervised approaches.",
+        "Current popular Semi-Supervised Learning approaches include using Expectation-Maximization on probabilistic models (e.g. (Nigam et al., 2000)); Transductive Support Vector Machines (Joachims, 1999); and graph-based methods such as Label Propagation (LP) (Zhu and Ghahramani, 2002) and their more recent, more scalable variants (e.g. identifying a small number of representative unlabeled examples (Liu et al., 2010)).",
+        "In general, these techniques require passes over the entirety of the unlabeled data for each new learning task, intractable for massive unlabeled data sets.",
+        "Naive implementations of LP cannot scale to large unlabeled data sets, as they have time complexity that increases quadratically with the number of unlabeled examples.",
+        "Recent LP techniques have achieved greater scalability through the use of parallel processing and heuristics such as Approximate-Nearest Neighbor (Subramanya and Bilmes, 2009), or by decomposing the similarity matrix (Lin and Cohen, 2011).",
+        "Our approach, by contrast, is to pre-compute a small set of marginal statistics over the unlabeled data, which eliminates the need to scan unlabeled data for each new task.",
+        "Instead, the complexity of MNB-FM is proportional only to the number of unique words in the labeled data set.",
+        "In recent work, Suet al propose the Semi-supervised Frequency Estimate (SFE), which like MNB-FM utilizes the marginal probabilities of features computed from unlabeled data to improve the Multinomial Naive Bayes (MNB) classifier (Su et al., 2011).",
+        "SFE has the same scalability advantages as MNB-FM.",
+        "However, unlike our approach, SFE does not compute maximum-likelihood estimates using the marginal statistics as a constraint.",
+        "Our experiments show that MNB-FM substantially outperforms SFE.",
+        "A distinct method for preprocessing unlabeled data in order to help scale semi-supervised learning techniques involves dimensionality reduction or manifold learning (Belkin and Niyogi, 2004), and for NLP tasks, identifying word representations from unlabeled data (Turian et al., 2010).",
+        "In contrast to these approaches, MNB-FM preserves the original feature set and is more scalable (the marginal statistics can be computed in a single pass over the unlabeled data set)."
+      ]
+    },
+    {
+      "heading": "7 Conclusion",
+      "text": [
+        "We presented a novel algorithm for efficiently leveraging large unlabeled data sets for semi-supervised learning.",
+        "Our MNB-FM technique optimizes a Multinomial Naive Bayes model to accord with statistics of the unlabeled corpus.",
+        "In experiments across topic classification and sentiment analysis, MNB-FM was found to be more accurate and more scalable than several supervised and semi-supervised baselines from previous work.",
+        "In future work, we plan to explore utilizing richer statistics from the unlabeled data, beyond word marginals.",
+        "Further, we plan to experiment with techniques for unlabeled data sets that also include continuous-valued features.",
+        "Lastly, we also wish to explore ensemble approaches that combine the best supervised classifiers with the improved class-conditional estimates provided by MNB-FM."
+      ]
+    },
+    {
+      "heading": "8 Acknowledgements",
+      "text": [
+        "This work was supported in part by DARPA contract D11AP00268."
+      ]
+    }
+  ]
+}

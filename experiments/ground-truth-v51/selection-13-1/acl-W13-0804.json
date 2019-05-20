@@ -1,0 +1,278 @@
+{
+  "info": {
+    "authors": [
+      "Matthias Huck",
+      "David Vilar",
+      "Markus Freitag",
+      "Hermann Ney"
+    ],
+    "book": "SSST",
+    "id": "acl-W13-0804",
+    "title": "A Performance Study of Cube Pruning for Large-Scale Hierarchical Machine Translation",
+    "url": "https://aclweb.org/anthology/W13-0804",
+    "year": 2013
+  },
+  "references": [
+    "acl-D11-1020",
+    "acl-D12-1107",
+    "acl-E09-1044",
+    "acl-J03-1002",
+    "acl-J07-2003",
+    "acl-J10-3008",
+    "acl-J10-4005",
+    "acl-N09-1027",
+    "acl-N09-1049",
+    "acl-N13-1116",
+    "acl-P02-1040",
+    "acl-P03-1021",
+    "acl-P05-1033",
+    "acl-P07-1019",
+    "acl-P07-2045",
+    "acl-P10-4002",
+    "acl-P12-3004",
+    "acl-W05-1506",
+    "acl-W08-0402",
+    "acl-W09-0424",
+    "acl-W10-1738",
+    "acl-W12-3128",
+    "acl-W12-3150"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "In this paper, we empirically investigate the impact of critical configuration parameters in the popular cube pruning algorithm for decoding in hierarchical statistical machine translation.",
+        "Specifically, we study how the choice of the k-best generation size affects translation quality and resource requirements in hierarchical search.",
+        "We furthermore examine the influence of two different granularities of hypothesis recombination.",
+        "Our experiments are conducted on the large-scale Chinese?English and Arabic?English NIST translation tasks.",
+        "Besides standard hierarchical grammars, we also explore search with restricted recursion depth of hierarchical rules based on shallow-1 grammars."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Cube pruning (Chiang, 2007) is a widely used search strategy in state-of-the-art hierarchical decoders.",
+        "Some alternatives and extensions to the classical algorithm as proposed by David Chiang have been presented in the literature since, e.g. cube growing (Huang and Chiang, 2007), lattice-based hierarchical translation (Iglesias et al., 2009b; de Gispert et al., 2010), and source cardinality synchronous cube pruning (Vilar and Ney, 2012).",
+        "Standard cube pruning remains the commonly adopted decoding procedure in hierarchical machine translation research at the moment, though.",
+        "The algorithm has meanwhile been implemented in many publicly available toolkits, as for example in Moses (Koehn et al., 2007; Hoang et al., 2009), Joshua (Li et al., 2009a), Jane (Vilar et al., 2010), cdec (Dyer et al., 2010), Kriya (Sankaran et al., 2012), and Niu-Trans (Xiao et al., 2012).",
+        "While the plain hierarchical approach to machine translation (MT) is only formally syntax-based, cube pruning can also be utilized for decoding with syntactically or semantically enhanced models, for instance those by Venugopal et al. (2009), Shen et al. (2010), Xie et al. (2011), Almaghout et al. (2012), Li et al. (2012), Williams and Koehn (2012), or Baker et al. (2010).",
+        "Here, we look into the following key aspects of hierarchical phrase-based translation with cube pruning:",
+        "?",
+        "Deep vs. shallow grammar.",
+        "?",
+        "k-best generation size.",
+        "?",
+        "Hypothesis recombination scheme.",
+        "We conduct a comparative study of all combinations of these three factors in hierarchical decoding and present detailed experimental analyses with respect to translation quality and search efficiency.",
+        "We focus on two tasks which are of particular interest to the research community: the Chinese?English and Arabic?English NIST OpenMT translation tasks.",
+        "The paper is structured as follows: We briefly outline some important related work in the following section.",
+        "We subsequently give a summary of the grammars used in hierarchical phrase-based translation, including a presentation of the difference between a deep and a shallow-1 grammar (Section 3).",
+        "Essential aspects of hierarchical search with the cube pruning algorithm are explained in Section 4.",
+        "We show how the k-best generation size is defined (we apply the limit without counting recombined",
+        "candidates), and we present the two different hypothesis recombination schemes (recombination T and recombination LM).",
+        "Our empirical investigations and findings constitute the major part of this work: In Section 5, we first accurately describe our setup, then conduct a number of comparative experiments with varied parameters on the two translation tasks, and finally analyze and discuss the results.",
+        "We conclude the paper in Section 6."
+      ]
+    },
+    {
+      "heading": "2 Related Work",
+      "text": [
+        "Hierarchical phrase-based translation (HPBT) was first proposed by Chiang (2005).",
+        "Chiang also introduced the cube pruning algorithm for hierarchical search (Chiang, 2007).",
+        "It is basically an adaptation of one of the k-best parsing algorithms by Huang and Chiang (2005).",
+        "Good descriptions of the cube pruning implementation in the Joshua decoder have been provided by Li and Khudanpur (2008) and Li et al. (2009b).",
+        "Xu and Koehn (2012) implemented hierarchical search with the cube growing algorithm in Moses and compared its performance to Moses?",
+        "cube pruning implementation.",
+        "Heafield et al. recently developed techniques to speed up hierarchical search by means of an improved language model integration (Heafield et al., 2011; Heafield et al., 2012; Heafield et al., 2013)."
+      ]
+    },
+    {
+      "heading": "3 Probabilistic SCFGs for HPBT",
+      "text": [
+        "In hierarchical phrase-based translation, a probabilistic synchronous context-free grammar (SCFG) is induced from a bilingual text.",
+        "In addition to continuous lexical phrases, hierarchical phrases with usually up to two gaps are extracted from the word-aligned parallel training data.",
+        "Deep grammar.",
+        "The non-terminal set of a standard hierarchical grammar comprises two symbols which are shared by source and target: the initial symbol S and one generic non-terminal symbol X .",
+        "Extracted rules of a standard hierarchical grammar are of the form X ?",
+        "?",
+        "?, ?,?",
+        "?",
+        "where ?",
+        "?, ??",
+        "is a bilingual phrase pair that may contain X , i.e. ?",
+        "?",
+        "({X } ?",
+        "VF )+ and ?",
+        "?",
+        "({X } ?",
+        "VE)+, where VF and VE are the source and target vocabulary, respectively.",
+        "The ?",
+        "relation denotes a one-to-one correspondence between the non-terminals in ?",
+        "and in ?.",
+        "A non-lexicalized initial rule and a special glue rule complete the grammar.",
+        "We denote standard hierarchical grammars as deep grammars here.",
+        "Shallow-1 grammar.",
+        "Iglesias et al. (2009a) propose a limitation of the recursion depth for hierarchical rules with shallow grammars.",
+        "In a shallow-1 grammar, the generic non-terminal X of the standard hierarchical approach is replaced by two distinct non-terminals XH and XP .",
+        "By changing the left-hand sides of the rules, lexical phrases are allowed to be derived from XP only, hierarchical phrases from XH only.",
+        "On all right-hand sides of hierarchical rules, the X is replaced by XP .",
+        "Gaps within hierarchical phrases can thus be filled with continuous lexical phrases only, not with hierarchical phrases.",
+        "The initial and glue rules are adjusted accordingly."
+      ]
+    },
+    {
+      "heading": "4 Hierarchical Search with Cube Pruning",
+      "text": [
+        "Hierarchical search is typically carried out with a parsing-based procedure.",
+        "The parsing algorithm is extended to handle translation candidates and to incorporate language model scores via cube pruning.",
+        "The cube pruning algorithm.",
+        "Cube pruning operates on a hypergraph which represents the whole parsing space.",
+        "This hypergraph is built employing a customized version of the CYK+ parsing algorithm (Chappelier and Rajman, 1998).",
+        "Given the hypergraph, cube pruning expands at most k derivations at each hypernode.",
+        "The pseudocode of the k-best generation step of the cube pruning algorithm is shown in Figure 1.",
+        "This function is called in bottom-up topological order for all hy-pernodes.",
+        "A heap of active derivations A is maintained.",
+        "A initially contains the first-best derivations for each incoming hyperedge (line 1).",
+        "Active derivations are processed in a loop (line 3) until a limit k is reached or A is empty.",
+        "If a candidate derivation d is recombinable, the RECOMBINE auxiliary function recombines it and returns true; otherwise (for non-recombinable candidates) RECOMBINE returns false.",
+        "Non-recombinable candidates are appended to the list D of k-best derivations (line 6).",
+        "This list will be sorted before the function terminates",
+        "(line 8).",
+        "The PUSHSUCC auxiliary function (line 7) updates A with the next best derivations following d along the hyperedge.",
+        "PUSHSUCC determines the cube order by processing adjacent derivations in a specific sequence (of predecessor hypernodes along the hyperedge and phrase translation options).2 k-best generation size.",
+        "Candidate derivations are generated by cube pruning best-first along the incoming hyperedges.",
+        "A problem results from the language model integration, though: As soon as language model context is considered, monotonicity properties of the derivation cost can no longer be guaranteed.",
+        "Thus, even for single-best translation, k-best derivations are collected to a buffer in a beam search manner and finally sorted according to their cost.",
+        "The k-best generation size is consequently a crucial parameter to the cube pruning algorithm.",
+        "Hypothesis recombination.",
+        "Partial hypotheses with states that are indistinguishable from each other are recombined during search.",
+        "We define two notions of when to consider two derivations as indistinguishable, and thus when to recombine them: Recombination T. The T recombination scheme recombines derivations that produce identical translations.",
+        "Recombination LM.",
+        "The LM recombination scheme recombines derivations with identical language model context.",
+        "Recombination is conducted within the loop of the k-best generation step of cube pruning.",
+        "Recombined derivations do not increment the generation count; the k-best generation limit is thus effectively applied after recombination.3 In general, more phrase translation candidates per hypernode are being considered (and need to be rated with the language model) in the recombination LM scheme compared to the recombination T scheme.",
+        "The more partial hypotheses can be recombined, the more iterations of the inner code block of the k-best generation loop are possible.",
+        "The same internal k-best",
+        "tion decision).",
+        "Please note that some publicly available toolkits count recombined derivations by default.",
+        "Input: a hypernode and the size k of the k-best list Output: D, a list with the k-best derivations",
+        "gorithm.",
+        "generation size results in a larger search space for recombination LM.",
+        "We will examine how the overall number of loop iterations relates to the k-best generation limit.",
+        "By measuring the number of derivations as well as the number of recombination operations on our test sets, we will be able to give an insight into how large the fraction of recombinable candidates is for different configurations."
+      ]
+    },
+    {
+      "heading": "5 Experiments",
+      "text": [
+        "We conduct experiments which evaluate performance in terms of both translation quality and computational efficiency, i.e. translation speed and memory consumption, for combinations of deep or shallow-1 grammars with the two hypothesis recombination schemes and an exhaustive range of k-best generation size settings.",
+        "Empirical results are presented on the Chinese?English and Arabic?English 2008 NIST tasks (NIST, 2008)."
+      ]
+    },
+    {
+      "heading": "5.1 Experimental Setup",
+      "text": [
+        "We work with parallel training corpora of 3.0 M Chinese?English sentence pairs (77.5 M Chinese / 81.0 M English running words after preprocessing) and 2.5 M Arabic?English sentence pairs (54.3 M Arabic / 55.3 M English running words after preprocessing), respectively.",
+        "Word alignments are created by aligning the data in both directions with GIZA++ and symmetrizing the two trained alignments (Och and Ney, 2003).",
+        "When extracting phrases, we apply several restrictions, in particular a maximum length of ten on source and target side for lexical phrases, a length limit of five on source and ten on target side for hierarchical phrases (including non-terminal symbols), and no more than two gaps per phrase.",
+        "been replaced by a special category symbol.",
+        "Chinese MT08 Arabic MT08 Sentences 1 357 1 360 Running words 34 463 45 095 Vocabulary 6 209 9 387 The decoder loads only the best translation options per distinct source side with respect to the weighted phrase-level model scores (100 for Chinese, 50 for Arabic).",
+        "The language models are 4-grams with modified Kneser-Ney smoothing (Kneser and Ney, 1995; Chen and Goodman, 1998) which have been trained with the SRILM toolkit (Stolcke, 2002).",
+        "During decoding, a maximum length constraint of ten is applied to all non-terminals except the initial symbol S .",
+        "Model weights are optimized with MERT (Och, 2003) on 100-best lists.",
+        "The optimized weights are obtained (separately for deep and for shallow-1 grammars) with a k-best generation size of 1 000 for Chinese?English and of 500 for Arabic?English and kept for all setups.",
+        "We employ MT06 as development sets.",
+        "Translation quality is measured in truecase with BLEU (Papineni et al., 2002) on the MT08 test sets.",
+        "Data statistics for the preprocessed source sides of both the Chinese?English MT08 test set and the Arabic?English MT08 test set are given in Table 1.",
+        "Our translation experiments are conducted with the open source translation toolkit Jane (Vilar et al., 2010; Vilar et al., 2012).",
+        "The core implementation of the toolkit is written in C++.",
+        "We compiled with GCC version 4.4.3 using its -O2 optimization flag.",
+        "We employ the SRILM libraries to perform language model scoring in the decoder.",
+        "In binarized version, the language models have a size of 3.6G (Chinese?English) and 6.2G (Arabic?English).",
+        "Language models and phrase tables have been copied to the local hard disks of the machines.",
+        "In all experiments, the language model is completely loaded beforehand.",
+        "Loading time of the language model and any other initialization steps are not included in the measured translation time.",
+        "Phrase tables are in the Jane toolkit's binarized format.",
+        "The decoder initializes the prefix tree structure, required nodes get loaded from secondary storage into main memory on demand, and the loaded content is being cleared each time a new input sentence is to be parsed.",
+        "There is nearly no overhead due to unused data in main memory.",
+        "We do not rely on memory mapping.",
+        "Memory statistics are with respect to virtual memory.",
+        "The hardware was equipped with RAM well beyond the requirements of the tasks, and sufficient memory has been reserved for the processes."
+      ]
+    },
+    {
+      "heading": "5.2 Experimental Results",
+      "text": [
+        "Figures 2 and 3 depict how the Chinese?English and Arabic?English setups behave in terms of translation quality.",
+        "The k-best generation size in cube pruning is varied between 10 and 10 000.",
+        "The four graphs in each plot illustrate the results with combinations of deep grammar and recombination scheme T, deep grammar and recombination scheme LM, shallow grammar and recombination scheme T, as well as shallow grammar and recombination scheme LM.",
+        "Figures 4 and 5 show the corresponding translation speed in words per second for these settings.",
+        "The maximum memory requirements in gigabytes are given in Figures 6 and 7.",
+        "In order to visualize the trade-offs between translation quality and resource consumption somewhat better, we plotted translation quality against time requirements in Figures 8 and 9 and translation quality against memory requirements in Figures 10 and 11.",
+        "Translation quality and model score (averaged over all sentences; higher is better) are nicely correlated for all configurations, as can be concluded from Figures 12 through 15."
+      ]
+    },
+    {
+      "heading": "5.3 Discussion",
+      "text": [
+        "Chinese?English.",
+        "For Chinese?English translation, the system with deep grammar performs generally a bit better with respect to quality than the shallow one, which accords with the findings of other groups (de Gispert et al., 2010; Sankaran et al., 2012).",
+        "The LM recombination scheme yields slightly better quality than the T scheme, and with the shallow-1 grammar it outperforms the T scheme at any given fixed amount of time or memory allocation (Figures 8 and 10).",
+        "Shallow-1 translation is up to roughly 2.5 times faster than translation with the deep grammar.",
+        "However, the shallow-1 setups are considerably slowed down at higher k-best sizes as well, while the effort pays off only very moderately.",
+        "Overall, the",
+        "ory requirements for Arabic?English.",
+        "shallow-1 grammar at a k-best size between 100 and 1 000 seems to offer a good compromise of quality and efficiency.",
+        "Deep translation with k = 2000 and the LM recombination scheme promises high quality translation, but note the rapid memory consumption increase beyond k = 1000 with the deep grammar.",
+        "At k ?",
+        "1 000, memory consumption is not an issue in both deep and shallow systems, but translation speed starts to drop at k > 100 already.",
+        "Arabic?English.",
+        "Shallow-1 translation produces competitive quality for Arabic?English translation (de Gispert et al., 2010; Huck et al., 2011).",
+        "The LM recombination scheme boosts the BLEU scores slightly.",
+        "The systems with deep grammar are slowed down strongly with every increase of the k-best size.",
+        "Their memory consumption likewise inflates early.",
+        "We actually stopped running experiments with deep grammars for Arabic?English at k = 7000 for the T recombination scheme, and at k = 700 for the LM recombination scheme because 124G of memory did not suffice any more for higher k-best sizes.",
+        "The memory consumption of the shallow systems stays nearly constant across a large range of the surveyed k-best sizes, but Figure 11 reveals a plateau where more resources do not improve translation quality.",
+        "Increasing k from 100 to 2 000 in the shallow setup with LM recombination provides half a BLEU point, but reduces speed by a factor of more than 10.",
+        "model score for Arabic?English (shallow-1 grammar).",
+        "Actual amount of derivations.",
+        "We measured the amount of hypernodes (Table 2), the amount of actually generated derivations after recombination, and the amount of generated candidate derivations including recombined ones?or, equivalently, loop iterations in the algorithm from Figure 1?for selected limits k (Tables 3 and 4).",
+        "The ratio of the average amount of derivations per hypernode after and before recombination remains consistently at low values for all recombination T setups.",
+        "For the setups with LM recombination scheme, this recombination factor rises with larger k, i.e. the fraction of recombinable candidates increases.",
+        "The increase is remarkably pronounced for Arabic?English with deep grammar.",
+        "The steep slope of the recombination factor may be interpreted as an indicator for undesired overgeneration of the deep grammar on the Arabic?English task."
+      ]
+    },
+    {
+      "heading": "6 Conclusion",
+      "text": [
+        "We systematically studied three key aspects of hierarchical phrase-based translation with cube pruning: Deep vs. shallow-1 grammars, the k-best generation size, and the hypothesis recombination scheme.",
+        "In a series of empirical experiments, we revealed the trade-offs between translation quality and resource requirements to a more fine-grained degree than this is typically done in the literature.",
+        "recombination T recombination LM avg.",
+        "#derivations avg.",
+        "#derivations avg.",
+        "#derivations avg.",
+        "#derivations per hypernode per hypernode per hypernode per hypernode k (after recombination) (incl.",
+        "recombined) factor (after recombination) (incl.",
+        "recombined) factor",
+        "recombination T recombination LM avg.",
+        "#derivations avg.",
+        "#derivations avg.",
+        "#derivations avg.",
+        "#derivations per hypernode per hypernode per hypernode per hypernode k (after recombination) (incl.",
+        "recombined) factor (after recombination) (incl.",
+        "recombined) factor"
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "This work was partly achieved as part of the Quaero Programme, funded by OSEO, French State agency for innovation.",
+        "This material is also partly based upon work supported by the DARPA BOLT project under Contract No.",
+        "HR0011-12-C-0015.",
+        "Any opinions, findings and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of the DARPA.",
+        "The research leading to these results has received funding from the European Union Seventh Framework Programme (FP7/2007-2013) under grant agreement no 287658."
+      ]
+    }
+  ]
+}

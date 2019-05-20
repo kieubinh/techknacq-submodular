@@ -1,0 +1,217 @@
+{
+  "info": {
+    "authors": [
+      "Kilian Evang",
+      "Valerio Basile",
+      "Grzegorz Chrupała",
+      "Johan Bos"
+    ],
+    "book": "EMNLP",
+    "id": "acl-D13-1146",
+    "title": "Elephant: Sequence Labeling for Word and Sentence Segmentation",
+    "url": "https://aclweb.org/anthology/D13-1146",
+    "year": 2013
+  },
+  "references": [
+    "acl-A97-1004",
+    "acl-H89-2048",
+    "acl-J02-3002",
+    "acl-J06-4003",
+    "acl-J97-2002",
+    "acl-P10-1052",
+    "acl-P12-2074"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Tokenization is widely regarded as a solved problem due to the high accuracy that rule-based tokenizers achieve.",
+        "But rule-based tokenizers are hard to maintain and their rules language specific.",
+        "We show that high-accuracy word and sentence segmentation can be achieved by using supervised sequence la-beling on the character level combined with unsupervised feature learning.",
+        "We evaluated our method on three languages and obtained error rates of 0.27 ?",
+        "(English), 0.35 ?",
+        "(Dutch) and 0.76 ?",
+        "(Italian) for our best models."
+      ]
+    },
+    {
+      "heading": "1 An Elephant in the Room",
+      "text": [
+        "Tokenization, the task of segmenting a text into words and sentences, is often regarded as a solved problem in natural language processing (Dridan and Oepen, 2012), probably because many corpora are already in tokenized format.",
+        "But like an elephant in the living room, it is a problem that is impossible to overlook whenever new raw datasets need to be processed or when tokenization conventions are reconsidered.",
+        "It is moreover an important problem, because any errors occurring early in the NLP pipeline affect further analysis negatively.",
+        "And even though current tokenizers reach high performance, there are three issues that we feel haven't been addressed satisfactorily so far: ?",
+        "Most tokenizers are rule-based and therefore hard to maintain and hard to adapt to new domains and new languages (Silla Jr. and Kaestner, 2004); ?",
+        "Word and sentence segmentation are often seen as separate tasks, but they obviously inform each other and it could be advantageous to view them as a combined task; ?",
+        "Most tokenization methods provide no alignment between raw and tokenized text, which makes mapping the tokenized version back onto the actual source hard or impossible.",
+        "In short, we believe that regarding tokenization, there is still room for improvement, in particular on the methodological side of the task.",
+        "We are particularly interested in the following questions: Can we use supervised learning to avoid hand-crafting rules?",
+        "Can we use unsupervised feature learning to reduce feature engineering effort and boost performance?",
+        "Can we use the same method across languages?",
+        "Can we combine word and sentence boundary detection into one task?"
+      ]
+    },
+    {
+      "heading": "2 Related Work",
+      "text": [
+        "Usually the text segmentation task is split into word tokenization and sentence boundary detection.",
+        "Rule-based systems for finding word and sentence boundaries often are variations on matching hand-coded regular expressions (Grefenstette, 1999; Silla Jr. and Kaestner, 2004; Jurafsky and Martin, 2008; Dridan and Oepen, 2012).",
+        "Several unsupervised systems have been proposed for sentence boundary detection.",
+        "Kiss and Strunk (2006) present a language-independent, unsupervised approach and note that abbreviations form a major source of ambiguity in sentence boundary detection and use collocation detection to build a high-accuracy abbreviation detector.",
+        "The resulting system reaches high accuracy, rivalling handcrafted rule-based and supervised systems.",
+        "A similar system was proposed earlier by Mikheev (2002).",
+        "Existing supervised learning approaches for sentence boundary detection use as features tokens preceding and following potential sentence boundary, part of speech, capitalization information and lists of abbreviations.",
+        "Learning methods employed in",
+        "these approaches include maximum entropy models (Reynar and Ratnaparkhi, 1997) decision trees (Riley, 1989), and neural networks (Palmer and Hearst, 1997).",
+        "Closest to our work are approaches that present token and sentence splitters using conditional random fields (Tomanek et al., 2007; Fares et al., 2013).",
+        "However, these previous approaches consider tokens (i.e. character sequences) as basic units for labeling, whereas we consider single characters.",
+        "As a consequence, labeling is more resource-intensive, but it also gives us more expressive power.",
+        "In fact, our approach kills two birds with one stone, as it allows us to integrate token and sentence boundaries detection into one task."
+      ]
+    },
+    {
+      "heading": "3 Method",
+      "text": []
+    },
+    {
+      "heading": "3.1 IOB Tokenization",
+      "text": [
+        "IOB tagging is widely used in tasks identifying chunks of tokens.",
+        "We use it to identify chunks of characters.",
+        "Characters outside of tokens are labeled O, inside of tokens I.",
+        "For characters at the beginning of tokens, we use S at sentence boundaries, otherwise T (for token).",
+        "This scheme offers some nice features, like allowing for discontinuous tokens (e.g. hyphenated words at line breaks) and starting a new token in the middle of a typographic word if the tokenization scheme requires it, as e.g. in did|n't.",
+        "An example is given in Figure 1.",
+        "It didn't matter if the faces were male,"
+      ]
+    },
+    {
+      "heading": "SIOTIITIIOTIIIIIOTIOTIIOTIIIIOTIIIOTIIITO",
+      "text": [
+        "female or those of children.",
+        "Eighty"
+      ]
+    },
+    {
+      "heading": "3.2 Datasets",
+      "text": [
+        "In our experiments we use three datasets to compare our method for different languages and for different domains: manually checked English newswire texts taken from the Groningen Meaning Bank, GMB (Basile et al., 2012), Dutch newswire texts, comprising two days from January 2000 extracted from the Twente News Corpus, TwNC (Ordelman et al., 2007), and a random sample of Italian texts from the",
+        "The data was converted into IOB format by inferring an alignment between the raw text and the segmented text."
+      ]
+    },
+    {
+      "heading": "3.3 Sequence labeling",
+      "text": [
+        "We apply the Wapiti implementation (Lavergne et al., 2010) of Conditional Random Fields (Lafferty et al., 2001), using as features the output label of each character, combined with 1) the character itself, 2) the output label on the previous character, 3) characters and/or their Unicode categories from context windows of varying sizes.",
+        "For example, with a context size of 3, in Figure 1, features for the E in Eighty-three with the output label S would be E/S, O/S, /S, i/S, Space/S, Lowercase/S.",
+        "The intuition is that the 31 existing Unicode categories can generalize across similar characters whereas character features can identify specific contexts such as abbreviations or contractions (e.g. didn't).",
+        "The context window sizes we use are 0, 1, 3, 5, 7, 9, 11 and 13, centered around the focus character."
+      ]
+    },
+    {
+      "heading": "3.4 Deep learning of features",
+      "text": [
+        "Automatically learned word embeddings have been successfully used in NLP to reduce reliance on manual feature engineering and boost performance.",
+        "We adapt this approach to the character level, and thus, in addition to hand-crafted features we use text representations induced in an unsupervised fashion from character strings.",
+        "A complete discussion of our approach to learning text embeddings can be found in (Chrupa?a, 2013).",
+        "Here we provide a brief overview.",
+        "Our representations correspond to the activation of the hidden layer in a simple recurrent neural (SRN) network (Elman, 1990; Elman, 1991), implemented in a customized version of Mikolov (2010)'s RNNLM toolkit.",
+        "The network is sequentially presented with a large amount of raw text and learns to",
+        "predict the next character in the sequence.",
+        "It uses the units in the hidden layer to store a generalized representation of the recent history.",
+        "After training the network on large amounts on unlabeled text, we run it on the training and test data, and record the activation of the hidden layer at each position in the string as it tries to predict the next character.",
+        "The vector of activations of the hidden layer provides additional features used to train and run the CRF.",
+        "For each of the K = 10 most active units out of total J = 400 hidden units, we create features (f(1) .",
+        ".",
+        ".",
+        "f(K)) defined as f(k) = 1 if sj(k) > 0.5 and f(k) = 0 otherwise, where sj(k) returns the activation of the kth most active unit.",
+        "For training the SRN only raw text is necessary.",
+        "We trained on the entire GMB 2.0.0 (2.5M characters), the portion of TwNC corresponding to January 2000 (43M characters) and a sample of the PAISA` corpus (39M characters)."
+      ]
+    },
+    {
+      "heading": "4 Results and Evaluation",
+      "text": [
+        "In order to evaluate the quality of the tokenization produced by our models we conducted several experiments with different combinations of features and context sizes.",
+        "For these tests, the models are trained on an 80% portion of the data sets and tested on a 10% development set.",
+        "Final results are obtained on a 10% test set.",
+        "We report both absolute number of errors and error rates per thousand (?",
+        ")."
+      ]
+    },
+    {
+      "heading": "4.1 Feature sets",
+      "text": [
+        "We experiment with two kinds of features at the character level, namely Unicode categories (31 different ones), Unicode character codes, and a combination of them.",
+        "Unicode categories are less sparse than the character codes (there are 88, 134, and 502 unique characters for English, Dutch and Italian, respectively), so the combination provide some generalization over just character codes.",
+        "From these results we see that categories alone perform worse than only codes.",
+        "For English there is no gain from the combination over using only character codes.",
+        "For Dutch and Italian there is an improvement, although it is only significant for Italian (p = 0.480 and p = 0.005 respectively, binomial exact test).",
+        "We use this feature combination in the experiments that follow.",
+        "Note that these models are trained using a symmetrical context of 9 characters (four left and four right of the current character).",
+        "In the next section we show performance of models with different window sizes."
+      ]
+    },
+    {
+      "heading": "4.2 Context window",
+      "text": [
+        "We run an experiment to evaluate how the size of the context in the training phase impacts the classification.",
+        "In Table 4.2 we show the results for symmetrical windows ranging in size from 1 to 13."
+      ]
+    },
+    {
+      "heading": "4.3 SRN features",
+      "text": [
+        "We also tested the automatically learned features derived from the activation of the hidden layer of an SRN language model, as explained in Section 3.",
+        "We combined these features with character code and Unicode category features in windows of different sizes.",
+        "The results of this test are shown in Table 4.",
+        "The first row shows the performance of SRN features on their own.",
+        "The following rows show the combination of SRN features with the basic feature sets of varying window size.",
+        "It can be seen that augmenting the feature sets with SRN features results in large reductions of error rates.",
+        "The Cat-Code-1-SRN setting has error rates comparable to Cat-Code9.",
+        "The addition of SRN features to the two best previous models, Cat-Code-9 and Cat-Code-13, reduces the error rate by 83% resp.",
+        "81% for Dutch,",
+        "and by 24% resp.",
+        "26% for Italian.",
+        "All these differences are statistically significant according to the binomial test (p < 0.001).",
+        "For English, there are too few errors to detect a statistically significant effect for Cat-Code-9 (p = 0.07), but for Cat-Code-13 we find p = 0.016.",
+        "In a final step, we selected the best models based on the development sets (Cat-Code-7-SRN for English and Dutch, Cat-Code-11-SRN for Italian), and checked their performance on the final test set.",
+        "This resulted in 10 errors (0.27 ?)",
+        "for English (GMB corpus), 199 errors (0.35 ?)",
+        "for Dutch (TwNC corpus), and 454 errors (0.76 ?)",
+        "for Italian (PAISA` corpus)."
+      ]
+    },
+    {
+      "heading": "5 Discussion",
+      "text": [
+        "It is interesting to examine what kind of errors the SRN features help avoid.",
+        "In the English and Dutch datasets many errors are caused by failure to recognize personal titles and initials or misparsing of numbers.",
+        "In the Italian data, a large fraction of errors is due to verbs with clitics, which are written as a single word, but treated as separate tokens.",
+        "Table 5 shows examples of errors made by a simpler model that are fixed by adding SRN features.",
+        "Table 6 shows the confusion matrices for the Cat-Code-7 and Cat-Code-7-SRN sets on the Dutch data.",
+        "The mistake most improved by SRN features is T/I with 89% error reduction (see also Table 5).",
+        "The is also the most common remaining mistake.",
+        "A comparison with other approaches is hard because of the difference in datasets and task definition (combined word/sentence segmentation).",
+        "Here we just compare our results for sentence segmentation (sentence F1 score) with Punkt, a state-of-the",
+        "art sentence boundary detection system (Kiss and Strunk, 2006).",
+        "With its standard distributed models, Punkt achieves 98.51% on our English test set, 98.87% on Dutch and 98.34% on Italian, compared with 100%, 99.54% and 99.51% for our system.",
+        "Our system benefits here from its ability to adapt to a new domain with relatively little (but annotated) training data."
+      ]
+    },
+    {
+      "heading": "6 What Elephant?",
+      "text": [
+        "Word and sentence segmentation can be recast as a combined tagging task.",
+        "This way, tokenization is cast as a supervised learning task, causing a shift of labor from writing rules to manually correcting labels.",
+        "Learning this task with CRF achieves high accuracy.1 Furthermore, our tagging method does not lose the connection between original text and tokens.",
+        "In future work, we plan to broaden the scope of this work to other steps in document preparation,",
+        "such as normalization of punctuation, and their interaction with segmentation.",
+        "We further plan to test our method on a wider range of datasets, allowing a more direct comparison with other approaches.",
+        "Finally, we plan to explore the possibility of a statistical universal segmentation model for mutliple languages and domains.",
+        "In a famous scene with a live elephant on stage, the comedian Jimmy Durante was asked about it by a policeman and surprisedly answered: ?What elephant??",
+        "We feel we can say the same now as far as tokenization is concerned."
+      ]
+    }
+  ]
+}

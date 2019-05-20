@@ -1,0 +1,395 @@
+{
+  "info": {
+    "authors": [
+      "Yang Feng",
+      "Trevor Cohn"
+    ],
+    "book": "ACL",
+    "id": "acl-P13-1033",
+    "title": "A Markov Model of Machine Translation using Non-parametric Bayesian Inference",
+    "url": "https://aclweb.org/anthology/P13-1033",
+    "year": 2013
+  },
+  "references": [
+    "acl-C96-2141",
+    "acl-J03-1002",
+    "acl-J93-2003",
+    "acl-N03-1017",
+    "acl-N09-1036",
+    "acl-N10-1140",
+    "acl-N12-1005",
+    "acl-P02-1040",
+    "acl-P03-1021",
+    "acl-P05-1033",
+    "acl-P06-1077",
+    "acl-P06-1121",
+    "acl-P06-1124",
+    "acl-P07-2045",
+    "acl-P09-1088",
+    "acl-P09-2085",
+    "acl-P11-1086",
+    "acl-P11-1105"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "Most modern machine translation systems use phrase pairs as translation units, allowing for accurate modelling of phrase-internal translation and reordering.",
+        "However phrase-based approaches are much less able to model sentence level effects between different phrase-pairs.",
+        "We propose a new model to address this imbalance, based on a word-based Markov model of translation which generates target translations left-to-right.",
+        "Our model encodes word and phrase level phenomena by conditioning translation decisions on previous decisions and uses a hierarchical Pitman-Yor Process prior to provide dynamic adaptive smoothing.",
+        "This mechanism implicitly supports not only traditional phrase pairs, but also gapping phrases which are non-consecutive in the source.",
+        "Our experiments on Chinese to English and Arabic to English translation show consistent improvements over competitive baselines, of up to +3.4 BLEU."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Recent years have witnessed burgeoning development of statistical machine translation research, notably phrase-based (Koehn et al., 2003) and syntax-based approaches (Chiang, 2005; Galley et al., 2006; Liu et al., 2006).",
+        "These approaches model sentence translation as a sequence of simple translation decisions, such as the application of a phrase translation in phrase-based methods or a grammar rule in syntax-based approaches.",
+        "In order to simplify modelling, most MT models make an independence assumption, stating that the translation decisions in a derivation are independent of one another.",
+        "This conflicts with the intuition behind phrase-based MT, namely that translation decisions should be dependent on context.",
+        "On one hand, the use of phrases can memorize local context and hence helps to generate better translation compared to word-based models (Brown et al., 1993; Och and Ney, 2003).",
+        "On the other hand, this mechanism requires each phrase to be matched strictly and to be used as a whole, which precludes the use of discontinuous phrases and leads to poor generalisation to unseen data (where large phrases tend not to match).",
+        "In this paper we propose a new model to drop the independence assumption, by instead modelling correlations between translation decisions, which we use to induce translation derivations from aligned sentences (akin to word alignment).",
+        "We develop a Markov model over translation decisions, in which each decision is conditioned on previous n most recent decisions.",
+        "Our approach employs a sophisticated Bayesian non-parametric prior, namely the hierarchical Pitman-Yor Process (Teh, 2006; Teh et al., 2006) to represent back-off from larger to smaller contexts.",
+        "As a result, we need only use very simple translation units ?",
+        "primarily single words, but can still describe complex multi-word units through correlations between their component translation decisions.",
+        "We further decompose the process of generating each target word into component factors: finishing the translating, jumping elsewhere in the source, emitting a target word and deciding the fertility of the source words.",
+        "Overall our model has the following features:",
+        "1. enabling model parameters to be shared between similar translation decisions, thereby obtaining more reliable statistics and generalizing better from small training sets.",
+        "2. learning a much richer set of translation fragments, such as gapping phrases, e.g., the translation for the German werde .",
+        ".",
+        ".",
+        "ankommen in English is will arrive .",
+        ".",
+        ".",
+        ".",
+        "3. providing a unifying framework spanning",
+        "word-based and phrase-based model of translation, while incorporating explicit transla",
+        "tion, insertion, deletion and reordering components.",
+        "We demonstrate our model on Chinese-English and Arabic-English translation datasets.",
+        "The model produces uniformly better translations than those of a competitive phrase-based baseline, amounting to an improvement of up to 3.4 BLEU points absolute."
+      ]
+    },
+    {
+      "heading": "2 Related Work",
+      "text": [
+        "Word based models have a long history in machine translation, starting with the venerable IBM translation models (Brown et al., 1993) and the hidden Markov model (Vogel et al., 1996).",
+        "These models are still in widespread use today, albeit only as a preprocessing step for inferring word level alignments from sentence-aligned parallel corpora.",
+        "They combine a number of factors, including distortion and fertility, which have been shown to improve word-alignment and translation performance over simpler models.",
+        "Our approach is similar to these works, as we also develop a word-based model, and explicitly consider similar translation decisions, alignment jumps and fertility.",
+        "We extend these works in two important respects: 1) while they assume a simple parame-terisation by making iid assumptions about each translation factor, we instead allow for rich correlations by modelling sequences of translation decisions; and 2) we develop our model in the Bayesian framework, using a hierarchical Pitman-Yor Process prior with rich backoff semantics between high and lower order sequences of translation decisions.",
+        "Together this results in a model with rich expressiveness but can still generalize well to unseen data.",
+        "More recently, a number of authors have proposed Markov models for machine translation.",
+        "Vaswani et al. (2011) propose a rule Markov model for a tree-to-string model which models correlations between pairs of mininal rules, and use Kneser-Ney smoothing to alleviate the problems of data sparsity.",
+        "Similarly, Crego et al. (2011) develop a bilingual language model which incorporates words in the source and target languages to predict the next unit, which they use as a feature in a translation system.",
+        "This line of work was extended by Le et al. (2012) who develop a novel estimation algorithm based around discriminative projection into continuous spaces.",
+        "Also relevant is Durrani et al. (2011), who present a sequence model of translation including reordering.",
+        "Our work also uses bilingual information, using the source words as part of the conditioning context.",
+        "In contrast to these approaches which primarily address the decoding problem, we focus on the learning problem of inferring alignments from parallel sentences.",
+        "Additionally, we develop a full generative model using a Bayesian prior, and incorporate additional factors besides lexical items, namely jumps in the source and word fertility.",
+        "Another aspect of this paper is the implicit support for phrase-pairs that are discontinous in the source language.",
+        "This idea has been developed explicitly in a number of previous approaches, in grammar based (Chiang, 2005) and phrase-based systems (Galley and Manning, 2010).",
+        "The latter is most similar to this paper, and shows that discontinuous phrases compliment standard contiguous phrases, improving expressiveness and translation performance.",
+        "Unlike their work, here we develop a complimentary approach by constructing a generative model which can induce these rich rules directly from sentence-aligned corpora."
+      ]
+    },
+    {
+      "heading": "3 Model",
+      "text": [
+        "Given a source sentence, our model infers a latent derivation which produces a target translation and meanwhile gives a word alignment between the source and the target.",
+        "We consider a process in which the target string is generated using a left-to-right order, similar to the decoding strategy used by phrase-based machine translation systems (Koehn et al., 2003).",
+        "During this process we maintain a position in the source sentence, which can jump around to allow for different sentence ordering in the target vs. source languages.",
+        "In contrast to phrase-based models, we use words as our basic translation unit, rather than multi-word phrases.",
+        "Furthermore, we decompose the decisions involved in generating each target word to a number of separate factors, where each factor is modelled separately and conditioned on a rich history of recent translation decisions."
+      ]
+    },
+    {
+      "heading": "3.1 Markov Translation",
+      "text": [
+        "Our model generates target translation left-to-right word by word.",
+        "The generative process employs the following recursive procedure to construct the target sentence conditioned on the source: i?",
+        "1 while Not finished do Decide whether to finish the translation, ?i",
+        "if ?i = false then Select a source word to jump to Emit a target word for the source word",
+        "In the generation of each target word, our model includes three separate factors: the binary finish decision, a jump decision to move to a different source word, and emission which translates or otherwise inserts a word in the target string.",
+        "This generative process resembles the sequence of translation decisions considered by a standard MT decoder (Koehn et al., 2003), but note that our approach differs in that there is no constraint that all words are translated exactly once.",
+        "Instead source words can be skipped or repeatedly translated.",
+        "This makes the approach more suitable for learning alignments, e.g., to account for word fertilities (see ?3.3), while also permitting inference using Gibbs sampling (?4).",
+        "More formally, we can express our probabilistic model as",
+        "where ?i is the finish decision for target position i, ?i is the jump decision to source word fai and f iai?n is the source words for target positions i ?",
+        "n, i ?",
+        "n + 1, ..., i.",
+        "Each of the three distributions (finish, jump and emission) is drawn respective from hierarchical Pitman-Yor Process priors, as described in Section 3.2.",
+        "The jump decision ?i in Equation 1 demands further explanation.",
+        "Instead of modelling jump distances explicitly, which poses problems for generalizing between different lengths of sentences and general parameter explosion, we consider a small handful of types of jump based on the distance between the current source word ai and the previous source word ai?1, i.e., di = ai ?",
+        "ai?1.1 We bin jumps into five types: a) insert; b) backward, if di < 0; c) stay, if di = 0; d) monotone, if di = 1; e) forward, if di > 1.",
+        "The special jump type insert handles null alignments, denoted ai = 0 which licence spurious insertions in the target string.",
+        "To illustrate this translation process, Figure 1 shows the example translation <Je le prends, I ?ll take that one>.",
+        "Initially we set the source position before the first source word Je.",
+        "Then in step 1, we decide not to finish (finish=no), jump to source word Je and translate it as I.",
+        "Next, we again decide not to finish, jump to the null source word and insert ?ll.",
+        "The process continues until in step 6 we elect to finish (finish=yes), at which point the translation is complete, with target string I ?ll take that one."
+      ]
+    },
+    {
+      "heading": "3.2 Hierarchical Pitman-Yor Process",
+      "text": [
+        "The Markov assumption limits the context of each distribution to the n most recent translation decisions, which limits the number of model parameters.",
+        "However for any non-trivial value n > 0, overfitting is a serious concern.",
+        "We counter the problem of a large parameter space using a Bayesian non-parametric prior, namely the hierarchical Pitman-Yor Process (PYP).",
+        "The PYP describes distributions over possibly infinite event spaces that follow a power law, with few events taking the majority of the probability mass and a long tail of less frequent events.",
+        "We consider a hierarchical PYP, where a sequence of chained PYP 1For a target position aligned to null, we denote its source word as null and set its aligned source position as that of the previous target word that is aligned to non-null.",
+        "priors allow backoff from larger to smaller contexts such that our model can learn rich contextual models for known (large) contexts while also still being able to generalize well to unseen contexts (using smaller histories).",
+        "A PYP (Pitman and Yor, 1997) is defined by its discount parameter 0 ?",
+        "a < 1, strength parameter b > ?a and base distribution G0.",
+        "For a distribution drawn from a PYP, G ?",
+        "PYP(a, b,G0), marginalising out G leads to a simple distribution which can be described using a variant of the Chinese Restaurant Process (CRP).",
+        "In this analogy we imagine a restaurant has an infinite number of tables and each table can accommodate an infinite number of customers.",
+        "Each customer (a sample from G) walks in one at a time and seats themselves at a table.",
+        "Finally each table is served a communal dish (a draw from G0), which is served to each customer seated at the table.",
+        "The assignment of customers to tables is such that popular tables are more likely to be chosen, and this rich-get-richer dynamic produces power-law distributions with few events (the dishes at popular tables) dominating the distribution.",
+        "More formally, at time n a customer enters and selects a table k which is either a table having been seated (1 ?",
+        "k ?",
+        "K?)",
+        "or an empty table (k =",
+        "where tn is the table selected by the customer n, t?n is the seating arrangement of previous n ?",
+        "1 customers, c?tk is the number of customers seatedat table k in t?n andK?",
+        "= K(t?n) is the number of tables in t?n.",
+        "If the customer sits at an empty table, a dish h is served to his table by the probability of G0(h), otherwise, he can only share with others the dish having been served to his table.2 Overall, the probability of the customer being served a dish h is",
+        "where on is the dish served to the customer n, o?n is the dish accommodation of previous n?",
+        "1 customers, c?oh is the number of customers who are 2We also say the customer is served with this dish.",
+        "served with the dish h in o?n and K?h is the number of tables served with the dish h in t?n.",
+        "The hierarchical PYP (hPYP; Teh (2006)) is an extension of the PYP in which the base distribution G0 is itself a PYP distribution.",
+        "This parent (base) distribution can itself have a PYP as a base distribution, giving rise to hierarchies of arbitrary depth.",
+        "Like the PYP, inference under the hPYP can be also described in terms of CRP whereby each table in one restaurant corresponds to a dish in the next deeper level, and is said to share the same dish.",
+        "Whenever an empty table is seated in one level, a customer must enter the restaurant in the next deeper level and find a table to sit.",
+        "This process continues until the customer is assigned a shared table or the deepest level of the hierarchy is reached.",
+        "A similar process occurs when a customer leaves, where newly emptied tables must be propagated up the hierarchy in the form of departing customers.",
+        "There is not space for a complete treatment of the hPYP and the particulars of inference; we refer the interested reader to Teh (2006).",
+        "We draw the distributions for the various translation factors from respective hierarchical PYP priors, as shown in Figure 2 for the finish, jump and emission factors.",
+        "For the emission factor (Figure 2c), we draw the target word ei from a distribution conditioned on the last two source and target words, as well as the current source word, fai and the current jump type ?i.",
+        "Here the draw of a target word corresponds to a customer entering and which target word to emit corresponds to which dish to be served to the customer in the CRP.",
+        "The hierarchical prior encodes a backoff path in which the jump type is dropped first, followed by pairs of source and target words from least recent to most recent.",
+        "The final backoff stages drop the current source word, terminating with the uniform base distribution over the target vocabulary V .",
+        "The distributions over the other two factors in Figure 2 follow a similar pattern.",
+        "Note however that these distributions don't condition on the current source word, and consequently have fewer levels of backoff.",
+        "The terminating base distribution for the finish factor is a uniform distribution with equal probability for finishing versus continuing.",
+        "The jump factor has an additional conditioning variable t which encodes whether the previous alignment is near the start or end of the source sentence.",
+        "This information affects which of the jump values are legal from the current position, such",
+        "that a jump could not go outside the bounds of the source sentence.",
+        "Accordingly we maintain separate distributions for each setting, and each has a different uniform base distribution parameterized according to the number of possible jump types."
+      ]
+    },
+    {
+      "heading": "3.3 Fertility",
+      "text": [
+        "For each target position, our Markov model may select a source word which has been covered, which means a source word may be linked to several target positions.",
+        "Therefore, we introduce fertility to denote the number of target positions a source word is linked to in a sentence pair.",
+        "Brown et al. (1993) have demonstrated the usefulness of fertility in probability estimation: IBM models 3?",
+        "5 exhibit large improvements over models 1?2.",
+        "On these grounds, we include fertility to produce our advanced model,",
+        "where ?j is the fertility of source word fj in the sentence pair < fJ1 , eI1 > and pbs is the basic model defined in Eq.",
+        "1.",
+        "In order to avoid problems of data sparsity, we bin fertility into three types, a) zero, if ?",
+        "= 0; b) single, if ?",
+        "= 1; and c) multiple, if ?",
+        "> 1.",
+        "We draw the fertility variables from a hierarchi",
+        "where we condition the fertility of each word token on the token to its left, which we drop during the first stage of backoff to simple word-based fertility.",
+        "The last level of backoff further generalises to a shared fertility across all words.",
+        "In this way we gain the benefits of local context on fertility, while including more general levels to allow wider applicability."
+      ]
+    },
+    {
+      "heading": "4 Gibbs Sampling",
+      "text": [
+        "To train the model, we use Gibbs sampling, a Markov Chain Monte Carlo (MCMC) technique for posterior inference.",
+        "Specifically we seek to infer the latent sequence of translation decisions given a corpus of sentence pairs.",
+        "Given the structure of our model, a word alignment uniquely specifies the translation decisions and the sequence follows the order of the target sentence left to right.",
+        "Our Gibbs sampler operates by sampling an update to the alignment of each target word in the corpus.",
+        "It visits each sentence pair in the corpus in a random order and resamples the alignments for each target position as follows.",
+        "First we discard the alignment to the current target word and decrement the counts of all factors affected by this alignment in their top level distributions (which will percolate down to the lower restaurants).",
+        "Next we calculate posterior probabilities for all possible alignment to this target word based on the table occupancies in the hPYP.",
+        "Finally we draw an alignment and increment the table counts for the translation decisions affected by the new alignment.",
+        "More specifically, we consider sampling from Equation 2 with n = 2.",
+        "When changing the alignment to a target word ei from j?",
+        "to j, the finish, jump and emission for three target positions i, i+ 1, i+ 2 and fertility for two source positions j, j?",
+        "may be affected.",
+        "This leads to the following",
+        "where ?j , ?j?",
+        "are the fertilities before changing the link and for brevity we omit the conditioning contexts.",
+        "For example, in Figure 1, we sample for target word take and change the aligned source word from prends to Je, then the items for which we need to decrement and increment the counts by one are shown in Table 1 and the posterior probability corresponding to the new alignment is the product of the hierarchical PYP probabilities of all increment items divided by the probability of the fertility of prends being single.",
+        "Maintaining the current state of the hPYP as events are incremented and decremented is non-trivial and the naive approach requires significant bookkeeping and has poor runtime behaviour.",
+        "For this we adopt the approach of Blunsom et al. (2009b), who present a method for maintaining table counts without needing to record the table assignments for each translation decision.",
+        "Briefly, this algorithm samples the table assignment during the increment and decrement operations, which is then used to maintain aggregate table statistics.",
+        "This can be done efficiently and without the need for explicit table assignment tracking."
+      ]
+    },
+    {
+      "heading": "4.1 Hyperparameter Inference",
+      "text": [
+        "In our model, we treat all hyper-parameters {(ax, bx), x ?",
+        "(?, ?, e, ?)}",
+        "as latent random variables rather than fixed parameters.",
+        "This means our model is parameter free, and requires no user intervention when adapting to different data sets.",
+        "For the discount parameter, we employ a uniform Beta distribution ax ?",
+        "Beta(1, 1) while for the strength parameter, we employ a vague Gamma distribution bx ?",
+        "Gamma(10, 0.1).",
+        "All restaurants in the same level share the same hyper-prior and the hyper-parameters for all levels are resampled using slice sampling (Johnson and Goldwater, 2009) every 10 iterations."
+      ]
+    },
+    {
+      "heading": "4.2 Parallel Implementation",
+      "text": [
+        "As mentioned above, the hierarchical PYP takes into consideration a rich history to evaluate the probabilities of translation decisions.",
+        "But this leads to difficulties when applying the model to large data sets, particularly in terms of tracking the table and customer counts.",
+        "We apply the technique from Blunsom et al. (2009a) of using multiple processors to perform approximate Gibbs sampling which they showed achieved equivalent performance to the exact Gibbs sampler.",
+        "Each process performs sampling on a subset of the corpus using local counts, and communicates changes to these counts after each full iteration.",
+        "All the count deltas are then aggregated by each process to refresh the counts at the end of each iteration.",
+        "In this way each process uses slightly ?out-of-date?",
+        "counts, but can process the data independently of the other processes.",
+        "We found that this approximation improved the runtime significantly with no noticeable effect on accuracy."
+      ]
+    },
+    {
+      "heading": "5 Experiments",
+      "text": [
+        "In principle our model could be directly used as a MT decoder or as a feature in a decoder.",
+        "However in this paper we limit our focus to inducing word alignments, i.e., by using the model to infer alignments which are then used in a standard phrase-based translation pipeline.",
+        "We leave full decoding for later work, which we anticipate would further improve performance by exploiting gapping phrases and other phenomena that implicitly form part of our model but are not represented in the phrase-based decoder.",
+        "Decoding under our model would be straightforward in principle, as the generative process was designed to closely parallel the search procedure in the phrase-based model.3 Three data sets were used in the experiments: two Chinese to English data sets on small (IWSLT) and larger corpora (FBIS), and Arabic",
+        "to English translation.",
+        "Our experiments seek to test how the model compares to a GIZA++ baseline, quantifies the effect of each factor in the probabilistic model (i.e., jump, fertility), and the effect of different initialisations of the sampler.",
+        "We present results on translation quality and word alignment."
+      ]
+    },
+    {
+      "heading": "5.1 Data Setup",
+      "text": [
+        "The Markov order of our model in all experiments was set to n = 2, as shown in Equation 2.",
+        "For each data set, Gibbs sampling was performed on the training set in each direction (source-to-target and target-to-source), initialized using GIZA++.4 We used the grow heuristic to combine the GIZA++ alignments in both directions (Koehn et al., 2003), which we then intersect with the predictions of GIZA++ in the relevant translation direction.",
+        "This initialisation setup gave the best results (we compare other initialisations in ?5.2).",
+        "The two Gibbs samplers were ?burned in?",
+        "for the first 1000 iterations, after which we ran a further 500 iterations selecting every 50th sample.",
+        "A phrase table was constructed using these 10 sets of multiple alignments after combining each pair of directional alignments using the grow-diag-final heuristic.",
+        "Using multiple samples in this way constitutes Monte Carlo averaging, which provides a better estimate of uncertainty cf. using a single sample.",
+        "The alignment used for the baseline results was produced by combining bidirectional GIZA++ alignments using the grow-diag-final heuristic.",
+        "We used the Moses machine translation decoder (Koehn et al., 2007), using the default features and decoding settings.",
+        "We compared the performance of Moses using the alignment produced by our model and the baseline alignment, evaluating translation quality using BLEU (Papineni et al., 2002) with case-insensitive n-gram matching with n = 4.",
+        "We used minimum error rate training (Och, 2003) to tune the feature weights to maximise the BLEU score on the development set."
+      ]
+    },
+    {
+      "heading": "5.2 IWSLT Corpus",
+      "text": [
+        "The first experiments are on the IWSLT data set for Chinese-English translation.",
+        "The training data consists of 44k sentences from the tourism and travel domain.",
+        "For the development set we use both ASR devset 1 and 2 from IWSLT 2005, and",
+        "model, showing BLEU scores on IWSLT.",
+        "Key: fs?",
+        "finish e?emission j?jump ft?fertility.",
+        "for the test set we use the IWSLT 2005 test set.",
+        "The language model is a 3-gram language model trained using the SRILM toolkit (Stolcke, 2002) on the English side of the training data.",
+        "Because the data set is small, we performed Gibbs sampling on a single processor.",
+        "First we check the effect of the model factors jump and fertility.",
+        "Both emission and finish factors are indispensable to the generative translation process, and consequently these two factors are included in all runs.",
+        "Table 2 shows translation result for various models, including a baseline and our Markov model with different combinations of factors.",
+        "Note that even the simplest Markov model far outperforms the GIZA++ baseline (+1.5 BLEU) despite the baseline (IBM model 4) including a number of advanced features (e.g., jump, fertility) that are not present in the basic Markov model.",
+        "This improvement is a result of the Markov model making use of rich bilingual contextual information coupled with sophisticated backoff, as opposed to GIZA++ which considers much more local events, with nothing larger than word-class bi-grams.",
+        "Our model shows large improvements as the extra factors are included.",
+        "Jump yields an improvement of +1 BLEU by capturing consistent reordering patterns.",
+        "Adding fertility results in a further +1 BLEU point improvement.",
+        "Like the IBM models, our approach allows each source word to produce any number of target words.",
+        "This capacity allows for many nonsensical alignments such as dropping many source words, or aligning single source words to several target words.",
+        "Explicitly modelling fertility allows for more consistent alignments, especially for special words such as punctuation which usually have a fertility of one.",
+        "Next we check the stability of our model with different initialisations.",
+        "We compare different combination techniques for merging the GIZA++ alignments: grow-diag-final (denoted as gdf ), intersection and grow.",
+        "Table 3 shows that the different initialisations have only a small effect on",
+        "BLEU % on the IWSLT 2005 Chinese-English test set.",
+        "The Gibbs samplers were initialized with three different alignments, shown as columns.",
+        "the results of our model.",
+        "While the baseline results vary by up to 1.7 BLEU points for the different alignments, our Markov model provided more stable results with the biggest difference of 0.6.",
+        "Among the three initialisations, we get the best result with the initialisation of grow.",
+        "Gdf often introduces alignment links involving function words which should instead be aligned to null.",
+        "Intersection includes many fewer alignments, typically only between content words, and the sparsity means that words can only have a fertility of either 0 or 1.",
+        "This leads to the initialisation being a strong mode which is difficult to escape from during sampling.",
+        "Despite this problem, it has only a mild negative effect on the performance of our model, which is probably due to improvements in the alignments for words that truly should be dropped or aligned only to one word.",
+        "Grow provides a good compromise between gdf and intersection, and we use this initialisation in all our subsequent experiments.",
+        "Figure 3 shows an example comparing alignments produced by our model and the GIZA++ baseline, in both cases after combining the two directional models.",
+        "Note that GIZA++ has linked many function words which should be left unaligned, by using rare English terms as garbage collectors.",
+        "Consequently this only allows for the extraction of few large phrase-pairs (e.g. <?",
+        "?, ?m looking for>) and prevents the extraction of some good phrases (e.g.",
+        "<??",
+        "??",
+        "?, grill-type>, for ???",
+        "and ??",
+        "??",
+        "are wrongly aligned to ?grill-type?).",
+        "In contrast, our model better aligns the function words, such that many more useful phrase pairs can be extracted, i.e., <?, ?m>,<?, looking for>,<???",
+        "?, grill-type> and their combinations with neighbouring phrase pairs."
+      ]
+    },
+    {
+      "heading": "5.3 FBIS Corpus",
+      "text": [
+        "Theoretically, Bayesian models should outperform maximum likelihood approaches on small data sets, due to their improved modelling of un",
+        "the baseline vs. our approach.",
+        "certainty.",
+        "For larger datasets, however, the difference between the two techniques should narrow.",
+        "Hence one might expect that upon moving to larger translation datasets our gains might evaporate.",
+        "This chain of reasoning ignores the fact that our model is considerably richer than the baseline IBM models, in that we model rich contextual correlations between translation decisions, and consequently our approach has a lower inductive bias.",
+        "For this reason our model should continue to improve with more data, by inferring better estimates of translation decision n-grams.",
+        "A caveat though is that inference by sampling becomes less efficient on larger data sets due to stronger modes, requiring more iterations for convergence.",
+        "To test whether our improvements carry over to larger datasets, we assess the performance of our model on the FBIS Chinese-English data set.",
+        "Here the training data consists of the non-UN portions and non-HK Hansards portions of the NIST training corpora distributed by the LDC, totalling 303k sentence pairs with 8m and 9.4m words of Chinese and English, respectively.",
+        "For the development set we use the NIST 2002 test set, and evaluate performance on the test sets from NIST 2003",
+        "English translation, showing BLEU% for models trained on the FBIS data set.",
+        "and 2005.",
+        "The language model is a 3-gram LM trained on Xinhua portion of the Gigaword corpus using the SRILM toolkit with modified Kneser-Ney smoothing.",
+        "As the FBIS data set is large, we employed 3-processor MPI for each Gibbs sampler, which ran in half the time compared to using a single processor.",
+        "Table 4 shows the results on the FBIS data set.",
+        "Our model outperforms the baseline on both test sets by about 1 BLEU.",
+        "This provides evidence that our model performs well in the large data setting, with our rich modelling of context still proving useful.",
+        "The non-parametric nature of the model allows for rich dynamic backoff behaviour such that it can learn accurate models in both high and low data scenarios."
+      ]
+    },
+    {
+      "heading": "5.4 Arabic English translation",
+      "text": [
+        "Translation between Chinese and English is very difficult, particularly due to word order differences which are not handled well by phrase-based approaches.",
+        "In contrast Arabic to English translation needs less reordering, and phrase-based models produce better translations.",
+        "This translation task is a good test for the generality of our approach.",
+        "Our Ar-En training data comprises several LDC corpora,6 using the same experimental setup as in Blunsom et al. (2009a).",
+        "Overall there are 276k sentence pairs and 8.21m and 8.97m words in Arabic and English, respectively.",
+        "We evaluate on the NIST test sets from 2003 and 2005, and the 2002 test set was used for MERT training.",
+        "Table 5 shows the results.",
+        "On all test sets our approach outperforms the baseline, and for the NIST03 test set the improvement is substantial, with a +0.74 BLEU improvement.",
+        "In general the improvements are more modest than for the Chinese-English results above.",
+        "We suggest that this is due to the structure of Arabic-English translation better suiting the modelling assumptions behind IBM model 4, particularly its bias towards monotone translations.",
+        "Consequently the addi",
+        "English translation, showing BLEU%.",
+        "Also shown is word-alignment alignment accuracy.",
+        "tional context provided by our model is less important.",
+        "Table 5 also reports alignment results on manually aligned Ar-En sentence pairs,7 measuring the F1 score for the GIZA++ baseline alignments and the alignment from the final sample with our model.8 Our model outperforms the baseline, although the improvement is modest."
+      ]
+    },
+    {
+      "heading": "6 Conclusions and Future Work",
+      "text": [
+        "This paper proposes a word-based Markov model of translation which correlates translation decisions by conditioning on recent decisions, and incorporates a hierarchical Pitman-Yor process prior permitting elaborate backoff behaviour.",
+        "The model can learn sequences of translation decisions, akin to phrases in standard phrase-based models, while simultaneously learning word level phenomena.",
+        "This mechanism generalises the concept of phrases in phrase-based MT, while also capturing richer phenomena such as gapping phrases in the source.",
+        "Experiments show that our model performs well both on the small and large datasets for two different translation tasks, consistently outperforming a competitive baseline.",
+        "In this paper the model was only used to infer word alignments; in future work we intend to develop a decoding algorithm for directly translating with the model."
+      ]
+    },
+    {
+      "heading": "Acknowledgements",
+      "text": [
+        "This work was supported by the EPSRC (grant EP/I034750/1)."
+      ]
+    }
+  ]
+}

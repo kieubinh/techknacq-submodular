@@ -1,0 +1,168 @@
+{
+  "info": {
+    "authors": [
+      "Hao Xiong",
+      "Qun Liu"
+    ],
+    "book": "SemEval",
+    "id": "acl-S12-1073",
+    "title": "ICT:A System Combination for Chinese Semantic Dependency Parsing",
+    "url": "https://aclweb.org/anthology/S12-1073",
+    "year": 2012
+  },
+  "references": [
+    "acl-D07-1097",
+    "acl-P10-1110",
+    "acl-W04-0308",
+    "acl-W08-2121",
+    "acl-W09-1201"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "The goal of semantic dependency parsing is to build dependency structure and label semantic relation between a head and its modifier.",
+        "To attain this goal, we concentrate on obtaining better dependency structure to predict better semantic relations, and propose a method to combine the results of three state-of-the-art dependency parsers.",
+        "Unfortunately, we made a mistake when we generate the final output that results in a lower score of 56.31% in term of Labeled Attachment Score (LAS), reported by organizers.",
+        "After giving golden testing set, we fix the bug and rerun the evaluation script, this time we obtain the score of 62.8% which is consistent with the results on developing set.",
+        "We will report detailed experimental results with correct program as a comparison standard for further research."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "In this year's Semantic Evaluation Task, the organizers hold a task for Chinese Semantic Dependency Parsing.",
+        "The semantic dependency parsing (SDP) is a kind of dependency parsing.",
+        "It builds a dependency structure for a sentence and labels the semantic relation between a head and its modifier.",
+        "The semantic relations are different from syntactic relations.",
+        "They are position independent, e.g., the patient can be before or behind a predicate.",
+        "On the other hand, their grains are finer than syntactic relations, e.g., the syntactic subject can be agent or experiencer.",
+        "Readers can refer to (Wanxiang Che, 2012) for detailed introduction.",
+        "bine the results of three dependency parsers and use max-entropy classifier to predict the semantic relations.",
+        "Different from most methods proposed in CoNLL-2008 1 and 2009 2, in which some researchers build a joint model to simultaneously generate dependency structure and its syntactic relations (Surdeanu et al., 2008; Hajic?",
+        "et al, 2009), here, we first employ several parsers to generate dependency structure and then propose a method to combine their outputs.",
+        "After that, we label relation between each head and its modifier via the traversal of this refined parse tree.",
+        "The reason why we use a pipeline model while not a joint model is that the number of semantic relations annotated by organizers is more than 120 types, while in the former task is only 21 types.",
+        "Compared to the former task, the large number of types will obviously drop the performance of classifier.",
+        "On the other hand, the performance of syntactic dependency parsing is approaching to perfect, intuitively, that better dependency structure does help to semantic parsing, thus we can concentrate on improving the accuracy of dependency structure construction.",
+        "The overall framework of our system is illustrated",
+        "in figure 1, where three dependency parsers are employed to generate the dependency structure, and a maximum entropy classifier is used to predict relation for head and its modifier over combined parse tree.",
+        "Final experimental results show that our system achieves 80.45% in term of unlabeled attachment score (UAS), and 62.8 % in term of LAS.",
+        "Both of them are higher than the baseline without using system combinational techniques.",
+        "In the following of this paper, we will demonstrate the detailed information of our system, and report several experimental results."
+      ]
+    },
+    {
+      "heading": "2 System Description",
+      "text": [
+        "As mentioned, we employ three single dependency parsers to generate respect dependency structure.",
+        "To further improve the accuracy of dependency structure construction, we blend the syntactic outputs and find a better dependency structure.",
+        "In the followings, we will first introduce the details of our strategy for dependency structure construction."
+      ]
+    },
+    {
+      "heading": "2.1 Parsers",
+      "text": [
+        "We implement three transition-based dependency parsers with three different parsing algorithms: Nivre's arc standard, Nivre's arc eager (see Nivre (2004) for a comparison between the two Nivre algorithms), and Liang's dynamic algorithm(Huang and Sagae, 2010).",
+        "We use these algorithms for several reasons: first, they are easy to implement and their reported performance are approaching to state-of-the-art.",
+        "Second, their outputs are projective, which is consistent with given corpus."
+      ]
+    },
+    {
+      "heading": "2.2 Parser Combination",
+      "text": [
+        "We use the similar method presented in Hall et al. (2011) to advance the accuracy of parses.",
+        "The parses of each sentence are combined into a weighted directed graph.",
+        "The left procedure is similar to traditional graph-based dependency parsing except that the number of edges in our system is smaller since we reserve best edges predicted by three single parsers.",
+        "We use the popular Chu-Liu-Edmonds algorithm (Chu and Liu, 1965; Edmonds et al., 1968) to find the maximum spanning tree (MST) of the new constructed graph, which is considered as the final parse of the sentence.",
+        "Specifically, we use the parsing accuracy on developing set to represent the weight of graph edge.",
+        "Formally, the weight of graph edge is computed as follows,",
+        "where the Accuracy(p) is the parsing score of parse tree p whose value is the score of parsing accuracy on developing set, and I(e, p) is an indicator, if there is such dependency in parse tree p, it returns 1, otherwise returns 0.",
+        "Since the value of Accuracy(p) ranges from 0 to 1, we doesn't need to normalize its value.",
+        "Thus, the detailed procedure for dependency structure construction is, ?",
+        "Parsing each sentence using Nivre's arc standard, Nivre's arc eager and Liang's dynamic algorithm, respectively.",
+        "?",
+        "Combining parses outputted by three parsers into weighted directed graph, and representing its weight using equation 1. ?",
+        "Using Chu-Liu-Edmonds algorithm to search final parse for each sentence."
+      ]
+    },
+    {
+      "heading": "2.3 Features for Labeling",
+      "text": [
+        "After given dependency structure, for each relation between head and its modifier, we extract 31 types of features, which are typically exploited in syntactic dependency parsing, as our basic features.",
+        "Based on these basic features, we also add a additional distance metric for each features and obtain 31 types of distance incorporated features.",
+        "Besides that, we use greedy hill climbing approach to select additional 29 features to obtain better performance.",
+        "Table 1 shows the basic features used in our system, And the table 2 gives the additional features.",
+        "It is worth mentioning, that the distance is calculated as the difference between the head and its modifier, which is different from the calculation reported by most literatures."
+      ]
+    },
+    {
+      "heading": "2.4 Classifier",
+      "text": [
+        "We use the classifier from Le Zhang's Maximum",
+        "+1 indicate the one on the left and right of given word.",
+        "parameter estimation algorithm with gaussian prior smoothing(Chen and Rosenfeld, 1999).",
+        "We set the gaussian prior to 2 and train the model in 1000 iterations according to the previous experience."
+      ]
+    },
+    {
+      "heading": "3 Experiments",
+      "text": [
+        "The given corpus consists of 8301 sentences for training(TR), and 569 sentences for develop-ing(DE).",
+        "For tuning parameters, we just use TR portion, while for testing, we combine two parts and retrain the parser to obtain better results.",
+        "Surely, we also give results of testing set trained on TR portion for comparison.",
+        "In the following of this section, we will report the detailed experimental results both on"
+      ]
+    },
+    {
+      "heading": "3.1 Results on Developing Set",
+      "text": [
+        "We first report the accuracy of dependency construction on developing set using different parsing algorithms in table 3.",
+        "Note that, the features used in our system are similar to that used in their published papers(Nivre, 2003; Nivre, 2004; Huang and Sagae, 2010).",
+        "From table 3 we find that although",
+        "oping set.",
+        "using simple method for combination over three single parsers, the system combination technique still achieves 1.1 points improvement over the highest single system.",
+        "Since the Liang's algorithm is a dynamic algorithm, which enlarges the searching space in decoding, while the former two Nivre's arc al",
+        "gorithms actually still are simple beam search algorithm, thus the Liang's algorithm achieves better performance than Nivre's two algorithm, which is consistent with the experiments in Liang's paper.",
+        "To acknowledge that the better dependency structure does help to semantic relation labeling, we further predict semantic relations on different dependency structures.",
+        "For comparison, we also report the performance on golden structure.",
+        "Since our combi",
+        "on developing set.",
+        "national algorithm requires weight for each edges, we use the developing parsing accuracy 0.7886, 0.7911, and 0.7978 as corresponding weights for each single system.",
+        "Table 4 shows, that the prediction of semantic relation could benefit from the improvement of dependency structure.",
+        "We also notice that even given the golden parse tree, the performance of relation labeling is still far from perfect.",
+        "Two reasons could be explained for that: first is the small size of supplied corpus, second is that the relation between head and its modifier is too fine-grained to distinguish for a classifier.",
+        "Moreover, here we use golden segmentation for parsing, imagining that an automatic segmenter would further drop the accuracy both on syntactic and semantic parsing."
+      ]
+    },
+    {
+      "heading": "3.2 Results on Testing Set",
+      "text": [
+        "Since there is a bug4 in our final results submitted to organizers, here, in order to confirm the improvement of our method and supply comparison standard for further research, we reevaluate the correct output and report its performance on different training set.",
+        "Table 5 and table 6 give the results trained on different corpus.",
+        "We can see that when increasing the",
+        "styled outputs generated by our combination system into plain text.",
+        "While in developing stage, we directly used CoNLL-styled outputs as our input, thus we didn't realize this mistake.",
+        "training size, the performance is slightly improved.",
+        "Also, we find the results on testing set is consistent with that on developing set, where best dependency structure achieves the best performance."
+      ]
+    },
+    {
+      "heading": "DE. 4 Conclusion",
+      "text": [
+        "In this paper, we demonstrate our system framework for Chinese Semantic Dependency Parsing, and report the experiments with different configurations.",
+        "We propose to use system combination to better the dependency structure construction, and then label semantic relations over refined parse tree.",
+        "Final experiments show that better syntactic parsing do help to improve the accuracy of semantic relation prediction."
+      ]
+    },
+    {
+      "heading": "Acknowledgments",
+      "text": [
+        "The authors were supported by National Science Foundation of China, Contracts 90920004, and High-Technology R&D Program (863) Project No 2011AA01A207 and 2012BAH39B03.",
+        "We thank Heng Yu for generating parse tree using Liang's algorithm.",
+        "We thank organizers for their generous supplied resources and arduous preparation.",
+        "We also thank anonymous reviewers for their thoughtful suggestions."
+      ]
+    }
+  ]
+}

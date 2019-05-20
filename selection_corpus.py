@@ -324,7 +324,7 @@ def getHighReferences(path="inputs/candidate/", selectedPath="inputs/selection/"
     ese = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)
     docIds = ese.getAllDocsByIndex()
     # print(len(docIds))
-    selectedDocs = corpus.getHighReference(threshold=6, v=docIds)
+    selectedDocs = corpus.getHighReference(threshold=1, v=docIds)
     # print(len(selectedDocs))
     print(selectedDocs)
     selectFiles(path, selectedPath, selectedDocs, method="copy")
@@ -332,4 +332,4 @@ def getHighReferences(path="inputs/candidate/", selectedPath="inputs/selection/"
 if __name__ == '__main__':
     # makeCorpus("data/acl/", "data/acl-select/", "sample-high/")
     # makeInputsByYears(corpusPath="../data/acl/", inputPath="inputs/years/")
-    getHighReferences(path="inputs/candidate/", selectedPath="inputs/selection/")
+    getHighReferences(path="inputs/13/", selectedPath="inputs/selection-13-1/")

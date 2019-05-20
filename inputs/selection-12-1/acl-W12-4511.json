@@ -1,0 +1,323 @@
+{
+  "info": {
+    "authors": [
+      "Sebastian Martschat",
+      "Jie Cai",
+      "Samuel Broscheit",
+      "Éva Mújdricza-Maydt",
+      "Michael Strube"
+    ],
+    "book": "Joint Conference on EMNLP and CoNLL – Shared Task",
+    "id": "acl-W12-4511",
+    "title": "A Multigraph Model for Coreference Resolution",
+    "url": "https://aclweb.org/anthology/W12-4511",
+    "year": 2012
+  },
+  "references": [
+    "acl-D09-1120",
+    "acl-P06-1005",
+    "acl-P08-4003",
+    "acl-W11-1902",
+    "acl-W11-1907",
+    "acl-W12-4501"
+  ],
+  "sections": [
+    {
+      "heading": "Abstract",
+      "text": [
+        "This paper presents HITS?",
+        "coreference resolution system that participated in the CoNLL2012 shared task on multilingual unrestricted coreference resolution.",
+        "Our system employs a simple multigraph representation of the relation between mentions in a document, where the nodes correspond to mentions and the edges correspond to relations between the mentions.",
+        "Entities are obtained via greedy clustering.",
+        "We participated in the closed tasks for English and Chinese.",
+        "Our system ranked second in the English closed task."
+      ]
+    },
+    {
+      "heading": "1 Introduction",
+      "text": [
+        "Coreference resolution is the task of determining which mentions in a text refer to the same entity.",
+        "This paper describes HITS?",
+        "system for the CoNLL2012 Shared Task on multilingual unrestricted coreference resolution, where the goal is to build a system for coreference resolution in an end-to-end multilingual setting (Pradhan et al., 2012).",
+        "We participated in the closed tasks for English and Chinese and focused on English.",
+        "Our system ranked second in the English closed task.",
+        "Being conceptually similar to and building upon Cai et al. (2011b), our system is based on a directed multigraph representation of a document.",
+        "A multigraph is a graph where two nodes can be connected by more than one edge.",
+        "In our model, nodes represent mentions and edges are built from relations between the mentions.",
+        "The entities to be inferred correspond to clusters in the multigraph.",
+        "Our model allows for directly representing any kind of relations between pairs of mentions in a graph structure.",
+        "Inference over this graph can harness structural properties and the rich set of encoded relations.",
+        "In order to serve as a basis for further work, the components of our system were designed to work as simple as possible.",
+        "Therefore our system relies mostly on local information between pairs of mentions."
+      ]
+    },
+    {
+      "heading": "2 Architecture",
+      "text": [
+        "Our system is implemented on top of the BART toolkit (Versley et al., 2008).",
+        "To compute the coreference clusters in a document, we first extract a set of mentions M = {m1, .",
+        ".",
+        ".",
+        ",mn} ordered according to their position in the text (Section 2.1).",
+        "We then build a directed multigraph where the set of nodes is M and edges are induced by relations between mentions (Section 2.4).",
+        "The relations we use in our system are coreference indicators like string matching or alias (Section 3).",
+        "For every relation R, we compute a weight wR using the training data (Section 2.3).",
+        "We then assign the weight wR to any edge that is induced by the relation R. Depending on distance and connectivity properties of the graph the weights may change (Section 2.4.1).",
+        "Given the constructed graph with edge weights, we go through the mentions according to their position in the text and perform greedy clustering (Section 2.6).",
+        "For Chinese, we employ spectral clustering (Section 2.5) as adopted in Cai et al. (2011b) before the greedy clustering step to reduce the number of candidate antecedents for a mention.",
+        "The components of our system are described in the following subsections."
+      ]
+    },
+    {
+      "heading": "2.1 Mention Extraction",
+      "text": [
+        "Noun phrases are extracted from the provided parse and named entity annotation layers.",
+        "For embedded mentions with the same head, we only keep the mention with the largest span.",
+        "For English we identify eight different mention types: common noun, proper noun, personal pronoun, demonstrative pronoun, possessive pronoun, coordinated noun phrase, quantifying noun phrase (some of ..., 17 of ...) and quantified noun phrase (the armed men in one of the armed men).",
+        "The head for a common noun or a quantified noun is computed using the SemanticHeadFinder from the Stanford Parser1.",
+        "The head for a proper noun starts at the first token tagged as a noun until a punctuation, preposition or subclause is encountered.",
+        "Coordina-tions have the CC tagged token as head and quantifying noun phrases have the quantifier as head.",
+        "In a postprocessing step we filter out adjectival use of nations and named entities with semantic class Money, Percent or Cardinal.",
+        "We discard mentions whose head is embedded in another mention's head.",
+        "Pleonastic pronouns are identified and discarded via a modified version of the patterns used by Lee et al. (2011).",
+        "For Chinese we detect four mention types: common noun, proper noun, pronoun and coordination.",
+        "The head detection for Chinese is provided by the SunJurafskyChineseHeadFinder from the Standford Parser, except for proper nouns whose head is set to the mention's rightmost token.",
+        "The remaining processing is similar to the mention detection for English."
+      ]
+    },
+    {
+      "heading": "2.2 Preprocessing",
+      "text": [
+        "We extract the information in the provided annotation layers and transform the predicted constituent parse trees into dependency parse trees.",
+        "We work with two different dependency representations, one obtained via the converter implemented",
+        "constituent-to-dependency conversion tool3.",
+        "For pronouns, we determine number and gender using tables containing a mapping of pronouns to their gender and number.",
+        "For English, number and gender for common nouns are computed via a comparison of head lemma to head and using the number and gender data of Bergsma and Lin (2006).",
+        "Quantified noun phrases are always plural.",
+        "We compute semantic classes via a WordNet (Fellbaum, 1998) lookup.",
+        "For Chinese, we simply determine number and gender by searching for the corresponding designators, since plural mentions mostly end with ?, while ??",
+        "(sir) and ??",
+        "(lady) often suggest gender information.",
+        "To identify demonstrative and definite noun phrases, we check whether they start with a definite/demonstrative indicator (e.g. ?",
+        "(this) or ?",
+        "(that)).",
+        "We use lists of named entities extracted from the training data to determine named entities and their semantic class in development and testing data."
+      ]
+    },
+    {
+      "heading": "2.3 Computing Weights for Relations",
+      "text": [
+        "We compute weights for relations using simple descriptive statistics on training documents.",
+        "Since this is a robust approach to learning weights for the type of graph model we employ (Cai et al., 2011b; Cai et al., 2011a), we use only a fraction of the available training data.",
+        "We took a random subset consisting of around 20% for English and 15% for Chinese of the training data.",
+        "For every document in this set and every relation R, we go through the set M of extracted mentions and compute for every pair (mi,mj) with i > j whether R holds for this pair.",
+        "The weight wR for R is then the number of coreferent pairs with R divided by the number of all pairs with R."
+      ]
+    },
+    {
+      "heading": "2.4 Graph Construction",
+      "text": [
+        "The set of relations we employ consists of two subsets: negative relations R?",
+        "which enforce that no",
+        "edge is built between two mentions, and positive relations R+ that induce edges.",
+        "Again, we go through M in a left-to-right fashion.",
+        "If for two mentions mi, mj with i > j a negative relation R?",
+        "holds, no edge between mi and mj can be built.",
+        "Otherwise we add an edge from mi to mj for every positive relation R+ such that R+(mi,mj) is true.",
+        "The structure obtained by this construction is a directed multigraph.",
+        "We handle copula relations similar to Lee et al. (2011): if mi is this and the pair (mi,mj) is in a copula relation (like This is the World), we remove mj and replace mj in all edges involving it by mi.",
+        "For Chinese, we handle ?role appositives?",
+        "as introduced by Haghighi and Klein (2009) analogously.",
+        "Initially, any edge (mi,mj) induced by the relation R has the weight wR computed as described in Section 2.3.",
+        "If R is a transitive relation, we divide the weight by the number of mentions connected by this relation.",
+        "This corresponds to the way edge weights are assigned during the spectral embedding in Cai et al. (2011b).",
+        "If R is a relation sensitive to distance like compatibility between a common/proper noun and a pronoun, the weight is altered according to the distance between mi and mj .",
+        "We demonstrate the graph construction by a simple example.",
+        "Consider a document consisting of the following three sentences.",
+        "Barack Obama and Nicolas Sarkozy met in Toronto yesterday.",
+        "They discussed the financial crisis.",
+        "Sarkozy left today.",
+        "Let us assume that our system identifies Barack Obama (m1), Nicolas Sarkozy (m2), Barack Obama and Nicolas Sarkozy (m3), They (m4) and Sarkozy (m5) as mentions.",
+        "We consider these mentions and the relations N Number, P Nprn Prn, P Alias and P Subject described in Section 3.",
+        "The graph constructed according to the algorithm described in this section is displayed in Figure 1.",
+        "Observe the effect of the negative relation N Number: while P Nprn Prn holds for the pair Barack Obama (m1) and They (m4), the mentions do not agree in number.",
+        "Hence N Number holds for this pair and no edge from m4 to m1 can be built."
+      ]
+    },
+    {
+      "heading": "2.5 Spectral Clustering",
+      "text": [
+        "For Chinese we apply spectral clustering before the final greedy clustering phase.",
+        "In order to be able to apply spectral clustering, we make the graph undirected and merge parallel edges into one edge, summing up all weights.",
+        "Due to the way edge weights are computed, the resulting undirected simple graph corresponds to the graph Cai et al. (2011b) use as input to the spectral clustering algorithm.",
+        "Spectral clustering is now performed as in Cai et al. (2011b)."
+      ]
+    },
+    {
+      "heading": "2.6 Greedy Clustering",
+      "text": [
+        "To describe our clustering algorithm, we use some additional terminology: if there exists an edge from m to n we say that m is a parent of n and that n is a child of m. In the last step, we go through the mentions from left to right.",
+        "Let mi be the mention in focus.",
+        "For English, we consider all children of mi as possible antecedents.",
+        "For Chinese we restrict the possible antecedents to all children that are in the same cluster obtained by spectral clustering.",
+        "If mi is a pronoun, we determine mj such that the sum over all weights of edges from mi to mj is maximized.",
+        "We then assign mi and mj to the same entity.",
+        "In English, if mi is a parent of a noun phrase m that embeds mj , we instead assign mi and m to the same entity.",
+        "For Chinese, all other noun phrases are assigned to the same entity as all their children in the cluster obtained by spectral clustering.",
+        "For English, we are more restrictive: definites and demonstratives are assigned to the same cluster as their closest (according to the position of the mentions in the text) child.",
+        "Negative relations may also be applied as constraints in this phase.",
+        "Before assigning mi to the same entity as a set of mentions C, we check for",
+        "every m ?",
+        "C and every negative relation R?",
+        "that we want to incorporate as a constraint whether R?",
+        "(mi,m) holds.",
+        "If yes, we do not assign mi to the same entity as the mentions in C."
+      ]
+    },
+    {
+      "heading": "2.7 Complexity",
+      "text": [
+        "Our algorithms for weight computation, graph construction and greedy clustering look at all pairs of mentions in a document and perform simple calculations, which leads to a time complexity of O",
+        "per document, where n is the number of mentions in a document.",
+        "When performing spectral clustering, this increases to O",
+        ".",
+        "Since we deal with at most a few hundred mentions per document, the cubic running time is not an issue."
+      ]
+    },
+    {
+      "heading": "3 Relations",
+      "text": [
+        "In our system relations serve as templates for building or disallowing edges between mentions.",
+        "We distinguish between positive and negative relations: negative relations disallow edges between mentions, positive relations build edges between mentions.",
+        "Negative relations can also be used as constraints during clustering, while positive relations may also be applied as ?weak?",
+        "relations: in this case, we only add the induced edge when the two mentions under consideration are already included in the graph after considering all the non-weak relations.",
+        "Most of the relations presented here were already used in our system for last year's shared task (Cai et al., 2011b).",
+        "The set of relations was enriched mainly to resolve pronouns in dialogue and to resolve pronouns that do not carry much information by themselves like it and they."
+      ]
+    },
+    {
+      "heading": "3.1 Negative Relations",
+      "text": [
+        "(1) N Gender, (2) N Number: Two mentions do not agree in gender or number.",
+        "(3) N SemanticClass: Two mentions do not agree in semantic class (only the Object, Date and Person top categories derived from WordNet (Fellbaum, 1998) are used).",
+        "(4) N ItDist: The anaphor is it or they and the sentence distance to the antecedent is larger than one.",
+        "(5) N BarePlural: Two mentions that are both bare plurals.",
+        "(6) N Speaker12Prn: Two first person pronouns or two second person pronouns with different speakers, or one first person pronoun and one second person pronoun with the same speaker.",
+        "(7) N DSprn: Two first person pronouns in direct speech assigned to different speakers.",
+        "(8) N ContraSubjObj: Two mentions are in the subject and object positions of the same verb, and the anaphor is a non-possessive pronoun.",
+        "(9) N Mod: Two mentions have the same syntactic heads, and the anaphor has a pre-or post-modifier which does not occur in the antecedent and does not contradict the antecedent.",
+        "(10) N Embedding: Two mentions where one embeds the other, which is not a reflexive or possessive pronoun.",
+        "(11) N 2PrnNonSpeech: Two second person pronouns without speaker information and not in direct speech.",
+        "3.2 Positive Relations (12) P StrMatch Npron, (13) P StrMatch Pron: After discarding stop words, if the strings of mentions completely match and are not pronouns, the relation P StrMatch Npron holds.",
+        "When the matched mentions are pronouns, P StrMatch Pron holds.",
+        "(14) P HeadMatch: If the syntactic heads of mentions match.",
+        "(15) P Nprn Prn: If the antecedent is not a pronoun and the anaphor is a pronoun.",
+        "This relation is restricted to a sentence distance of 1.",
+        "(16) P Alias: If mentions are aliases of each other (i.e. proper names with partial match, full names and acronyms, etc.).",
+        "(17) P Speaker12Prn: If the speaker of the second person pronoun is talking to the speaker of the first person pronoun.",
+        "The mentions contain only first or second person pronouns.",
+        "(18) P DSPrn: If one mention is subject of a speak verb, and the other mention is a first person pronoun within the corresponding direct speech.",
+        "(19) P ReflPrn: If the anaphor is a reflexive pronoun, and the antecedent is the subject of the sentence.",
+        "(20) P PossPrn: If the anaphor is a possessive pronoun, and the antecedent is the subject of the sentence or the subclause.",
+        "(21) P GPEIsA: If the antecedent is a Named Entity of GPE entity type and the anaphor is a definite expression of the same type.",
+        "(22) P PossPrnEmbedding: If the anaphor is a possessive pronoun and is embedded in the antecedent.",
+        "(23) P VerbAgree: If the anaphor is a pronoun and has the same predicate as the antecedent.",
+        "(24) P Subject & (25) P Object: If both mentions are subjects/objects (applies only if the anaphor is it or they).",
+        "(26) P SemClassPrn: If the anaphor is a pronoun,",
+        "the antecedent is not a pronoun, and both have semantic class Person.",
+        "For English, we used all relations except for (21) and (26).",
+        "Relations (1), (2) and (10) were incorporated as constraints during greedy clustering.",
+        "For Chinese, we used relations (1) ?",
+        "(6), (12) ?",
+        "(15), (21) and (26).",
+        "(26) was incorporated as a weak relation."
+      ]
+    },
+    {
+      "heading": "4 Results",
+      "text": [
+        "We submitted to the closed tasks for English and Chinese.",
+        "The results on the English development set and testing set are displayed in Table 1 and Table 2 respectively.",
+        "To indicate the progress we achieved within one year, Table 3 shows the performance of our system on the CoNLL ?11 development data set compared to last year's results (Cai et al., 2011b).",
+        "The Overall number is the average of MUC, B3 and CEAF (E), MD is the mention detection score.",
+        "Overall, we gained over 5% F1 some of which can be attributed to improved mention detection.",
+        "Because none of our team members has knowledge of the Arabic language we did not attempt to",
+        "run our system on the Arabic datasets and therefore our official score for this language is considered to be 0.",
+        "The combined official score of our submission is (0.0 + 53.15 + 61.31)/3 = 38.15.",
+        "In the closed task our system was the second best performing system for English and the eighth best performing system for Chinese."
+      ]
+    },
+    {
+      "heading": "5 Error analysis",
+      "text": [
+        "We did not attempt to resolve event coreference and did not incorporate world knowledge which is responsible for many recall errors our system makes.",
+        "Since we use a simple greedy strategy for clustering that goes through the mentions left-to-right, errors in clustering propagate, which gives rise to cluster-level inconsistencies.",
+        "We observed a drop in performance when using more negative relations as constraints.",
+        "A more sophisticated clustering strategy that allows a more refined use of constraints is needed."
+      ]
+    },
+    {
+      "heading": "5.1 English",
+      "text": [
+        "Our detection of copula and appositive relations is quite inaccurate, which is why we limit the incorporation of copulas to cases where the antecedent is this and left appositives out.",
+        "We aim for high precision regarding the usage of the negative relation N Modifier.",
+        "This leads to some loss in recall.",
+        "For example, our system does not assign the just-completed Paralympics and the 12-day Paralympics to the same entity.",
+        "Such cases require a more involved reasoning scheme to decide whether the modifiers are actually contradicting each other.",
+        "Non-referring pronouns constitute another source of errors.",
+        "While we improved detection of pleonas-tic it compared to last year's system, a lot of them are not filtered out.",
+        "Our system also does not distinguish well between generic and non-generic uses of you and we, which hurts precision."
+      ]
+    },
+    {
+      "heading": "5.2 Chinese",
+      "text": [
+        "Since each Chinese character carries its own meaning, there are multiple ways to express the same entity by combining different characters into a word.",
+        "Both syntactic heads and modifiers can be replaced by similar words or by abbreviated versions.",
+        "From ???",
+        "(outside people) to ????",
+        "(outside ethnic group) the head is replaced, while from ??",
+        "?",
+        "(Diana) to ??",
+        "??",
+        "?",
+        "??",
+        "(charming Di Princess) the name is abbreviated.",
+        "Modifier replacement is more difficult to cope with, our system does not recognize that ??",
+        "?",
+        "???",
+        "(starting-over counting-votes job) and??",
+        "??",
+        "(verifying-votes job) are coreferent.",
+        "It is also not trivial to separate characters from words (e.g. by separating ?",
+        "and ?)",
+        "to resolve such cases, since it will introduce too much noise as a consequence.",
+        "In order to tackle this problem, a smart scheme to propagate similarities from partial words to the entire mentions and a knowledge base upon which reliable similarities can be retrieved are necessary.",
+        "In contrast to English there is no strict enforcement of using definite noun phrases when referring to an antecedent in Chinese.",
+        "Both ????",
+        "(the talk) and??",
+        "(talk) can corefer with the antecedent ???????????",
+        "(Clinton's talk during Hanoi election).",
+        "This makes it very difficult to distinguish generic expressions from referential ones.",
+        "In the submitted version of our system, we simply ignore the nominal anaphors which do not start with definite articles or demonstratives."
+      ]
+    },
+    {
+      "heading": "6 Conclusions",
+      "text": [
+        "In this paper we presented a graph-based model for coreference resolution.",
+        "It captures pairwise relations between mentions via edges induced by relations.",
+        "Entities are obtained by graph clustering.",
+        "Discriminative information can be incorporated as negative relations or as constraints during clustering.",
+        "We described our system's architecture and the relations it employs, highlighting differences and similarities to our system from last year's shared task.",
+        "Designed to work as a basis for further work, our system works mainly by exploring the relationship between pairs of mentions.",
+        "Due to its modular architecture, our system can be extended by components taking global information into account, for example for weight learning or clustering.",
+        "We focused on the closed task for English in which our system achieved competitive performance, being ranked second out of 15 participants.",
+        "Acknowledgments.",
+        "This work has been funded by the Klaus Tschira Foundation, Heidelberg, Germany.",
+        "The first and the second authors have been supported by a HITS PhD.",
+        "scholarship."
+      ]
+    }
+  ]
+}

@@ -182,6 +182,23 @@ class Corpus:
         highRef = []
         for docId, doc in self.docs.items():
             # print(id+"- "+str(doc.getReferences()))
+            # check abstract info
+            sections = doc.getSection()
+            title = doc.getTitle()
+            # abstract = doc.get_abstract()
+            # print(title +" "+abstract)
+            if (len(title) < 2 or len(sections) < 1):
+                continue
+
+            # if 'heading' not in sections[0]:
+            #     continue
+            # else:
+            #     first_heading = sections[0]['heading']
+            #     # print(first_heading)
+            #     if ("abstract" not in first_heading) and ("Abstract" not in first_heading):
+            #         continue
+
+            # check the number of references
             if doc.getLenRef() >= threshold:
                 count_actual = 0
                 for refId in doc.getReferences():
@@ -252,6 +269,12 @@ class Document:
     def getLenRef(self):
         # print("len: "+str(len(self.references)))
         return len(self.references)
+
+    def getTitle(self):
+        return self.title
+
+    def getSection(self):
+        return self.sections
 
     def getReferences(self):
         return self.references

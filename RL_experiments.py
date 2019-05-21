@@ -13,6 +13,8 @@ import os
 import io
 import sys
 
+from docutils.nodes import paragraph
+
 from lib.submodular.submodular import Submodular
 from lib.constantvalues import ConstantValues
 from lib.submodular.retrievedinfo import RetrievedInformation
@@ -21,13 +23,14 @@ from lib.submodular.relevantdocuments import RelevantDocuments
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
 # lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
 lambda_test = [None]
+# corpusInputPath = "inputs/selection-5refs/"
 corpusInputPath = "inputs/selection-12-1/"
 # corpusInputPath = "inputs/survey/selected/"
-max_matches = 4
-max_each_matches = 25
+max_matches = 0.1
+max_each_matches = 0
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/laptop/"
-date_folder = "19-05-20/"
+prefix_folder = "results/server/"
+date_folder = "19-05-21/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 prefix_sim = "acl-bm25-selection-12-1-"
 # prefix_sim = "acl-bm25-survey-"
@@ -74,7 +77,26 @@ from lib.elasticsearch.esexporter import ElasticsearchExporter
 # Using ES to get relevant documents by authors,
 # then using submodular function (QFR) to get subset of these
 from lib.elasticsearch.essubmodular import ElasticsearchSubmodularity
+from lib.utils import Utils
 
+def searchRLByMLT(article_id=None, year=None):
+    sim_docs = Utils.getSimDocFromCorpus(article_id)
+    recency_sim_docs = {}
+    for doc_id, score in sim_docs.items():
+        doc_year = Utils.getYearFromId(doc_id)
+        if doc_year < year:
+            recency_sim_docs[doc_id] = score + (doc_year - year) * ConstantValues.w_years
+
+    sorted_recency_sim_docs = sorted(recency_sim_docs.items(), key=lambda x: x[1], reverse=True)
+    count = 0
+    result = {}
+    for doc_id, score in sorted_recency_sim_docs:
+        result[doc_id] = score
+        count += 1
+        if count >= ConstantValues.BUDGET:
+            return result
+
+    return result
 
 def getVByQueryCG(ese=None, query=None, year=None, cg=None, learner_model=None):
     querylist = [query]
@@ -241,6 +263,35 @@ def recommendRLByQfrCG(index="acl2014", doc_type="json", corpusInputPath=None, r
 
         printResult(articleId=retrievedInfo.getId(), output=readinglist, Lambda=essub.Lambda, resultPath=resultPath)
 
+
+def recommendRL(index="acl_bm", doc_type="doc", corpusInputPath="Jardine2014/", resultPath="results/acl-top/", method="mlt"):
+    inputDocs = loadInput(corpusInputPath, resultPath)
+    missing_articles = []
+    for article in inputDocs:
+        retrievedInfo = RetrievedInformation(article)
+        # retrievedInfo.loadInforFromTitle(article)
+        query = retrievedInfo.getQuery()
+        articleId = retrievedInfo.getId()
+        year = retrievedInfo.getYear()
+        if year == 0:
+            # ignore doc with no abstract
+            missing_articles.append(articleId)
+            continue
+        print(articleId + " : " + query + " before " + str(year))
+        if method == "mlt":
+            resultlist = searchRLByMLT(article_id=articleId, year=year)
+        # print(resultlist)
+        output = []
+        if resultlist is not None:
+            for k, v in sorted(resultlist.items(), key=lambda x: x[1], reverse=True):
+                output.append(k)
+        # print(output)
+        # output=[]
+        # for (key, value) in resultlist.items():
+        #     output.append(key)
+        printResult(articleId=articleId, output=output, resultPath=resultPath)
+    print("missing articles: ")
+    print(missing_articles)
 
 def recommendRLByES(index="acl2014", doc_type="json", corpusInputPath="Jardine2014/", resultPath="results/acl-top/"):
     inputDocs = loadInput(corpusInputPath, resultPath)
@@ -563,6 +614,11 @@ def main(resultPath=None, parameters="es au qfr cg continue"):
 
     if "es-qfr" in parameters:
         recommendRLByQfrEs(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultPath=resultPath)
+
+    # baseline
+
+    if "mlt" in parameters:
+        recommendRL(index=index, doc_type=doctype, corpusInputPath=corpusInputPath, resultPath=resultPath, method="mlt")
 
     if "es" in parameters:
         # only es - get top budget

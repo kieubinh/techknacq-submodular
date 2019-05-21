@@ -1,12 +1,9 @@
 import sys
-import io
-import json
-from pathlib import Path
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search, Q
 from lib.submodular.retrievedinfo import RetrievedInformation
 from lib.constantvalues import ConstantValues
-
+from lib.utils import Utils
 
 # from elasticsearch_dsl.query import MultiMatch, Match
 # from elasticsearch_dsl.query import MoreLikeThis
@@ -25,23 +22,6 @@ class ElasticsearchExporter:
             print('Error connection with elasticsearch')
             sys.exit(1)
 
-    def getSimDocFromCorpus(self, doc_id=None, score_folder=ConstantValues.ACL_SCORES):
-        if doc_id is None:
-            return None
-        file_name = score_folder + "/" + doc_id + ".json"
-        file_path = Path(file_name)
-        if file_path.exists():
-            # print(file_name)
-            json_data = json.load(io.open(file_name, 'r', encoding='utf-8'))
-            file_doc_id = json_data['info']['id']
-            if file_doc_id == doc_id:
-                return json_data['score']
-            else:
-                # if not same id
-                return None
-        return None
-
-
     # calculate similarity matrix between 2 documents
     def calSimDocs(self, v=None):
         if v is None:
@@ -53,7 +33,7 @@ class ElasticsearchExporter:
         for doc_id in v:
             count += 1
             # get previous calculation
-            doc_score = self.getSimDocFromCorpus(doc_id=doc_id)
+            doc_score = Utils.getSimDocFromCorpus(doc_id=doc_id)
             if doc_score is None:
                 # calculate new
                 count_new += 1

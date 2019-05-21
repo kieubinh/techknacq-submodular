@@ -4,6 +4,12 @@
 import math
 import re
 from collections import Counter
+import io
+import json
+from pathlib import Path
+
+
+from lib.constantvalues import ConstantValues
 
 class Utils:
     def text_to_vector(text):
@@ -23,3 +29,30 @@ class Utils:
             return 0.0
         else:
             return float(numerator) / denominator
+
+    def getSimDocFromCorpus(doc_id=None, score_folder=ConstantValues.ACL_SCORES):
+        if doc_id is None:
+            return None
+        file_name = score_folder + "/" + doc_id + ".json"
+        file_path = Path(file_name)
+        if file_path.exists():
+            # print(file_name)
+            json_data = json.load(io.open(file_name, 'r', encoding='utf-8'))
+            file_doc_id = json_data['info']['id']
+            if file_doc_id == doc_id:
+                return json_data['score']
+            else:
+                # if not same id
+                return None
+        return None
+
+    def getYearFromId(doc_id=None):
+        if doc_id is None:
+            return 0
+        str_year = doc_id[5:7]
+        num_year = int(str_year)
+        if num_year > 50:
+            return 1900+num_year
+        else:
+            return 2000+num_year
+

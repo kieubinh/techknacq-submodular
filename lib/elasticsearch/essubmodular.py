@@ -165,7 +165,7 @@ class ElasticsearchSubmodularity:
         # fpenalty = self.calPenaltySumByText(newId, s)
         # print(alpha, Lambda)
         # print(newId+" - coverage: "+str(delta_fc)+" , penalty: "+str(delta_fp)+" , query: "+str(delta_fq))
-        alpha = 1.0 * alpha * len(self.v)
+        alpha = 1.0 * alpha
         beta = 1.0-Lambda
         gamma = 2.0-Lambda
         # print(alpha, beta, gamma)
@@ -195,7 +195,7 @@ class ElasticsearchSubmodularity:
             rank -= 1
             # u.remove(dock)
             u.remove(docidk)
-            print("len: " + str(len(s)) + " " + str(len(u)))
+            # print("len: " + str(len(s)) + " " + str(len(u)))
 
         return result
 
@@ -221,8 +221,8 @@ class ElasticsearchSubmodularity:
                 maxF = ft
                 argmax = docId
 
-        print("max delta F: " + str(maxF))
-        print(s + [argmax])
+        # print("max delta F: " + str(maxF))
+        # print(s + [argmax])
         return argmax, maxF
 
 
@@ -230,6 +230,6 @@ if __name__ == '__main__':
     ese = ElasticsearchExporter(index="acl2014", doc_type="json")
     simq = ese.queryByDSL(query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system",
                                        year=2014, budget=1000)
-    essub = ElasticsearchSubmodularity(esexport=ese, v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"),
-                                       simq=simq, Lambda=None)
-    essub.greedyAlgByCardinality(method="qfr")
+    essub = ElasticsearchSubmodularity(ese=ese, v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"),
+                                       simq=simq)
+    essub.greedyAlgByCardinality(Lambda=0.5)

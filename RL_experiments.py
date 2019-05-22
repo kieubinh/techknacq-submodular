@@ -143,6 +143,7 @@ def getReflistByAuthors(ese=None, article_info=None):
 def retrievedModel(method="mlt", resultPath=default_resultPath):
     inputDocs = loadInput(corpusInputPath, resultPath)
     missing_articles = []
+    print("Number of document inputs: %i" % len(inputDocs))
     for article in inputDocs:
         article_info = ArticleInformation(article)
         # retrievedInfo.loadInforFromTitle(article)
@@ -226,7 +227,6 @@ def recommendRLByEs(ese=None, article_info=None, resultPath=default_resultPath):
 # Using ES to get CONSTANT.MAX_SUBMODULARITY relevant documents,
 # then using submodular function (QFR) to get subset of these
 def recommendRLByEsQfr(ese=None, article_info=None, resultPath=default_resultPath):
-
     vDocs = getResultQuery(article_info=article_info, budget=ConstantValues.MAX_SUBMODULARITY)
     if vDocs is None:
         # ignore error timeout or no answer

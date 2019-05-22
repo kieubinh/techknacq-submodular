@@ -49,6 +49,12 @@ default_resultPath = prefix_folder + date_folder + prefix_sim \
 
 # 1.0 - 1.0 * ConstantValues.BUDGET / max(len(v), 1)
 # ------------------------------- LOADING INPUT ----------------------------------------------
+def getResultQuery(article_info=None, budget=ConstantValues.BUDGET):
+    # using query MLT = entire manuscript
+    return getMltFromFile(article_id=article_info.getId(), year=article_info.getYear(), budget=budget)
+    # using query = title + abstract
+    # return ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(), budget=budget)
+
 
 def loadInput(corpusInputPath="sample-high/", resultPath=None):
     if resultPath is None:
@@ -88,6 +94,7 @@ def loadInput(corpusInputPath="sample-high/", resultPath=None):
 
 def genExpPath(resultPath=default_resultPath, Lambda=1.0):
     return resultPath + str(Lambda) + "/"
+
 
 def getVByQueryCG(ese=None, query=None, year=None, cg=None, learner_model=None):
     querylist = [query]
@@ -157,8 +164,8 @@ def retrievedModel(method="mlt", resultPath=default_resultPath):
 def directMethod(article_info=None, method="mlt", resultPath=default_resultPath):
     # baseline methods not use ES
     if method == ConstantValues.More_Like_This:
-        print("mlt")
         recommendRLByMlt(article_id=article_info.getId(), year=article_info.getYear(), resultPath=resultPath)
+        return
 
     # for methods needed ES
     ese = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)
@@ -182,7 +189,7 @@ def directMethod(article_info=None, method="mlt", resultPath=default_resultPath)
         recommendRLByEsQfrCg(ese=ese, article_info=article_info, resultPath=resultPath)
 
 
-def recommendRLByMlt(article_id=None, year=None, resultPath=default_resultPath):
+def getMltFromFile(article_id=None, year=0, budget=ConstantValues.BUDGET):
     sim_docs = Utils.getSimDocFromCorpus(article_id)
     recency_sim_docs = {}
     for doc_id, score in sim_docs.items():
@@ -196,10 +203,13 @@ def recommendRLByMlt(article_id=None, year=None, resultPath=default_resultPath):
     for doc_id, score in sorted_recency_sim_docs:
         result[doc_id] = score
         count += 1
-        if count >= ConstantValues.BUDGET:
-            break
-            # print(resultlist)
+        if count >= budget:
+            return result
+    return result
 
+
+def recommendRLByMlt(article_id=None, year=None, resultPath=default_resultPath):
+    result = getMltFromFile(article_id=article_id, year=year)
     # print(output)
     # output=[]
     # for (key, value) in resultlist.items():
@@ -209,15 +219,15 @@ def recommendRLByMlt(article_id=None, year=None, resultPath=default_resultPath):
 
 def recommendRLByEs(ese=None, article_info=None, resultPath=default_resultPath):
     retrieved_list = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
-                            budget=ConstantValues.BUDGET)
+                                    budget=ConstantValues.BUDGET)
     printResult(article_id=article_info.getId(), result=retrieved_list, resultPath=resultPath)
 
 
 # Using ES to get CONSTANT.MAX_SUBMODULARITY relevant documents,
 # then using submodular function (QFR) to get subset of these
 def recommendRLByEsQfr(ese=None, article_info=None, resultPath=default_resultPath):
-    vDocs = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
-                           budget=ConstantValues.MAX_SUBMODULARITY)
+
+    vDocs = getResultQuery(article_info=article_info, budget=ConstantValues.MAX_SUBMODULARITY)
     if vDocs is None:
         # ignore error timeout or no answer
         return {}
@@ -238,11 +248,11 @@ def recommendRLByEsAu(ese=None, article_info=None, resultPath=default_resultPath
 
 
 def recommendRLByEsAuQfr(ese=None, article_info=None, resultPath=default_resultPath):
-
     refDocs = getReflistByAuthors(ese=ese, article_info=article_info)
     print(len(refDocs))
-    simq = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
-                          budget=ConstantValues.MAXSIZE)
+    # simq = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
+    #                       budget=ConstantValues.MAXSIZE)
+    simq = getResultQuery(article_info=article_info, budget=ConstantValues.MAXSIZE)
     essub = ElasticsearchSubmodularity(ese=ese, v=refDocs, simq=simq)
     for Lambda in lambda_test:
         readinglist = essub.greedyAlgByCardinality(Lambda=Lambda)
@@ -273,12 +283,12 @@ def recommendRLByEsAuQfrCg(ese=None, article_info=None, resultPath=default_resul
         if doc not in vlist:
             vlist.append(doc)
     # calculate similarity score between query q and each article in v
-    simq = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
-                          budget=ConstantValues.MAXSIZE)
+    # simq = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
+    #                       budget=ConstantValues.MAXSIZE)
+    simq = getResultQuery(article_info=article_info, budget=ConstantValues.MAXSIZE)
     print("au: %i, cg: %i -> total: %i" % (num_au, num_cg, len(vlist)))
+    essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
     for Lambda in lambda_test:
-
-        essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
         readinglist = essub.greedyAlgByCardinality(Lambda=Lambda)
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
@@ -290,8 +300,15 @@ def recommendRLByEsAuQfrTop(ese=None, article_info=None, resultPath="results/acl
     # get articles by co-authors
     refDocs = getReflistByAuthors(ese=ese, article_info=article_info)
     # get articles by query
-    topDocs = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
-                             budget=max_each_matches)
+    # topDocs = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
+    #                          budget=max_each_matches)
+    # calculate similarity score between query q and each article in v
+    # simq = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
+    #                       budget=ConstantValues.MAXSIZE)
+    simq = getResultQuery(article_info=article_info, budget=ConstantValues.MAXSIZE)
+    # get top 100
+    topDocs = simq[:max_each_matches]
+
     vlist = []
     if refDocs is None:
         num_au = 0
@@ -308,9 +325,7 @@ def recommendRLByEsAuQfrTop(ese=None, article_info=None, resultPath="results/acl
         for doc in topDocs:
             if doc not in vlist:
                 vlist.append(doc)
-    # calculate similarity score between query q and each article in v
-    simq = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
-                          budget=ConstantValues.MAXSIZE)
+
     print("au: %i, top: %i -> total: %i" % (num_au, num_top, len(vlist)))
     essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
 
@@ -320,7 +335,6 @@ def recommendRLByEsAuQfrTop(ese=None, article_info=None, resultPath="results/acl
 
 
 def recommendRLByEsQfrCg(ese=None, article_info=None, resultPath=default_resultPath):
-
     cg = ConceptGraph(click.format_filename(concept_graph))
     learner_model = {}
     for c in cg.concepts():
@@ -330,12 +344,14 @@ def recommendRLByEsQfrCg(ese=None, article_info=None, resultPath=default_resultP
     vlist = getVByQueryCG(ese=ese, query=article_info.getQuery(), year=article_info.getYear(),
                           learner_model=learner_model, cg=cg)
 
-    simq = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
-                          budget=ConstantValues.MAXSIZE)
+    # simq = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
+    #                       budget=ConstantValues.MAXSIZE)
+    simq = getResultQuery(article_info=article_info, budget=ConstantValues.MAXSIZE)
     essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
     for Lambda in lambda_test:
         readinglist = essub.greedyAlgByCardinality(Lambda=Lambda)
         printResult(article_id=article_info.getId(), result=readinglist, Lambda=Lambda, resultPath=resultPath)
+
 
 # ----------------------------- OLD VERSION -----------------------------------------------------------
 # using tf-idf to get relevant documents, then using submodular function QFR to get subset of these -> very slow
@@ -578,9 +594,9 @@ def main(methods="es au qfr cg continue"):
         print(method)
         retrievedModel(method=method, resultPath=resultPath)
 
-    # test case
-    # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")
-    # subQFR_UPR(path, query, method="qfr", type_sim="text", year=year)
+        # test case
+        # subMMR_MCR(concept_graph, query, method="mmr", type_sim="title")
+        # subQFR_UPR(path, query, method="qfr", type_sim="text", year=year)
 
 
 if __name__ == '__main__':

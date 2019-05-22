@@ -30,7 +30,7 @@ class ElasticsearchSubmodularity:
         # if the number of elements in V <= BUDGET -> get all elements in v
         # if len(v) <= ConstantValues.BUDGET:
         #     return v
-        self.simdocs = self.ese.calSimDocs(v)
+        self.simdocs = ese.calSimDocs(v)
         print("V: " + str(len(v)) + " -> (submodular function) -> BUDGET = " + str(ConstantValues.BUDGET))
         self.ese = ese
         self.simq = simq
@@ -183,15 +183,21 @@ class ElasticsearchSubmodularity:
         for docid in self.v:
             u.append(docid)
         # print("BUDGET: "+str(budget))
+        print("Lambda: "+str(Lambda))
+        rank = ConstantValues.BUDGET
+        result = {}
         while len(u) > 0 and len(s) < ConstantValues.BUDGET:
             docidk, maxK = self.findArgmax(s=s, u=u, method=method, Lambda=Lambda)
             # print("dock: "+dock['title'])
             # if (maxK>0):
             s.append(docidk)
+            result[docidk] = rank
+            rank -= 1
             # u.remove(dock)
             u.remove(docidk)
             print("len: " + str(len(s)) + " " + str(len(u)))
-        return s
+
+        return result
 
     # switch respective method
     def calMethod(self, newId, s, method, Lambda=0.0):

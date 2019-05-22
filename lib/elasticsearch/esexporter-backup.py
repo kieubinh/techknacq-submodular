@@ -8,7 +8,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search, Q
 
 from lib.constantvalues import ConstantValues
-from lib.submodular.retrievedinfo import RetrievedInformation
+from lib.submodular.articleinfo import RetrievedInformation
 from lib.document.simscores import SimilairtyScores
 
 

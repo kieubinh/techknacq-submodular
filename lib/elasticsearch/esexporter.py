@@ -1,7 +1,7 @@
 import sys
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search, Q
-from lib.submodular.retrievedinfo import RetrievedInformation
+from lib.submodular.articleinfo import ArticleInformation
 from lib.constantvalues import ConstantValues
 from lib.utils import Utils
 
@@ -199,7 +199,7 @@ class ElasticsearchExporter:
         for h in res['hits']['hits']:
             hit = h['_source']
             # print(hit)
-            retri = RetrievedInformation(hit)
+            retri = ArticleInformation(hit)
             hyear = retri.getYear()
             hid = retri.getId()
             if hyear <= year:

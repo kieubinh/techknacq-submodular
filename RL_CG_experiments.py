@@ -4,7 +4,7 @@ import RL_experiments as RLE
 from lib.constantvalues import ConstantValues
 from lib.elasticsearch.esexporter import ElasticsearchExporter
 from lib.elasticsearch.essubmodular import ElasticsearchSubmodularity
-from lib.submodular.retrievedinfo import RetrievedInformation
+from lib.submodular.articleinfo import RetrievedInformation
 from lib.techknacq.conceptgraph import ConceptGraph
 from lib.techknacq.readinglist import ReadingList
 

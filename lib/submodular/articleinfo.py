@@ -1,7 +1,7 @@
 from lib.constantvalues import ConstantValues
 
 
-class RetrievedInformation:
+class ArticleInformation:
     def __init__(self, doc):
         # print(doc['sections'][0])
         self.doc = doc

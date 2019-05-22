@@ -15,7 +15,7 @@ class ConstantValues:
     BUDGET = 100
     Lambda = 1.0
     Alpha = 0.8
-    w_years = 0.1
+    w_years = 0.5
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'
     SIMILARITY_MEASUE = 'text'
@@ -27,11 +27,20 @@ class ConstantValues:
     LAZY_GREEDY_ALG=0 #default
     COSINE = 0 #default
 
-    #method
+    # submodular method
     Maximal_Marginal_Relevance = "mmr"
     Maximal_Concept_Relevance = "mcr"
     Query_Focused_Relevance = "qfr"
     Update_Relevance = "upr"
+    # similarity method
+    More_Like_This  = "mlt"
+    ES              = "es"
+    ES_QFR          = "es-qfr"
+    ES_AU           = "es-au"
+    ES_AU_QFR       = "es-au-qfr"
+    ES_AU_QFR_CG    = "es-au-qfr-cg"
+    ES_QFR_CG       = "es-qfr-cg"
+    ES_AU_QFR_TOP   = "es-au-qfr-top"
 
     #data path
     SAMPLE="sample/"

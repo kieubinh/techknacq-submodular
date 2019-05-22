@@ -137,13 +137,13 @@ class ElasticsearchSubmodularity:
     # fp(S_k) = Sum_(x_i in S_k) Sum_(x_j in S_k) sim (d_x_i, d_x_j)
     # delta_fc(S_(k+1)) = Sum_(c_i in Vc) w(c_i, d_x_(k+1))
     # delta_fp(S_(k+1)) = Sum_(x_i in S_k) sim(d_i, d_x_(k+1))
-    def calMCR(self, newId, s, v, alpha=1.0, Lambda=1.0):
+    def calMCR(self, newId, s, alpha=1.0, Lambda=1.0):
         # add coverage subtract penalty
         # delta_fc = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v)
         delta_fc = self.calDeltaCoverage(newId)
         delta_fp = self.calDeltaPenalty(newId)
         delta_fq = self.calDeltaQuery(newId)
-        alpha = 1.0 * alpha * ((len(v) - len(s)) * len(s))
+        alpha = 1.0 * alpha * ((len(self.v) - len(s)) * len(s))
         beta = 1.0
         gamma = 2.0 + Lambda
         # print(newId+" - "+str(fquery)+" "+str(fcp))

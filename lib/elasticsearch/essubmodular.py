@@ -90,7 +90,13 @@ class ElasticsearchSubmodularity:
 
         return fdck, fdpk
 
+    def calDeltaCoverage(self, newId=None):
+        if newId is None:
+            return 0.0
+        return self.simdocs[newId][ConstantValues.OneVsRest]
+
     # s, v: list of articleId
+    # delta_penalty = Sum of Sim(newId, dxi) with all dxi in s
     def calDeltaPenalty(self, newId=None, s=[]):
         # subtract relevant selected elements
         fcp = 0.0
@@ -101,11 +107,11 @@ class ElasticsearchSubmodularity:
         # if len(docsim) < 1:
         #     return 0.0
         # print(docId1+" : ")
-        for docId2 in s:
+        for docId in s:
             # if (docId2 != newId):
                 # if it belongs similar document set
-            if docId2 in self.simdocs[newId]:
-                fcp += self.simdocs[newId][docId2]
+            if docId in self.simdocs[newId]:
+                fcp += self.simdocs[newId][docId]
 
         return fcp
 
@@ -131,15 +137,19 @@ class ElasticsearchSubmodularity:
     # fp(S_k) = Sum_(x_i in S_k) Sum_(x_j in S_k) sim (d_x_i, d_x_j)
     # delta_fc(S_(k+1)) = Sum_(c_i in Vc) w(c_i, d_x_(k+1))
     # delta_fp(S_(k+1)) = Sum_(x_i in S_k) sim(d_i, d_x_(k+1))
-    def calMCR(self, newId, s, v, Lambda=0.0):
+    def calMCR(self, newId, s, v, alpha=1.0, Lambda=1.0):
         # add coverage subtract penalty
         # delta_fc = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v)
-        delta_fc = self.calDeltaQuery(newId)
+        delta_fc = self.calDeltaCoverage(newId)
         delta_fp = self.calDeltaPenalty(newId)
+        delta_fq = self.calDeltaQuery(newId)
+        alpha = 1.0 * alpha * ((len(v) - len(s)) * len(s))
+        beta = 1.0
+        gamma = 2.0 + Lambda
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
-        return (1 - Lambda) * delta_fc - Lambda * delta_fp
+        return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
 
     # function 3: Query-Focused Relevance
     # only calculate change when add newId
@@ -173,7 +183,7 @@ class ElasticsearchSubmodularity:
         return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
 
     # submodular algorithm
-    def greedyAlgByCardinality(self, method=ConstantValues.Query_Focused_Relevance, Lambda=0.0):
+    def greedyAlgByCardinality(self, method=ConstantValues.Maximal_Concept_Relevance, Lambda=0.0):
 
         # all elements = articleId
         # selected set

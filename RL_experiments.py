@@ -27,19 +27,21 @@ from lib.techknacq.readinglist import ReadingList
 # lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
 lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # corpusInputPath = "inputs/selection-5refs/"
+# corpusInputPath = "inputs/sample-12-1/"
 corpusInputPath = "inputs/selection-12-1/"
 # corpusInputPath = "inputs/survey/selected/"
 concept_graph = "concept-graphs/concept-graph-standard.json"
 prefix_folder = "results/server/"
-date_folder = "19-05-23/"
+date_folder = "19-05-24/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
+# prefix_sim = "acl-bm25-sample-12-1-"
 prefix_sim = "acl-bm25-selection-12-1-"
 # prefix_sim = "acl-bm25-survey-"
 # elasticsearch
 
 # conti = True -> run continue: ignore exist files
 conti = True
-default_method = ConstantValues.Query_Focused_Relevance
+default_method = ConstantValues.Maximal_Marginal_Relevance
 # concept graph
 max_matches = 0.1
 max_each_matches = 0
@@ -64,8 +66,8 @@ def loadInput(corpusInputPath="sample-high/", resultPath=None):
     exist_ids = []
     # if run continue
     if conti is True:
-        if resultPath is not None:
-            for root, dirs, files in os.walk(resultPath, topdown=False):
+        if expPath is not None:
+            for root, dirs, files in os.walk(expPath, topdown=False):
                 for nameFile in files:
                     try:
                         data = json.load(io.open(root + "/" + nameFile, 'r', encoding='utf-8'))
@@ -234,7 +236,7 @@ def recommendRLByEsQfr(ese=None, article_info=None, resultPath=default_resultPat
     essub = ElasticsearchSubmodularity(ese=ese, v=vDocs, simq=vDocs)
 
     for Lambda in lambda_test:
-        retrieved_list = essub.greedyAlgByCardinality(Lambda=Lambda)
+        retrieved_list = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
         # essub = ElasticsearchSubmodularity(esexport=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
         #                                    MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=vDocs, Lambda=Lambda, method="qfr")
@@ -255,7 +257,7 @@ def recommendRLByEsAuQfr(ese=None, article_info=None, resultPath=default_resultP
     simq = getResultQuery(article_info=article_info, budget=ConstantValues.MAXSIZE)
     essub = ElasticsearchSubmodularity(ese=ese, v=refDocs, simq=simq)
     for Lambda in lambda_test:
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
@@ -289,7 +291,7 @@ def recommendRLByEsAuQfrCg(ese=None, article_info=None, resultPath=default_resul
     print("au: %i, cg: %i -> total: %i" % (num_au, num_cg, len(vlist)))
     essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
     for Lambda in lambda_test:
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
@@ -330,7 +332,7 @@ def recommendRLByEsAuQfrTop(ese=None, article_info=None, resultPath="results/acl
     essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
 
     for Lambda in lambda_test:
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
         printResult(article_id=article_info.getId(), result=readinglist, Lambda=Lambda, resultPath=resultPath)
 
 
@@ -349,155 +351,8 @@ def recommendRLByEsQfrCg(ese=None, article_info=None, resultPath=default_resultP
     simq = getResultQuery(article_info=article_info, budget=ConstantValues.MAXSIZE)
     essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
     for Lambda in lambda_test:
-        readinglist = essub.greedyAlgByCardinality(Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
         printResult(article_id=article_info.getId(), result=readinglist, Lambda=Lambda, resultPath=resultPath)
-
-
-# ----------------------------- OLD VERSION -----------------------------------------------------------
-# using tf-idf to get relevant documents, then using submodular function QFR to get subset of these -> very slow
-def recommendRLByQfr(corpusPath, corpusInputPath, type_sim="text", resultPath=None):
-    # load corpus
-    relevantDocs = RelevantDocuments()
-    relevantDocs.loadFromPath(corpusPath)
-
-    # load input
-    inputDocs = loadInput(corpusInputPath, resultPath)
-    for article in inputDocs:
-
-        retrievedInfo = ArticleInformation(article)
-        # retrievedInfo.loadInforFromTitle(article)
-        query = retrievedInfo.getQuery()
-        print(article['info']['id'] + " : " + query)
-        year = int(article['info']['year'])
-
-        relevantDocs.findRankedTfIdf(query)
-
-        # scores = relevantDocs.getTopResults(10, "tfidf")
-        # print(scores)
-        #
-        # print(relevantDocs.getResultsByThreshold(0.01, "tfidf"))
-
-        # run algorithm for submodular
-        # before summarization
-        print("Before Submodular: ")
-        submodular = Submodular()
-        submodular.loadFromCorpusByYear(relevantDocs, year)
-
-        # get all for baseline
-        # print2File(article, submodular.getDocs(), 100)
-
-        # use submodular to select
-        alg = ConstantValues.LAZY_GREEDY_ALG
-        # run with each lambda
-        for Lambda in lambda_test:
-            print("Lambda = " + str(Lambda))
-            summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method="qfr", type_sim=type_sim)
-            print2File(article, summarizedlist, Lambda)
-
-
-# Using tf-idf to get top BUDGET relevant documents
-def recommendRLByTop(corpusPath, corpusInputPath, resultPath):
-    # load corpus
-    relevantDocs = RelevantDocuments()
-    relevantDocs.loadFromPath(corpusPath)
-
-    # load input
-    inputDocs = loadInput(corpusInputPath, resultPath)
-    for article in inputDocs:
-        retrievedInfo = ArticleInformation(article)
-        # retrievedInfo.loadInforFromTitle(article)
-        query = retrievedInfo.getQuery()
-        print(article['info']['id'] + " : " + query)
-        year = int(article['info']['year'])
-
-        relevantDocs.findRankedTfIdf(query)
-
-        # scores = relevantDocs.getTopResults(10, "tfidf")
-        # print(scores)
-        #
-        # print(relevantDocs.getResultsByThreshold(0.01, "tfidf"))
-
-        # run algorithm for submodular
-        # before summarization
-        print("Before Submodular: ")
-        submodular = Submodular()
-        submodular.loadFromCorpusByYear(relevantDocs, year)
-
-        # get relevant top for baseline
-        print2File(article, submodular.getDocs(), ConstantValues.BUDGET, resultPath)
-
-
-# run experiments for MMR function and MCR function
-
-def subMMR_MCR(concept_graph, query, method="mmr", type_sim="title", article=None, resultPath="results/"):
-    # print(concept_graph)
-    # print(query)
-    querylist = []
-    querylist.append(query)
-    cg = ConceptGraph(click.format_filename(concept_graph))
-    learner_model = {}
-    for c in cg.concepts():
-        learner_model[c] = ConstantValues.BEGINNER
-    r = ReadingList(cg, querylist, learner_model)
-    # print reading list
-    # r.print()
-
-    # summarise the reading list
-
-    # convert r into list of papers
-    r.convert2List()
-    rl = r.getReadinglist
-    # print(rl)
-    if len(rl) <= ConstantValues.BUDGET:
-        # if length <= budget
-        print2File(article, rl, -1, resultPath)
-    else:
-        # before summarization
-        print("Before Submodular: ")
-        # print(len(rl))
-        # for doc in rl:
-        #     print(doc['id']+" - "+str(doc))
-        alg = ConstantValues.LAZY_GREEDY_ALG
-        # Lambda = 0 -> no penalty
-        submodular = Submodular()
-        submodular.loadFromList(rl)
-        # run with each lambda
-        year = int(article['info'].get('year', '10000'))
-        for Lambda in lambda_test:
-            print("Lambda = " + str(Lambda))
-            summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim, year=year)
-            print(len(summarizedlist))
-            print2File(article, summarizedlist, Lambda, resultPath)
-
-
-# run experiments for QFR method and UPR method
-def subQFR_UPR(path, query, method="qfr", type_sim="title", year=10000):
-    # calculate similarity score between documents and query.
-    relevantDocs = RelevantDocuments()
-    # relevantDocs.scroreTfIdfModel(path_raw=path)
-    relevantDocs.loadFromPath(path, year)
-    # generate tf idf model
-    # relevantDocs.trainTfIdfModel(path, "acl/")
-    # relevantDocs.loadFromTfIdfModel(path, "acl/")
-
-    relevantDocs.findRankedTfIdf(query)
-
-    # scores = relevantDocs.getTopResults(10, "tfidf")
-    # print(scores)
-    #
-    # print(relevantDocs.getResultsByThreshold(0.01, "tfidf"))
-
-    # run algorithm for submodular
-    # before summarization
-    print("Before Submodular: ")
-    submodular = Submodular()
-    submodular.loadFromCorpus(relevantDocs)
-    alg = ConstantValues.LAZY_GREEDY_ALG
-    # run with each lambda
-    for Lambda in lambda_test:
-        print("Lambda = " + str(Lambda))
-        summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
-        printResult(article_id="subQFR_UPR" + query, result=summarizedlist, Lambda=Lambda)
 
 
 # ---------------------------------- PRINT RESULT -------------------------------------------

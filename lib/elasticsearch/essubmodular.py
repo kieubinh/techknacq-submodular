@@ -35,10 +35,47 @@ class ElasticsearchSubmodularity:
         self.ese = ese
         self.simq = simq
 
+        # def calDocumentSimilarity(self, index="acl2014", doc_type="json"):
+        #     docids = getAllDocs(index, doc_type)
 
+    # submodular algorithm
+    def greedyAlgByCardinality(self, method=ConstantValues.Maximal_Concept_Relevance, Lambda=0.0):
 
-    # def calDocumentSimilarity(self, index="acl2014", doc_type="json"):
-    #     docids = getAllDocs(index, doc_type)
+        # all elements = articleId
+        # selected set
+        s = []
+        # remaining set
+        u = []
+        for docid in self.v:
+            u.append(docid)
+        # print("BUDGET: "+str(budget))
+        print("Lambda: " + str(Lambda))
+        rank = ConstantValues.BUDGET
+        result = {}
+        while len(u) > 0 and len(s) < ConstantValues.BUDGET:
+            docidk, maxK = self.findArgmax(s=s, u=u, method=method, Lambda=Lambda)
+            # print("dock: "+dock['title'])
+            # if (maxK>0):
+            s.append(docidk)
+            result[docidk] = rank
+            rank -= 1
+            # u.remove(dock)
+            u.remove(docidk)
+            # print("len: " + str(len(s)) + " " + str(len(u)))
+
+        return result
+
+    # switch respective method
+    def calMethod(self, newId, s, method, Lambda=0.0):
+        result = 0.0
+        if method == ConstantValues.Query_Focused_Relevance:
+            result = self.calQFR(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Maximal_Concept_Relevance:
+            result = self.calMCR(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Maximal_Marginal_Relevance:
+            result = self.calMMR(newId=newId, s=s, Lambda=Lambda)
+        # print(result)
+        return result
 
     def calDeltaQuery(self, newId=None):
         # print(newId)
@@ -109,7 +146,7 @@ class ElasticsearchSubmodularity:
         # print(docId1+" : ")
         for docId in s:
             # if (docId2 != newId):
-                # if it belongs similar document set
+            # if it belongs similar document set
             if docId in self.simdocs[newId]:
                 fcp += self.simdocs[newId][docId]
 
@@ -141,7 +178,7 @@ class ElasticsearchSubmodularity:
         # add coverage subtract penalty
         # delta_fc = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v)
         delta_fc = self.calDeltaCoverage(newId)
-        delta_fp = self.calDeltaPenalty(newId)
+        delta_fp = self.calDeltaPenalty(newId, s=s)
         delta_fq = self.calDeltaQuery(newId)
         alpha = 1.0 * alpha * ((len(self.v) - len(s)) * len(s))
         beta = 1.0
@@ -150,6 +187,19 @@ class ElasticsearchSubmodularity:
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
         return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
+
+    # Maximum marginal relevance
+    # Lambda *Sim1 (sk, q) - (1-Lambda) Sim2(si, sk)
+    def calMMR(self, newId, s=None, Lambda=1.0):
+        # add coverage subtract penalty
+        # delta_fc = self.calDeltaCoveragePenalty(newId=newId, s=s, v=v)
+        delta_fp = self.calDeltaPenalty(newId, s=s)
+        delta_fq = self.calDeltaQuery(newId)
+
+        # print(newId+" - "+str(fquery)+" "+str(fcp))
+        # subtract penalty
+        # fpenalty = self.calPenaltySumByText(newId, s)
+        return Lambda * delta_fq + (1 - Lambda) * delta_fp
 
     # function 3: Query-Focused Relevance
     # only calculate change when add newId
@@ -176,48 +226,11 @@ class ElasticsearchSubmodularity:
         # print(alpha, Lambda)
         # print(newId+" - coverage: "+str(delta_fc)+" , penalty: "+str(delta_fp)+" , query: "+str(delta_fq))
         alpha = 1.0 * alpha
-        beta = 1.0-Lambda
-        gamma = 2.0-Lambda
+        beta = 1.0 - Lambda
+        gamma = 2.0 - Lambda
         # print(alpha, beta, gamma)
         # print(delta_fq, delta_fc, delta_fp)
         return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
-
-    # submodular algorithm
-    def greedyAlgByCardinality(self, method=ConstantValues.Maximal_Concept_Relevance, Lambda=0.0):
-
-        # all elements = articleId
-        # selected set
-        s = []
-        # remaining set
-        u = []
-        for docid in self.v:
-            u.append(docid)
-        # print("BUDGET: "+str(budget))
-        print("Lambda: "+str(Lambda))
-        rank = ConstantValues.BUDGET
-        result = {}
-        while len(u) > 0 and len(s) < ConstantValues.BUDGET:
-            docidk, maxK = self.findArgmax(s=s, u=u, method=method, Lambda=Lambda)
-            # print("dock: "+dock['title'])
-            # if (maxK>0):
-            s.append(docidk)
-            result[docidk] = rank
-            rank -= 1
-            # u.remove(dock)
-            u.remove(docidk)
-            # print("len: " + str(len(s)) + " " + str(len(u)))
-
-        return result
-
-    # switch respective method
-    def calMethod(self, newId, s, method, Lambda=0.0):
-        result = 0.0
-        if method == ConstantValues.Query_Focused_Relevance:
-            result = self.calQFR(newId=newId, s=s, Lambda=Lambda)
-        elif method == ConstantValues.Maximal_Concept_Relevance:
-            result = self.calMCR(newId=newId, s=s, Lambda=Lambda)
-        # print(result)
-        return result
 
     def findArgmax(self, s, u, method, Lambda=0.0):
         # bound=self.calMethod(s, v, method)
@@ -238,8 +251,11 @@ class ElasticsearchSubmodularity:
 
 if __name__ == '__main__':
     ese = ElasticsearchExporter(index="acl2014", doc_type="json")
-    simq = ese.queryByDSL(query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system",
-                                       year=2014, budget=1000)
-    essub = ElasticsearchSubmodularity(ese=ese, v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014, articleId="acl-C14-1055"),
+    simq = ese.queryByDSL(
+        query="Cross-lingual Discourse Relation Analysis: A corpus study and a semi-supervised classification system",
+        year=2014, budget=1000)
+    essub = ElasticsearchSubmodularity(ese=ese,
+                                       v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014,
+                                                              articleId="acl-C14-1055"),
                                        simq=simq)
     essub.greedyAlgByCardinality(Lambda=0.5)

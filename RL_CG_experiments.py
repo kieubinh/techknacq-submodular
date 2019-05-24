@@ -4,7 +4,7 @@ import RL_experiments as RLE
 from lib.constantvalues import ConstantValues
 from lib.elasticsearch.esexporter import ElasticsearchExporter
 from lib.elasticsearch.essubmodular import ElasticsearchSubmodularity
-from lib.submodular.articleinfo import RetrievedInformation
+from lib.submodular.articleinfo import ArticleInformation
 from lib.techknacq.conceptgraph import ConceptGraph
 from lib.techknacq.readinglist import ReadingList
 
@@ -33,7 +33,7 @@ def recommendRLByCGMCR(index="acl2014", doc_type="json", concept_graph="concept-
     for c in cg.concepts():
         learner_model[c] = ConstantValues.BEGINNER
     for article in inputDocs:
-        retrievedInfo = RetrievedInformation(article)
+        retrievedInfo = ArticleInformation(article)
         query = retrievedInfo.getQuery()
         # retrievedInfo.loadInforFromTitle(article)
         print(retrievedInfo.getId() + " : " + query)
@@ -68,7 +68,7 @@ def recommendRLByCGMMR(index="acl2014", doc_type="json", concept_graph="concept-
     for c in cg.concepts():
         learner_model[c] = ConstantValues.BEGINNER
     for article in inputDocs:
-        retrievedInfo = RetrievedInformation(article)
+        retrievedInfo = ArticleInformation(article)
         # retrievedInfo.loadInforFromTitle(article)
         # print(article['info']['id'] + " : " + query)
         querylist = [retrievedInfo.getQuery()]
@@ -99,7 +99,7 @@ def recommendRLByCGS(concept_graph="concept-graph-standard.json", corpusInputPat
     for c in cg.concepts():
         learner_model[c] = ConstantValues.BEGINNER
     for article in inputDocs:
-        retrievedInfo = RetrievedInformation(article)
+        retrievedInfo = ArticleInformation(article)
         # retrievedInfo.loadInforFromTitle(article)
         # print(article['info']['id'] + " : " + query)
         querylist = [retrievedInfo.getQuery()]
@@ -113,6 +113,153 @@ def recommendRLByCGS(concept_graph="concept-graph-standard.json", corpusInputPat
         r.convert2List()
         rl = r.getReadinglist
         RLE.print2File(article, rl, -1, resultPath=resultPath, budget=50000)
+
+
+# ----------------------------- OLD VERSION -----------------------------------------------------------
+# using tf-idf to get relevant documents, then using submodular function QFR to get subset of these -> very slow
+def recommendRLByQfr(corpusPath, corpusInputPath, type_sim="text", resultPath=None):
+    # load corpus
+    relevantDocs = RLE.RelevantDocuments()
+    relevantDocs.loadFromPath(corpusPath)
+
+    # load input
+    inputDocs = RLE.loadInput(corpusInputPath, resultPath)
+    for article in inputDocs:
+
+        retrievedInfo = ArticleInformation(article)
+        # retrievedInfo.loadInforFromTitle(article)
+        query = retrievedInfo.getQuery()
+        print(article['info']['id'] + " : " + query)
+        year = int(article['info']['year'])
+
+        relevantDocs.findRankedTfIdf(query)
+
+        # scores = relevantDocs.getTopResults(10, "tfidf")
+        # print(scores)
+        #
+        # print(relevantDocs.getResultsByThreshold(0.01, "tfidf"))
+
+        # run algorithm for submodular
+        # before summarization
+        print("Before Submodular: ")
+        submodular = Submodular()
+        submodular.loadFromCorpusByYear(relevantDocs, year)
+
+        # get all for baseline
+        # print2File(article, submodular.getDocs(), 100)
+
+        # use submodular to select
+        alg = ConstantValues.LAZY_GREEDY_ALG
+        # run with each lambda
+        for Lambda in lambda_test:
+            print("Lambda = " + str(Lambda))
+            summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method="qfr", type_sim=type_sim)
+            print2File(article, summarizedlist, Lambda)
+
+
+# Using tf-idf to get top BUDGET relevant documents
+def recommendRLByTop(corpusPath, corpusInputPath, resultPath):
+    # load corpus
+    relevantDocs = RelevantDocuments()
+    relevantDocs.loadFromPath(corpusPath)
+
+    # load input
+    inputDocs = loadInput(corpusInputPath, resultPath)
+    for article in inputDocs:
+        retrievedInfo = ArticleInformation(article)
+        # retrievedInfo.loadInforFromTitle(article)
+        query = retrievedInfo.getQuery()
+        print(article['info']['id'] + " : " + query)
+        year = int(article['info']['year'])
+
+        relevantDocs.findRankedTfIdf(query)
+
+        # scores = relevantDocs.getTopResults(10, "tfidf")
+        # print(scores)
+        #
+        # print(relevantDocs.getResultsByThreshold(0.01, "tfidf"))
+
+        # run algorithm for submodular
+        # before summarization
+        print("Before Submodular: ")
+        submodular = Submodular()
+        submodular.loadFromCorpusByYear(relevantDocs, year)
+
+        # get relevant top for baseline
+        print2File(article, submodular.getDocs(), ConstantValues.BUDGET, resultPath)
+
+
+# run experiments for MMR function and MCR function
+
+def subMMR_MCR(concept_graph, query, method="mmr", type_sim="title", article=None, resultPath="results/"):
+    # print(concept_graph)
+    # print(query)
+    querylist = []
+    querylist.append(query)
+    cg = ConceptGraph(click.format_filename(concept_graph))
+    learner_model = {}
+    for c in cg.concepts():
+        learner_model[c] = ConstantValues.BEGINNER
+    r = ReadingList(cg, querylist, learner_model)
+    # print reading list
+    # r.print()
+
+    # summarise the reading list
+
+    # convert r into list of papers
+    r.convert2List()
+    rl = r.getReadinglist
+    # print(rl)
+    if len(rl) <= ConstantValues.BUDGET:
+        # if length <= budget
+        print2File(article, rl, -1, resultPath)
+    else:
+        # before summarization
+        print("Before Submodular: ")
+        # print(len(rl))
+        # for doc in rl:
+        #     print(doc['id']+" - "+str(doc))
+        alg = ConstantValues.LAZY_GREEDY_ALG
+        # Lambda = 0 -> no penalty
+        submodular = Submodular()
+        submodular.loadFromList(rl)
+        # run with each lambda
+        year = int(article['info'].get('year', '10000'))
+        for Lambda in lambda_test:
+            print("Lambda = " + str(Lambda))
+            summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim, year=year)
+            print(len(summarizedlist))
+            print2File(article, summarizedlist, Lambda, resultPath)
+
+
+# run experiments for QFR method and UPR method
+def subQFR_UPR(path, query, method="qfr", type_sim="title", year=10000):
+    # calculate similarity score between documents and query.
+    relevantDocs = RelevantDocuments()
+    # relevantDocs.scroreTfIdfModel(path_raw=path)
+    relevantDocs.loadFromPath(path, year)
+    # generate tf idf model
+    # relevantDocs.trainTfIdfModel(path, "acl/")
+    # relevantDocs.loadFromTfIdfModel(path, "acl/")
+
+    relevantDocs.findRankedTfIdf(query)
+
+    # scores = relevantDocs.getTopResults(10, "tfidf")
+    # print(scores)
+    #
+    # print(relevantDocs.getResultsByThreshold(0.01, "tfidf"))
+
+    # run algorithm for submodular
+    # before summarization
+    print("Before Submodular: ")
+    submodular = Submodular()
+    submodular.loadFromCorpus(relevantDocs)
+    alg = ConstantValues.LAZY_GREEDY_ALG
+    # run with each lambda
+    for Lambda in lambda_test:
+        print("Lambda = " + str(Lambda))
+        summarizedlist = submodular.getSubmodular(alg, Lambda=Lambda, method=method, type_sim=type_sim)
+        printResult(article_id="subQFR_UPR" + query, result=summarizedlist, Lambda=Lambda)
 
 
 @click.command()

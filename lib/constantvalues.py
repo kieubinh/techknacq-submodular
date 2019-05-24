@@ -13,8 +13,8 @@ class ConstantValues:
     MAX_SUBMODULARITY = 23000
     MAXSIZE = 23000
     BUDGET = 100
-    Lambda = 0.5
-    Alpha = 0.8
+    # Lambda = 0.5
+    Alpha = 0.5
     w_years = 0.5
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'

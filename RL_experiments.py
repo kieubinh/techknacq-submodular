@@ -41,12 +41,12 @@ prefix_sim = "acl-bm25-selection-12-1-"
 
 # conti = True -> run continue: ignore exist files
 conti = True
-default_method = ConstantValues.Maximal_Marginal_Relevance
+default_method = ConstantValues.Maximal_Marginal_Relevance_v1
 # concept graph
 max_matches = 0.1
 max_each_matches = 0
-default_resultPath = prefix_folder + date_folder + prefix_sim \
-                     + str(ConstantValues.BUDGET) + "-" + str(ConstantValues.Alpha) + "/"
+default_resultPath = prefix_folder + date_folder + prefix_sim + default_method\
+                     + "-" + str(ConstantValues.BUDGET) + "-" + str(ConstantValues.Alpha) + "/"
 
 
 # 1.0 - 1.0 * ConstantValues.BUDGET / max(len(v), 1)

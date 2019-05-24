@@ -4,7 +4,7 @@ from lib.submodular.evaluation import Evaluation
 if __name__ == '__main__':
 
     eva = Evaluation()
-    eva.loadFiles("experiments/ground-truth-v41/")
+    eva.loadFiles("experiments/ground-truth-sample-v41/")
     print("------------------F-score---------------------------------------------------------------------")
     eva.calAvgFscore()
     print("------------------MAP-------------------------------------------------------------------------")

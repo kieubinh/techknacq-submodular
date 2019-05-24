@@ -28,7 +28,8 @@ class ConstantValues:
     COSINE = 0 #default
 
     # submodular method
-    Maximal_Marginal_Relevance = "mmr"
+    Maximal_Marginal_Relevance_v1 = "mmr_v1"
+    Maximal_Marginal_Relevance_v2 = "mmr_v2"
     Maximal_Concept_Relevance = "mcr"
     Query_Focused_Relevance = "qfr"
     Update_Relevance = "upr"

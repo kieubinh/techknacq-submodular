@@ -44,7 +44,7 @@ conti = True
 # 1.0 for submodular algorithm, -1 for others
 lambda_check=1.0
 # v2 for average, v1 for max
-default_sub_method = ConstantValues.Maximal_Marginal_Relevance_v2
+default_sub_method = ConstantValues.Maximal_Marginal_Relevance_v1
 # concept graph
 max_matches = 1
 max_each_matches = 100

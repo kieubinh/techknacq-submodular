@@ -139,7 +139,7 @@ class ElasticsearchSubmodularity:
         return fdp
 
     def calMaxPenalty(self, newId, s):
-        # subtract relevant maximum selected elements
+        # subtract maximum relevant selected elements
         fmp = 0.0
         if newId is None:
             return 0.0
@@ -148,6 +148,18 @@ class ElasticsearchSubmodularity:
                 fmp = max(fmp, self.simdocs[newId][docId])
 
         return fmp
+
+    def calAvgPenalty(self, newId, s):
+        # subtract average of relevant selected elements
+        fdp = 0.0
+        if newId is None:
+            return 0.0
+
+        for docId in s:
+            if docId in self.simdocs[newId]:
+                fdp += self.simdocs[newId][docId]
+        # add one to avoid ZeroDivision
+        return (fdp+1.0) / (len(s)+1.0)
 
     # ------------------------------------------- SUBMODULAR FUNCTIONS -------------------------------------------------
 
@@ -161,16 +173,18 @@ class ElasticsearchSubmodularity:
         # print(newId+" - "+str(fquery)+" "+str(fcp))
         # subtract penalty
         # fpenalty = self.calPenaltySumByText(newId, s)
-        return Lambda * delta_fq + (1 - Lambda) * delta_fp
+        return Lambda * delta_fq - (1 - Lambda) * delta_fp
 
     def calMMRv2(self, newId, s=None, Lambda=1.0):
         # Maximum marginal relevance version 2
         # Lambda * Sim1(sk, q) - (1-Lambda) Sum Sim2(si, sk)
 
-        delta_fp = self.calDeltaPenalty(newId, s=s)
+        delta_fp = self.calAvgPenalty(newId, s=s)
         delta_fq = self.calSimQuery(newId)
 
-        return Lambda * delta_fq + (1 - Lambda) * delta_fp
+        # print("Lambda: %.2f, delta_fq: %.2f, delta_fp: %.2f" % (Lambda, delta_fq, delta_fp))
+
+        return Lambda * delta_fq - (1 - Lambda) * delta_fp
 
     def calMCR(self, newId, s, alpha=1.0, Lambda=1.0):
         # Vc: 300 concepts (fixed)

@@ -31,21 +31,24 @@ lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 corpusInputPath = "inputs/selection-12-1/"
 # corpusInputPath = "inputs/survey/selected/"
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/laptop/"
-date_folder = "19-05-25/"
+prefix_folder = "results/server/"
+date_folder = "19-05-26/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 # prefix_sim = "acl-bm25-sample-12-1-"
 prefix_sim = "acl-bm25-selection-12-1-"
 # prefix_sim = "acl-bm25-survey-"
 # elasticsearch
 
-# conti = True -> run continue: ignore exist files
+# conti = True -> run continue: ignore exi-st files
 conti = True
-default_method = ConstantValues.Maximal_Marginal_Relevance_v1
+# 1.0 for submodular algorithm, -1 for others
+lambda_check=1.0
+# v2 for average, v1 for max
+default_sub_method = ConstantValues.Maximal_Marginal_Relevance_v2
 # concept graph
-max_matches = 0.1
-max_each_matches = 0
-default_resultPath = prefix_folder + date_folder + prefix_sim + default_method\
+max_matches = 1
+max_each_matches = 100
+default_resultPath = prefix_folder + date_folder + prefix_sim + default_sub_method\
                      + "-" + str(ConstantValues.BUDGET) + "-" + str(ConstantValues.Alpha) + "/"
 
 
@@ -61,7 +64,7 @@ def getResultQuery(article_info=None, budget=ConstantValues.BUDGET):
 def loadInput(corpusInputPath="sample-high/", resultPath=None):
     if resultPath is None:
         resultPath = default_resultPath
-    expPath = genExpPath(resultPath, Lambda=1.0)
+    expPath = genExpPath(resultPath, Lambda=lambda_check)
     # load result path
     exist_ids = []
     # if run continue
@@ -174,22 +177,29 @@ def directMethod(article_info=None, method="mlt", resultPath=default_resultPath)
     ese = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)
     if method == ConstantValues.ES:
         recommendRLByEs(ese=ese, article_info=article_info, resultPath=resultPath)
+        return
 
     if method == ConstantValues.ES_QFR:
         recommendRLByEsQfr(ese=ese, article_info=article_info, resultPath=resultPath)
+        return
 
     if method == ConstantValues.ES_AU:
         recommendRLByEsAu(ese=ese, article_info=article_info, resultPath=resultPath)
+        return
 
     if method == ConstantValues.ES_AU_QFR:
         recommendRLByEsAuQfr(ese=ese, article_info=article_info, resultPath=resultPath)
+        return
     if method == ConstantValues.ES_AU_QFR_CG:
         recommendRLByEsAuQfrCg(ese=ese, article_info=article_info, resultPath=resultPath)
+        return
     if method == ConstantValues.ES_AU_QFR_TOP:
         recommendRLByEsAuQfrTop(ese=ese, article_info=article_info, resultPath=resultPath)
+        return
 
     if method == ConstantValues.ES_QFR_CG:
         recommendRLByEsQfrCg(ese=ese, article_info=article_info, resultPath=resultPath)
+        return
 
 
 def getMltFromFile(article_id=None, year=0, budget=ConstantValues.BUDGET):
@@ -236,7 +246,7 @@ def recommendRLByEsQfr(ese=None, article_info=None, resultPath=default_resultPat
     essub = ElasticsearchSubmodularity(ese=ese, v=vDocs, simq=vDocs)
 
     for Lambda in lambda_test:
-        retrieved_list = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
+        retrieved_list = essub.greedyAlgByCardinality(method=default_sub_method, Lambda=Lambda)
         # essub = ElasticsearchSubmodularity(esexport=ese, query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),
         #                                    MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=vDocs, Lambda=Lambda, method="qfr")
@@ -257,7 +267,7 @@ def recommendRLByEsAuQfr(ese=None, article_info=None, resultPath=default_resultP
     simq = getResultQuery(article_info=article_info, budget=ConstantValues.MAXSIZE)
     essub = ElasticsearchSubmodularity(ese=ese, v=refDocs, simq=simq)
     for Lambda in lambda_test:
-        readinglist = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method=default_sub_method, Lambda=Lambda)
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
@@ -291,7 +301,7 @@ def recommendRLByEsAuQfrCg(ese=None, article_info=None, resultPath=default_resul
     print("au: %i, cg: %i -> total: %i" % (num_au, num_cg, len(vlist)))
     essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
     for Lambda in lambda_test:
-        readinglist = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method=default_sub_method, Lambda=Lambda)
 
         # essub = ElasticsearchSubmodularity(esexport=ese,query=retrievedInfo.getQuery(), year=retrievedInfo.getYear(),MAX_SIZE=1000)
         # readinglist = essub.greedyAlgByCardinality(v=refDocs,Lambda=Lambda, method="qfr")
@@ -332,7 +342,7 @@ def recommendRLByEsAuQfrTop(ese=None, article_info=None, resultPath="results/acl
     essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
 
     for Lambda in lambda_test:
-        readinglist = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method=default_sub_method, Lambda=Lambda)
         printResult(article_id=article_info.getId(), result=readinglist, Lambda=Lambda, resultPath=resultPath)
 
 
@@ -351,7 +361,7 @@ def recommendRLByEsQfrCg(ese=None, article_info=None, resultPath=default_resultP
     simq = getResultQuery(article_info=article_info, budget=ConstantValues.MAXSIZE)
     essub = ElasticsearchSubmodularity(ese=ese, v=vlist, simq=simq)
     for Lambda in lambda_test:
-        readinglist = essub.greedyAlgByCardinality(method=default_method, Lambda=Lambda)
+        readinglist = essub.greedyAlgByCardinality(method=default_sub_method, Lambda=Lambda)
         printResult(article_id=article_info.getId(), result=readinglist, Lambda=Lambda, resultPath=resultPath)
 
 

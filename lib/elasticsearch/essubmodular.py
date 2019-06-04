@@ -1,5 +1,6 @@
+import math
+
 from lib.constantvalues import ConstantValues
-from lib.document.similarityscore import SimilarityScore
 from lib.elasticsearch.esexporter import ElasticsearchExporter
 
 
@@ -55,7 +56,9 @@ class ElasticsearchSubmodularity:
         while len(u) > 0 and len(s) < ConstantValues.BUDGET:
             docidk, maxK = self.findArgmax(s=s, u=u, method=method, Lambda=Lambda)
             # print("dock: "+dock['title'])
-            # if (maxK>0):
+            # if no else better
+            if maxK <= 0:
+                continue
             s.append(docidk)
             result[docidk] = rank
             rank -= 1
@@ -64,7 +67,6 @@ class ElasticsearchSubmodularity:
             # print("len: " + str(len(s)) + " " + str(len(u)))
 
         return result
-
 
     def findArgmax(self, s, u, method, Lambda=0.0):
         # bound=self.calMethod(s, v, method)
@@ -86,13 +88,18 @@ class ElasticsearchSubmodularity:
     def calMethod(self, newId, s, method, Lambda=0.0):
         result = 0.0
         if method == ConstantValues.Query_Focused_Relevance:
-            result = self.calQFR(newId=newId, s=s, Lambda=Lambda)
+            result = self.funcQFR(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Maximal_Concept_Relevance:
-            result = self.calMCR(newId=newId, s=s, Lambda=Lambda)
+            result = self.funcMCR(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Maximal_Marginal_Relevance_v1:
-            result = self.calMMRv1(newId=newId, s=s, Lambda=Lambda)
+            result = self.funcMMRv1(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Maximal_Marginal_Relevance_v2:
-            result = self.calMMRv2(newId=newId, s=s, Lambda=Lambda)
+            result = self.funcMMRv2(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Maximal_Marginal_Relevance_v3:
+            result = self.funcMMRv3(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Diversity_Reward_Function_v1:
+            result = self.funcDRFv1(newId=newId, s=s, Lambda=Lambda)
+
         # print(result)
         return result
 
@@ -103,6 +110,27 @@ class ElasticsearchSubmodularity:
             return self.simq[newId]
         else:
             return 0.0
+
+    def calDivQuery(self, new_id, s=[]):
+        # return Sum of Sqrt( Sum of rj) with j in Pi and S
+        score_p={}
+        for doc_id in s:
+            part_doc = doc_id[4]
+            # print(part_doc)
+            if part_doc not in score_p:
+                score_p[part_doc]=0.0
+            score_p[part_doc] += self.calSimQuery(doc_id)
+        # cal new_id
+        if new_id[4] not in score_p:
+            score_p[new_id[4]] = self.calSimQuery(new_id)
+        else:
+            score_p[new_id[4]] += self.calSimQuery(new_id)
+        # cal sum
+        sum_div = 0.0
+        for part, score in score_p.items():
+            sum_div += math.sqrt(score)
+
+        return sum_div
 
     def calDeltaCoPen(self, newId=None, s=[]):
 
@@ -163,7 +191,7 @@ class ElasticsearchSubmodularity:
 
     # ------------------------------------------- SUBMODULAR FUNCTIONS -------------------------------------------------
 
-    def calMMRv1(self, newId, s, Lambda=1.0):
+    def funcMMRv1(self, newId, s, Lambda=1.0):
         # Maximum marginal relevance version 1
         # Lambda *Sim1 (sk, q) - (1-Lambda) max Sim2(si, sk)
 
@@ -175,7 +203,7 @@ class ElasticsearchSubmodularity:
         # fpenalty = self.calPenaltySumByText(newId, s)
         return Lambda * delta_fq - (1 - Lambda) * delta_fp
 
-    def calMMRv2(self, newId, s=None, Lambda=1.0):
+    def funcMMRv2(self, newId, s=None, Lambda=1.0):
         # Maximum marginal relevance version 2
         # Lambda * Sim1(sk, q) - (1-Lambda) Sum Sim2(si, sk)
 
@@ -183,8 +211,27 @@ class ElasticsearchSubmodularity:
         delta_fq = self.calSimQuery(newId)
 
         # print("Lambda: %.2f, delta_fq: %.2f, delta_fp: %.2f" % (Lambda, delta_fq, delta_fp))
-
         return Lambda * delta_fq - (1 - Lambda) * delta_fp
+
+    def funcMMRv3(self, newId, s=None, Lambda=1.0):
+        # Maximum marginal relevance version 2
+        # Lambda * Sim1(sk, q) - (1-Lambda) Sum Sim2(si, sk)
+
+        delta_fp = self.calMaxPenalty(newId, s=s)
+        delta_fq = self.calSimQuery(newId)
+
+        # print("Lambda: %.2f, delta_fq: %.2f, delta_fp: %.2f" % (Lambda, delta_fq, delta_fp))
+        return Lambda * delta_fq + (1 - Lambda) * delta_fp
+
+    def funcDRFv1(self, newId, s=None, Lambda=1.0):
+        # Diversity reward function
+        # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
+
+        delta_fp = self.calMaxPenalty(newId=newId, s=s)
+        delta_fq = self.calDivQuery(new_id=newId, s=s)
+
+        # print("Lambda: %.2f, delta_fq: %.2f, delta_fp: %.2f" % (Lambda, delta_fq, delta_fp))
+        return Lambda * delta_fq + (1 - Lambda) * delta_fp
 
     def calMCR(self, newId, s, alpha=1.0, Lambda=1.0):
         # Vc: 300 concepts (fixed)
@@ -203,7 +250,7 @@ class ElasticsearchSubmodularity:
 
         return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
 
-    def calQFR(self, newId, s, alpha=ConstantValues.Alpha, Lambda=0.0):
+    def funcQFR(self, newId, s, Lambda=1.0):
         # function 3: Query-Focused Relevance
         # only calculate change when add newId
         # ft(S_k) = (1-lambda) * fc(S_k) + alpha * fq(S_k) - lambda * fp(S_k)
@@ -221,10 +268,10 @@ class ElasticsearchSubmodularity:
         delta_fq = self.calSimQuery(newId)
 
         delta_fc, delta_fp = self.calDeltaCoPen(newId=newId, s=s)
+        alpha = ConstantValues.Alpha
+        beta = ConstantValues.Beta * Lambda
+        gamma = ConstantValues.Beta * (1-Lambda)
 
-        alpha = 1.0 * alpha
-        beta = 1.0 - Lambda
-        gamma = 2.0 - Lambda
         # print(alpha, beta, gamma)
         # print(delta_fq, delta_fc, delta_fp)
         return alpha * delta_fq + beta * delta_fc - gamma * delta_fp

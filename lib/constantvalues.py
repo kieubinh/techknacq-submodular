@@ -10,11 +10,13 @@ class ConstantValues:
     TIMEOUT = 10
     MAX_LENGTH_QUERY = 900
 
-    MAX_SUBMODULARITY = 23000
+    MAX_SUBMODULARITY = 500
     MAXSIZE = 23000
     BUDGET = 100
     # Lambda = 0.5
-    Alpha = 0.5
+    Alpha = 10.0
+    Beta = 1.0
+    Gamma = 5.0
     w_years = 0.5
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'
@@ -30,6 +32,8 @@ class ConstantValues:
     # submodular method
     Maximal_Marginal_Relevance_v1 = "mmr_v1"
     Maximal_Marginal_Relevance_v2 = "mmr_v2"
+    Maximal_Marginal_Relevance_v3 = "mmr_v3"
+    Diversity_Reward_Function_v1 = "drf_v1"
     Maximal_Concept_Relevance = "mcr"
     Query_Focused_Relevance = "qfr"
     Update_Relevance = "upr"

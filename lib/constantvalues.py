@@ -10,7 +10,7 @@ class ConstantValues:
     TIMEOUT = 10
     MAX_LENGTH_QUERY = 900
 
-    MAX_SUBMODULARITY = 500
+    MAX_SUBMODULARITY = 23000
     MAXSIZE = 23000
     BUDGET = 100
     # Lambda = 0.5
@@ -34,6 +34,7 @@ class ConstantValues:
     Maximal_Marginal_Relevance_v2 = "mmr_v2"
     Maximal_Marginal_Relevance_v3 = "mmr_v3"
     Diversity_Reward_Function_v1 = "drf_v1"
+    Diversity_Reward_Function_v2 = "drf_v2"
     Maximal_Concept_Relevance = "mcr"
     Query_Focused_Relevance = "qfr"
     Update_Relevance = "upr"

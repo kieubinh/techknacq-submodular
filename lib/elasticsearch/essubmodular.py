@@ -55,10 +55,11 @@ class ElasticsearchSubmodularity:
         result = {}
         while len(u) > 0 and len(s) < ConstantValues.BUDGET:
             docidk, maxK = self.findArgmax(s=s, u=u, method=method, Lambda=Lambda)
-            # print("dock: "+dock['title'])
+            print(docidk)
+            print(maxK)
             # if no else better
-            if maxK <= 0:
-                continue
+            if maxK < 0:
+                break
             s.append(docidk)
             result[docidk] = rank
             rank -= 1
@@ -99,6 +100,8 @@ class ElasticsearchSubmodularity:
             result = self.funcMMRv3(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Diversity_Reward_Function_v1:
             result = self.funcDRFv1(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Diversity_Reward_Function_v2:
+            result = self.funcDRFv2(newId=newId, s=s, Lambda=Lambda)
 
         # print(result)
         return result
@@ -177,6 +180,7 @@ class ElasticsearchSubmodularity:
 
         return fmp
 
+
     def calAvgPenalty(self, newId, s):
         # subtract average of relevant selected elements
         fdp = 0.0
@@ -227,13 +231,23 @@ class ElasticsearchSubmodularity:
         # Diversity reward function
         # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
 
+        delta_fq = self.calSimQuery(newId=newId)
+        delta_fc = self.calDivQuery(new_id=newId, s=s)
+
+        # print("Lambda: %.2f, delta_fq: %.2f, delta_fp: %.2f" % (Lambda, delta_fq, delta_fp))
+        return Lambda * delta_fq + (1 - Lambda) * delta_fc
+
+    def funcDRFv2(self, newId, s=None, Lambda=1.0):
+        # Diversity reward function
+        # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
+
         delta_fp = self.calMaxPenalty(newId=newId, s=s)
         delta_fq = self.calDivQuery(new_id=newId, s=s)
 
         # print("Lambda: %.2f, delta_fq: %.2f, delta_fp: %.2f" % (Lambda, delta_fq, delta_fp))
-        return Lambda * delta_fq + (1 - Lambda) * delta_fp
+        return Lambda * delta_fq - (1 - Lambda) * delta_fp
 
-    def calMCR(self, newId, s, alpha=1.0, Lambda=1.0):
+    def funcMCR(self, newId, s, alpha=1.0, Lambda=1.0):
         # Vc: 300 concepts (fixed)
         # ft(S_k) = (1- lambda) * fc(S_k) - lambda * fp(S_k)
         # fc(S_k) = Sum_(c_i in Vc) Sum_(x_j in S_k) w(c_i, d_x_j)

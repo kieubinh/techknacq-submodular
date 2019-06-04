@@ -26,17 +26,17 @@ from lib.techknacq.readinglist import ReadingList
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
 # lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
 # lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-lambda_test = [0.0, 0.5, 0.7, 0.9, 1.0]
+lambda_test = [0.0, 0.1, 0.2, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # corpusInputPath = "inputs/selection-5refs/"
-corpusInputPath = "inputs/sample-12-1/"
-# corpusInputPath = "inputs/selection-12-1/"
+# corpusInputPath = "inputs/sample-12-1/"
+corpusInputPath = "inputs/selection-12-1/"
 # corpusInputPath = "inputs/survey/selected/"
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/laptop/"
-date_folder = "19-06-04/"
+prefix_folder = "results/server/"
+date_folder = "19-06-05/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
-prefix_sim = "acl-bm25-sample-12-1-"
-# prefix_sim = "acl-bm25-selection-12-1-"
+# prefix_sim = "acl-bm25-sample-12-1-"
+prefix_sim = "acl-bm25-selection-12-1-"
 # prefix_sim = "acl-bm25-survey-"
 # elasticsearch
 

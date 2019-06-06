@@ -16,7 +16,7 @@ class ElasticsearchSubmodularity:
     #     else:
     #         self.qsim = {}
 
-    def __init__(self, ese=None, v=None, simq={}, authors_score={}):
+    def __init__(self, ese=None, v=None, simq={}, authors_score={}, year=0):
         if v is None:
             print("No candidate!")
             return
@@ -31,7 +31,7 @@ class ElasticsearchSubmodularity:
         # if len(v) <= ConstantValues.BUDGET:
         #     return v
         self.simdocs = ese.calSimDocs(v)
-        self.inf_score = ese.calInfluenceScore(v)
+        self.cite_to = ese.cal_cite_net(v, year=year)
         self.authors_score = authors_score
         print("V: " + str(len(v)) + " -> (submodular function) -> BUDGET = " + str(ConstantValues.BUDGET))
         self.ese = ese
@@ -130,7 +130,7 @@ class ElasticsearchSubmodularity:
         # return number of citations / number of years until test set year (2012)
         if new_id is None:
             return 0.0
-        return self.inf_score[new_id]
+        return len(self.cite_to[new_id])
 
     def calDivQuery(self, new_id, s=[]):
         # return Sum of Sqrt( Sum of rj) with j in Pi and S
@@ -275,11 +275,21 @@ class ElasticsearchSubmodularity:
 
         return ConstantValues.Alpha * delta_fau + Lambda * delta_finf + (1-Lambda) * delta_fq
 
+    def calCiteNet(self, s=None, new_id=None):
+        # return: Sum of (di -> dj) with di in V-S+{new}, dj in S+{new}
+        count = 0
+        for doc_id in s:
+            # check new_id cite doc_id or not
+            if doc_id in self.cite_to[new_id]:
+                count += 1
+
+        return len(self.cite_to[new_id]) - 2 * count
+
     def funcQAIv2(self, newId, s=None, Lambda=1.0):
         # Diversity reward function
         # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
 
-        delta_finf = self.calInfluenceScore(new_id=newId)
+        delta_finf = self.calCiteNet(s=s, new_id=newId)
         delta_fau = self.calAuthorsScore(new_id=newId)
         delta_fq = self.calSimQuery(new_id=newId)
 

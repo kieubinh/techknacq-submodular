@@ -28,15 +28,15 @@ from lib.techknacq.readinglist import ReadingList
 lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # lambda_test = [0.0, 0.1, 0.2, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # corpusInputPath = "inputs/selection-5refs/"
-# corpusInputPath = "inputs/sample-12-1/"
-corpusInputPath = "inputs/selection-12-1/"
+corpusInputPath = "inputs/sample-12-1/"
+# corpusInputPath = "inputs/selection-12-1/"
 # corpusInputPath = "inputs/survey/selected/"
 concept_graph = "concept-graphs/concept-graph-standard.json"
 prefix_folder = "results/laptop/"
 date_folder = "19-06-06/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
-# prefix_sim = "acl-bm25-sample-12-1-"
-prefix_sim = "acl-bm25-selection-12-1-"
+prefix_sim = "acl-bm25-sample-12-1-"
+# prefix_sim = "acl-bm25-selection-12-1-"
 # prefix_sim = "acl-bm25-selection-5refs-"
 # prefix_sim = "acl-bm25-survey-"
 # elasticsearch
@@ -232,6 +232,7 @@ def directMethod(article_info=None, method="mlt", resultPath=default_resultPath)
 
 
 def getMltFromFile(article_id=None, year=0, budget=ConstantValues.BUDGET):
+    print(article_id, year, budget)
     sim_docs = Utils.getSimDocFromCorpus(article_id)
     recency_sim_docs = {}
     for doc_id, score in sim_docs.items():

@@ -10,7 +10,7 @@ class ConstantValues:
     TIMEOUT = 10
     MAX_LENGTH_QUERY = 900
 
-    MAX_SUBMODULARITY = 23000
+    MAX_SUBMODULARITY = 500
     MAXSIZE = 23000
     BUDGET = 100
     # Lambda = 0.5
@@ -18,7 +18,7 @@ class ConstantValues:
     Beta = 1.0
     Gamma = 5.0
     w_years = 0.5
-    TEST_YEAR = 2012
+    TEST_YEAR = 2005
     # score for relations between documents with same authors
     SCORE_SAME_AUTHORS = 2.0
     SCORE_REF_SAME_AUTHORS = 1.0

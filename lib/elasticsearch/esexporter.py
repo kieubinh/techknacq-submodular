@@ -11,7 +11,7 @@ from lib.utils import Utils
 
 
 class ElasticsearchExporter:
-    def __init__(self, index="acl2014", doc_type="json"):
+    def __init__(self, index="acl_bm25", doc_type="json"):
         self.idList = []
         try:
             self.es = Elasticsearch()
@@ -23,19 +23,19 @@ class ElasticsearchExporter:
             print('Error connection with elasticsearch')
             sys.exit(1)
 
-    def calInfluenceScore(self, v=None):
+    def cal_cite_net(self, v=None, year=0):
         # return: influence score = number of citations / number of years until 2012 (test set)
-        inf_score = {}
+        cite_to = {}
         if v is None:
-            return inf_score
+            return cite_to
 
         for doc_id in v:
-            doc_count = self.find_id_from_references(doc_id=doc_id)
-            year = self.get_year_by_id(id=doc_id)
-            # print(doc_count, year)
-            inf_score[doc_id] = 1.0 * doc_count / (ConstantValues.TEST_YEAR - year)
+            cite_to[doc_id] = self.find_id_from_references(doc_id=doc_id, year=year)
+            # doc_year = self.get_year_by_id(id=doc_id)
+            # print(doc_count, doc_year, year)
+            # inf_score[doc_id] = 1.0 * doc_count / (year - doc_year)
 
-        return inf_score
+        return cite_to
 
     def calSimDocs(self, v=None):
         # return: calculate similarity matrix between 2 documents
@@ -70,33 +70,47 @@ class ElasticsearchExporter:
 
         return sim_docs
 
-    def find_id_from_references(self, doc_id=None):
+    def find_id_from_references(self, doc_id=None, year=ConstantValues.TEST_YEAR):
         # print(doc_id)
         if doc_id is None:
             return {}
 
-        response = self.es.search(index=self.index, body=
-        {
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "term": {
-                                "references.keyword": doc_id
-                            }
-                        }
-                    ],
-                    "filter": [
-                        {"range": {"info.year": {"lt": ConstantValues.TEST_YEAR}}}
-                    ]
-                }
-            },
+        cite_docs = {}
+        res_from = 0
+        res_size = 1000
 
-            "stored_fields": [],
-        },
-                                  request_timeout=90
-                                  )
-        return response['hits']['total']
+        while res_from < ConstantValues.MAXSIZE:
+
+            response = self.es.search(index=self.index, body=
+            {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "term": {
+                                    "references.keyword": doc_id
+                                }
+                            }
+                        ],
+                        "filter": [
+                            {"range": {"info.year": {"lt": year}}}
+                        ]
+                    }
+                },
+
+                "stored_fields": [],
+            },
+              request_timeout=90
+              )
+            # print(response['hits']['total'])
+            for hit in response['hits']['hits']:
+                # print(hit['_id']+" "+str(hit.get('_score', 0.0)))
+                cite_docs[hit['_id']] = hit.get('_score', 0.0)
+            res_from += res_size
+            if res_from >= response['hits']['total']:
+                break
+
+        return cite_docs
 
     def findSimDocsById(self, doc_id=None):
         # return: document similarity of docId -> {id, score}

@@ -6,12 +6,16 @@ import sys
 
 
 class Evaluation:
-    def __init__(self):
+    def __init__(self, hidden=False):
         self.output = {}
         self.answer = {}
         self.sumCorrect = 0
         self.MAP = None
         self.MRR = None
+        self.hidden = hidden
+        self.avgPre = None
+        self.avgPre = None
+        self.avgRecall = None
 
     def calFscore(self, output_ids=[], ground_ids=[]):
         # print(len(output_ids))
@@ -27,8 +31,8 @@ class Evaluation:
         for id in output_ids:
             if id in ground_ids:
                 ccorrect += 1
-        print("#correct: " + str(ccorrect) + "/total output: " + str(len(output_ids)) + "/total ground truth: " + str(
-            len(ground_ids)))
+        if not self.hidden:
+            print("#correct: " + str(ccorrect) + "/total output: " + str(len(output_ids)) + "/total ground truth: " + str(len(ground_ids)))
         self.sumCorrect += ccorrect
         pre = 1.0 * ccorrect / len(output_ids)
         recall = 1.0 * ccorrect / len(ground_ids)
@@ -38,11 +42,9 @@ class Evaluation:
             fscore = 2.0 * pre * recall / (pre + recall)
         return pre, recall, fscore
 
-    # json file: {'output':[]} and {'answer':[]}
-    def loadFiles(self, folderName=None):
-        if folderName == None:
-            print("No folder path")
-        for root, dirs, files in os.walk(folderName, topdown=False):
+    def loadFolder(self, folder=None, type_folder=None):
+        output = {}
+        for root, dirs, files in os.walk(folder, topdown=False):
             for nameFile in files:
                 # must be json
                 if "json" in nameFile:
@@ -54,19 +56,30 @@ class Evaluation:
                         # print(nameId)
                         if len(nameId) > 0:
                             # print(data[ConstantValues.ANSWER_KEY])
-                            if ConstantValues.OUTPUT_KEY in data:
-                                self.output[nameId] = data.get(ConstantValues.OUTPUT_KEY, [])
-                            if ConstantValues.ANSWER_KEY in data:
-                                self.answer[nameId] = data.get(ConstantValues.ANSWER_KEY, [])
+                            if type_folder in data:
+                                output[nameId] = data.get(type_folder, [])
+
                     except Exception as e:
                         print('Error reading JSON document:', nameFile, file=sys.stderr)
                         print(e, file=sys.stderr)
-                        sys.exit(1)
+                        return None
+        return output
+
+    # json file: {'output':[]} and {'answer':[]}
+    def loadFiles(self, output_folder=None, answer_folder=None):
+        if output_folder is None or answer_folder is None:
+            print("No folder path!")
+            print(output_folder)
+            print(answer_folder)
+
+        self.output = self.loadFolder(output_folder, ConstantValues.OUTPUT_KEY)
+        self.answer = self.loadFolder(answer_folder, ConstantValues.ANSWER_KEY)
 
     def calAvgFscore(self):
         sumPre = sumRecall = sumFscore = 0.0
         for name in self.output.keys():
-            print(name)
+            if not self.hidden:
+                print(name)
             pre, recall, fscore = self.calFscore(self.output[name], self.answer[name])
             sumPre += pre
             sumRecall += recall
@@ -136,21 +149,22 @@ class Evaluation:
         for name in self.output.keys():
 
             avg_prec = self.calAvgPrec(self.output[name], self.answer[name])
-            print(name + " : " + str(avg_prec))
+            if not self.hidden:
+                print(name + " : " + str(avg_prec))
             map_score += avg_prec
             if avg_prec < 0.01:
                 count_zero += 1
         self.MAP = map_score / len(self.output)
-        print(count_zero)
-        self.MAP2 = map_score / (len(self.output) - count_zero)
+        # print(count_zero)
+        # self.MAP2 = map_score / (len(self.output) - count_zero)
 
     def getMAP(self):
         if self.MAP is None:
             self.calMAP()
         return self.MAP
 
-    def getMAP2(self):
-        return self.MAP2
+    # def getMAP2(self):
+    #     return self.MAP2
 
     # ------------------ MRR SCORE - Mean Reciprocal Rank ---------------------------
     def calIR(self, output_ids=[], answer_ids=[]):
@@ -169,7 +183,8 @@ class Evaluation:
         mrr_score = 0.0
         for name in self.output.keys():
             inverse_rank = self.calIR(self.output[name], self.answer[name])
-            print(name + " : " + str(inverse_rank))
+            if not self.hidden:
+                print(name + " : " + str(inverse_rank))
             mrr_score += inverse_rank
 
         self.MRR = mrr_score / (1.0 * len(self.output))

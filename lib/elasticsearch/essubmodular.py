@@ -16,12 +16,11 @@ class ElasticsearchSubmodularity:
     #     else:
     #         self.qsim = {}
 
-    def __init__(self, ese=None, v=None, simq=None):
+    def __init__(self, ese=None, v=None, simq={}, authors_score={}):
         if v is None:
             print("No candidate!")
             return
-        if simq is None:
-            simq = {}
+
         if ese is None:
             print("No information about elasticsearch server!")
             return
@@ -32,6 +31,8 @@ class ElasticsearchSubmodularity:
         # if len(v) <= ConstantValues.BUDGET:
         #     return v
         self.simdocs = ese.calSimDocs(v)
+        self.inf_score = ese.calInfluenceScore(v)
+        self.authors_score = authors_score
         print("V: " + str(len(v)) + " -> (submodular function) -> BUDGET = " + str(ConstantValues.BUDGET))
         self.ese = ese
         self.simq = simq
@@ -55,8 +56,8 @@ class ElasticsearchSubmodularity:
         result = {}
         while len(u) > 0 and len(s) < ConstantValues.BUDGET:
             docidk, maxK = self.findArgmax(s=s, u=u, method=method, Lambda=Lambda)
-            print(docidk)
-            print(maxK)
+            # print(docidk)
+            # print(maxK)
             # if no else better
             if maxK < 0:
                 break
@@ -102,17 +103,34 @@ class ElasticsearchSubmodularity:
             result = self.funcDRFv1(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Diversity_Reward_Function_v2:
             result = self.funcDRFv2(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Query_Author_Influence_v1:
+            result = self.funcQAIv1(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Query_Author_Influence_v2:
+            result = self.funcQAIv2(newId=newId, s=s, Lambda=Lambda)
 
         # print(result)
         return result
 
-    def calSimQuery(self, newId=None):
+    def calSimQuery(self, new_id=None):
         # return sim(newId, q)
         # print(newId)
-        if newId in self.simq:
-            return self.simq[newId]
+        if new_id in self.simq:
+            return self.simq[new_id]
         else:
             return 0.0
+
+    def calAuthorsScore(self, new_id=None):
+        # return number of citations / number of years until test set year (2012)
+        if new_id in self.authors_score:
+            return self.authors_score[new_id]
+        else:
+            return 0.0
+
+    def calInfluenceScore(self, new_id=None):
+        # return number of citations / number of years until test set year (2012)
+        if new_id is None:
+            return 0.0
+        return self.inf_score[new_id]
 
     def calDivQuery(self, new_id, s=[]):
         # return Sum of Sqrt( Sum of rj) with j in Pi and S
@@ -231,11 +249,11 @@ class ElasticsearchSubmodularity:
         # Diversity reward function
         # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
 
-        delta_fq = self.calSimQuery(newId=newId)
-        delta_fc = self.calDivQuery(new_id=newId, s=s)
+        delta_finf = self.calInfluenceScore(new_id=newId)
+        delta_fd = self.calDivQuery(new_id=newId, s=s)
 
         # print("Lambda: %.2f, delta_fq: %.2f, delta_fp: %.2f" % (Lambda, delta_fq, delta_fp))
-        return Lambda * delta_fq + (1 - Lambda) * delta_fc
+        return Lambda * delta_finf + (1 - Lambda) * delta_fd
 
     def funcDRFv2(self, newId, s=None, Lambda=1.0):
         # Diversity reward function
@@ -246,6 +264,26 @@ class ElasticsearchSubmodularity:
 
         # print("Lambda: %.2f, delta_fq: %.2f, delta_fp: %.2f" % (Lambda, delta_fq, delta_fp))
         return Lambda * delta_fq - (1 - Lambda) * delta_fp
+
+    def funcQAIv1(self, newId, s=None, Lambda=1.0):
+        # Diversity reward function
+        # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
+
+        delta_finf = self.calInfluenceScore(new_id=newId)
+        delta_fau = self.calAuthorsScore(new_id=newId)
+        delta_fq = self.calDivQuery(new_id=newId, s=s)
+
+        return ConstantValues.Alpha * delta_fau + Lambda * delta_finf + (1-Lambda) * delta_fq
+
+    def funcQAIv2(self, newId, s=None, Lambda=1.0):
+        # Diversity reward function
+        # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
+
+        delta_finf = self.calInfluenceScore(new_id=newId)
+        delta_fau = self.calAuthorsScore(new_id=newId)
+        delta_fq = self.calSimQuery(new_id=newId)
+
+        return ConstantValues.Alpha*delta_fau + ConstantValues.Beta*delta_finf + ConstantValues.Gamma*delta_fq
 
     def funcMCR(self, newId, s, alpha=1.0, Lambda=1.0):
         # Vc: 300 concepts (fixed)

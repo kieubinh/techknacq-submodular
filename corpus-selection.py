@@ -30,7 +30,7 @@ def main(path="data/acl/"):
     # relevantDocs.loadFromPath(path)
     corpus = Corpus(path=path)
     ese = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)
-    docIds = ese.getAllDocsByIndex()
+    docIds = ese.get_all_ids_of_corpus()
     # print(len(docIds))
     docs = corpus.getHighReference(threshold=20, v=docIds)
     # print(len(docs))

@@ -18,6 +18,11 @@ class ConstantValues:
     Beta = 1.0
     Gamma = 5.0
     w_years = 0.5
+    TEST_YEAR = 2012
+    # score for relations between documents with same authors
+    SCORE_SAME_AUTHORS = 2.0
+    SCORE_REF_SAME_AUTHORS = 1.0
+
     #SIMILARITY_MEASUE='title'
     #SIMILARITY_MEASUE='abstract'
     SIMILARITY_MEASUE = 'text'
@@ -35,18 +40,20 @@ class ConstantValues:
     Maximal_Marginal_Relevance_v3 = "mmr_v3"
     Diversity_Reward_Function_v1 = "drf_v1"
     Diversity_Reward_Function_v2 = "drf_v2"
+    Query_Author_Influence_v1 = "qai_v1"
+    Query_Author_Influence_v2 = "qai_v2"
     Maximal_Concept_Relevance = "mcr"
     Query_Focused_Relevance = "qfr"
     Update_Relevance = "upr"
     # similarity method
     More_Like_This  = "mlt"
     ES              = "es"
-    ES_QFR          = "es-qfr"
+    ES_SUB          = "es-sub"
     ES_AU           = "es-au"
-    ES_AU_QFR       = "es-au-qfr"
-    ES_AU_QFR_CG    = "es-au-qfr-cg"
-    ES_QFR_CG       = "es-qfr-cg"
-    ES_AU_QFR_TOP   = "es-au-qfr-top"
+    ES_AU_SUB       = "es-au-sub"
+    ES_AU_SUB_CG    = "es-au-sub-cg"
+    ES_SUB_CG       = "es-sub-cg"
+    ES_AU_SUB_TOP   = "es-au-sub-top"
 
     #data path
     SAMPLE="sample/"

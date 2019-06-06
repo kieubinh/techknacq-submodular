@@ -322,7 +322,7 @@ def makeInputsByYears(corpusPath="data/acl/", inputPath="inputs/years/"):
 def getHighReferences(path="inputs/candidate/", selectedPath="inputs/selection/"):
     corpus = Corpus(path=path)
     ese = ElasticsearchExporter(index=ConstantValues.ACL_CORPUS_INDEX, doc_type=ConstantValues.ACL_CORPUS_DOCTYPE)
-    docIds = ese.getAllDocsByIndex()
+    docIds = ese.get_all_ids_of_corpus()
     # print(len(docIds))
     selectedDocs = corpus.getHighReference(threshold=1, v=docIds)
     # print(len(selectedDocs))

@@ -60,8 +60,8 @@ class ElasticsearchImporter:
         ese = ElasticsearchExporter(index=from_index, doc_type=from_doctype)
         to_ese = ElasticsearchExporter(index=to_index, doc_type=to_doctype)
 
-        all_doc_ids = ese.getAllDocsByIndex()
-        done_doc_ids = to_ese.getAllDocsByIndex()
+        all_doc_ids = ese.get_all_ids_of_corpus()
+        done_doc_ids = to_ese.get_all_ids_of_corpus()
         # ignore docs which have already calculated similarity score with other documents
         # for done_id in done_doc_ids:
         #     if done_id in doc_ids:
@@ -101,7 +101,7 @@ class ElasticsearchImporter:
     # and save as files to folder data/acl_score/
     def scoreDocSimToFolder(self, from_index="acl_tfidf", from_doctype="doc", to_folder=ConstantValues.ACL_SCORES):
         ese = ElasticsearchExporter(index=from_index, doc_type=from_doctype)
-        all_doc_ids = ese.getAllDocsByIndex()
+        all_doc_ids = ese.get_all_ids_of_corpus()
         done_doc_ids = self.loadListDocIds(to_folder)
         # print(done_doc_ids)
 

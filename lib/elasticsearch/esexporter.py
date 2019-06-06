@@ -5,6 +5,7 @@ from lib.submodular.articleinfo import ArticleInformation
 from lib.constantvalues import ConstantValues
 from lib.utils import Utils
 
+
 # from elasticsearch_dsl.query import MultiMatch, Match
 # from elasticsearch_dsl.query import MoreLikeThis
 
@@ -17,13 +18,27 @@ class ElasticsearchExporter:
             self.index = index
             self.doc_type = doc_type
             # get all ids
-            self.getAllDocsByIndex()
+            self.get_all_ids_of_corpus()
         except Exception as e:
             print('Error connection with elasticsearch')
             sys.exit(1)
 
-    # calculate similarity matrix between 2 documents
+    def calInfluenceScore(self, v=None):
+        # return: influence score = number of citations / number of years until 2012 (test set)
+        inf_score = {}
+        if v is None:
+            return inf_score
+
+        for doc_id in v:
+            doc_count = self.find_id_from_references(doc_id=doc_id)
+            year = self.get_year_by_id(id=doc_id)
+            # print(doc_count, year)
+            inf_score[doc_id] = 1.0 * doc_count / (ConstantValues.TEST_YEAR - year)
+
+        return inf_score
+
     def calSimDocs(self, v=None):
+        # return: calculate similarity matrix between 2 documents
         if v is None:
             return {}
         sim_docs = {}
@@ -55,8 +70,36 @@ class ElasticsearchExporter:
 
         return sim_docs
 
-    # get document similarity of docId -> {id, score}
+    def find_id_from_references(self, doc_id=None):
+        # print(doc_id)
+        if doc_id is None:
+            return {}
+
+        response = self.es.search(index=self.index, body=
+        {
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "term": {
+                                "references.keyword": doc_id
+                            }
+                        }
+                    ],
+                    "filter": [
+                        {"range": {"info.year": {"lt": ConstantValues.TEST_YEAR}}}
+                    ]
+                }
+            },
+
+            "stored_fields": [],
+        },
+                                  request_timeout=90
+                                  )
+        return response['hits']['total']
+
     def findSimDocsById(self, doc_id=None):
+        # return: document similarity of docId -> {id, score}
         print(doc_id)
         if doc_id is None:
             return {}
@@ -105,7 +148,8 @@ class ElasticsearchExporter:
         #     simdoc[docid] = score / max_score
         return sim_doc
 
-    def getAllDocsByIndex(self):
+    def get_all_ids_of_corpus(self):
+        # return: id list of corpus
         request = Search(using=self.es, index=self.index, doc_type=self.doc_type).params(
             request_timeout=ConstantValues.TIMEOUT)
         response = request.scan()
@@ -155,6 +199,27 @@ class ElasticsearchExporter:
 
         return rawtext
 
+    def get_year_by_id(self, id=None):
+        # return: year of doc id
+
+        if id is None:
+            return ""
+        try:
+            res = self.es.get(index=self.index, doc_type=self.doc_type, id=id)
+            doc = res['_source']
+        except Exception as e:
+            print('Not found doc at: ' + id)
+            return 0
+            # sys.exit(1)
+
+        try:
+            year = doc['info']['year']
+        except Exception as e:
+            print('Error get information year of doc id: ' + id)
+            return 0
+
+        return year
+
     def getReflist(self, id=None):
         if id == None:
             return []
@@ -177,7 +242,8 @@ class ElasticsearchExporter:
         return resDocs
 
     def searchDocsByAuthor(self, author=None, year=0):
-        if author == None:
+        # return all papers with same author in authors
+        if author is None:
             return []
         # print(author)
         res = self.es.search(index=self.index, body={"query": {
@@ -369,7 +435,7 @@ if __name__ == '__main__':
 
     # res = esexport.searchDocsByTitle(query="survey")
     # print(res)
-    v = esexport.getAllDocsByIndex()
+    v = esexport.get_all_ids_of_corpus()
     print(esexport.findSimDocsById())
     # results = esexport.queryByURL(query="Improved Models of Distortion Cost for Statistical Machine Translation",
     #                               year=2010, budget=10000)

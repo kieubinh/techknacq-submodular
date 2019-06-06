@@ -10,7 +10,7 @@ class ConstantValues:
     TIMEOUT = 10
     MAX_LENGTH_QUERY = 900
 
-    MAX_SUBMODULARITY = 500
+    MAX_SUBMODULARITY = 23000
     MAXSIZE = 23000
     BUDGET = 100
     # Lambda = 0.5

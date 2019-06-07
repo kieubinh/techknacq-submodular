@@ -149,7 +149,8 @@ class ElasticsearchSubmodularity:
         # cal sum
         sum_div = 0.0
         for part, score in score_p.items():
-            sum_div += math.sqrt(score)
+            if score > 0:
+                sum_div += math.sqrt(score)
 
         return sum_div
 

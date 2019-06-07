@@ -46,7 +46,7 @@ conti = True
 lambda_check=1.0
 # v2 for average, v1 for max
 # default_sub_method = ConstantValues.Maximal_Marginal_Relevance_v3
-default_sub_method = ConstantValues.Query_Author_Influence_v1
+default_sub_method = ConstantValues.Query_Author_Influence_v2
 # concept graph
 max_matches = 1
 max_each_matches = 1

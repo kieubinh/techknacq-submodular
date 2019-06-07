@@ -134,12 +134,12 @@ class ElasticsearchSubmodularity:
 
     def calDivQuery(self, new_id, s=[]):
         # return Sum of Sqrt( Sum of rj) with j in Pi and S
-        score_p={}
+        score_p = {}
         for doc_id in s:
             part_doc = doc_id[4]
             # print(part_doc)
             if part_doc not in score_p:
-                score_p[part_doc]=0.0
+                score_p[part_doc] = 0.0
             score_p[part_doc] += self.calSimQuery(doc_id)
         # cal new_id
         if new_id[4] not in score_p:
@@ -197,7 +197,6 @@ class ElasticsearchSubmodularity:
                 fmp = max(fmp, self.simdocs[newId][docId])
 
         return fmp
-
 
     def calAvgPenalty(self, newId, s):
         # subtract average of relevant selected elements
@@ -291,9 +290,10 @@ class ElasticsearchSubmodularity:
 
         delta_finf = self.calCiteNet(s=s, new_id=newId)
         delta_fau = self.calAuthorsScore(new_id=newId)
-        delta_fq = self.calSimQuery(new_id=newId)
+        delta_fq = self.calDivQuery(new_id=newId, s=s)
 
-        return ConstantValues.Alpha*delta_fau + ConstantValues.Beta*delta_finf + ConstantValues.Gamma*delta_fq
+        # return ConstantValues.Alpha*delta_fau + ConstantValues.Beta*delta_finf + ConstantValues.Gamma*delta_fq
+        return ConstantValues.Alpha * delta_fau + Lambda * delta_finf + (1-Lambda) * delta_fq
 
     def funcMCR(self, newId, s, alpha=1.0, Lambda=1.0):
         # Vc: 300 concepts (fixed)

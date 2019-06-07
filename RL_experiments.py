@@ -12,10 +12,8 @@ import json
 import os
 import io
 
-from lib.submodular.submodular import Submodular
 from lib.constantvalues import ConstantValues
 from lib.submodular.articleinfo import ArticleInformation
-from lib.submodular.relevantdocuments import RelevantDocuments
 from lib.elasticsearch.esexporter import ElasticsearchExporter
 from lib.elasticsearch.essubmodular import ElasticsearchSubmodularity
 from lib.utils import Utils
@@ -25,8 +23,8 @@ from lib.techknacq.readinglist import ReadingList
 
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
 # lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
-# lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-lambda_test = [-1]
+lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+# lambda_test = [-1]
 # lambda_test = [0.0, 0.1, 0.2, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # corpusInputPath = "inputs/selection-5refs/"
 # corpusInputPath = "inputs/sample-12-1/"
@@ -34,7 +32,7 @@ corpusInputPath = "inputs/selection-12-1/"
 # corpusInputPath = "inputs/survey/selected/"
 concept_graph = "concept-graphs/concept-graph-standard.json"
 prefix_folder = "results/server/"
-date_folder = "19-06-06/"
+date_folder = "19-06-07/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 # prefix_sim = "acl-bm25-sample-12-1-"
 prefix_sim = "acl-bm25-selection-12-1-"
@@ -42,16 +40,16 @@ prefix_sim = "acl-bm25-selection-12-1-"
 # prefix_sim = "acl-bm25-survey-"
 # elasticsearch
 
-# conti = True -> run continue: ignore exi-st files
+# conti = True -> run continue: ignore exist files
 conti = True
 # 1.0 for submodular algorithm, -1 for others
 lambda_check=1.0
 # v2 for average, v1 for max
 # default_sub_method = ConstantValues.Maximal_Marginal_Relevance_v3
-default_sub_method = ConstantValues.Query_Author_Influence_v2
+default_sub_method = ConstantValues.Query_Author_Influence_v1
 # concept graph
-max_matches = 5
-max_each_matches = 100
+max_matches = 1
+max_each_matches = 1
 default_resultPath = prefix_folder + date_folder + prefix_sim + default_sub_method\
                      + "-" + str(ConstantValues.BUDGET) + "-" + str(max_matches) + "-" + str(max_each_matches) + "/"
 
@@ -90,6 +88,7 @@ def get_author_score(ese=None, article_info=None):
                     authors_score[ref_id] += ConstantValues.SCORE_REF_SAME_AUTHORS
 
     return authors_score
+
 
 def loadInput(corpusInputPath="sample-high/", resultPath=None):
     if resultPath is None:
@@ -170,7 +169,6 @@ def getReflistByAuthors(ese=None, article_info=None):
                     if refid not in refDocs:
                         refDocs.append(refid)
     return refDocs
-
 
 # ------------------------------- RECOMMENDING READING LISTS METHODS ------------------------------------
 # Using ES to get relevant documents by authors,
@@ -289,18 +287,38 @@ def recommendRLByEsAu(ese=None, article_info=None, resultPath=default_resultPath
     print(len(retrieved_list))
     printResult(article_id=article_info.getId(), result=retrieved_list, resultPath=resultPath)
 
+import collections
 
 def recommendRLByEsAuSub(ese=None, article_info=None, resultPath=default_resultPath):
     vDocs = getResultQuery(article_info=article_info, budget=ConstantValues.MAX_SUBMODULARITY)
+
     if vDocs is None:
         # ignore error timeout or no answer
         return {}
+
+    # Get top 100 relevant query similarity scores, Lambda = -1
+    output = Utils.get_top_dict(dict=vDocs, budget=ConstantValues.BUDGET)
+
+    printResult(article_id=article_info.getId(), result=output, Lambda=-1, resultPath=resultPath)
+
     # simq = ese.queryByURL(query=article_info.getQuery(), year=article_info.getYear(),
     #                       budget=ConstantValues.MAXSIZE)
     # simq = getResultQuery(article_info=article_info, budget=ConstantValues.MAXSIZE)
     authors_score = get_author_score(ese=ese, article_info=article_info)
     print(authors_score)
-    essub = ElasticsearchSubmodularity(ese=ese, v=vDocs, simq=vDocs, authors_score=authors_score)
+    # Get top 100 authors_score, Lambda = -2
+    output = Utils.get_top_dict(dict=authors_score, budget=ConstantValues.BUDGET)
+    printResult(article_id=article_info.getId(), result=output, Lambda=-2, resultPath=resultPath)
+
+    essub = ElasticsearchSubmodularity(ese=ese, v=vDocs, simq=vDocs,
+                                       authors_score=authors_score, year=article_info.getYear())
+    # Get top 100 influence scores, Lambda = -3
+    inf_docs = {}
+    for doc_id, cite_docs in essub.cite_to.items():
+        inf_docs[doc_id] = len(cite_docs)
+    output = Utils.get_top_dict(dict=inf_docs, budget=ConstantValues.BUDGET)
+    printResult(article_id=article_info.getId(), result=output, Lambda=-3, resultPath=resultPath)
+
     for Lambda in lambda_test:
         retrieved_list = essub.greedyAlgByCardinality(method=default_sub_method, Lambda=Lambda)
         printResult(article_id=article_info.getId(), result=retrieved_list, Lambda=Lambda, resultPath=resultPath)

@@ -16,7 +16,7 @@ class ConstantValues:
     # Lambda = 0.5
     Alpha = 10.0
     Beta = 1.0
-    Gamma = 5.0
+    Gamma = 1.0
     w_years = 0.5
     TEST_YEAR = 2005
     # score for relations between documents with same authors

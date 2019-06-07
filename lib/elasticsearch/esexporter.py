@@ -31,6 +31,7 @@ class ElasticsearchExporter:
 
         for doc_id in v:
             cite_to[doc_id] = self.find_id_from_references(doc_id=doc_id, year=year)
+            # print(cite_to[doc_id])
             # doc_year = self.get_year_by_id(id=doc_id)
             # print(doc_count, doc_year, year)
             # inf_score[doc_id] = 1.0 * doc_count / (year - doc_year)
@@ -100,11 +101,11 @@ class ElasticsearchExporter:
 
                 "stored_fields": [],
             },
-              request_timeout=90
-              )
+                                      request_timeout=90
+                                      )
             # print(response['hits']['total'])
             for hit in response['hits']['hits']:
-                # print(hit['_id']+" "+str(hit.get('_score', 0.0)))
+                # print(hit['_id'] + " " + str(hit.get('_score', 0.0)))
                 cite_docs[hit['_id']] = hit.get('_score', 0.0)
             res_from += res_size
             if res_from >= response['hits']['total']:
@@ -247,7 +248,7 @@ class ElasticsearchExporter:
             auDocs = self.searchDocsByAuthor(author=author, year=year)
             for docId in auDocs:
                 # print(docId)
-                if (docId != articleId):
+                if docId != articleId:
                     reflist = self.getReflist(id=docId)
                     # print(len(reflist))
                     for refid in reflist:
@@ -282,7 +283,7 @@ class ElasticsearchExporter:
             retri = ArticleInformation(hit)
             hyear = retri.getYear()
             hid = retri.getId()
-            if hyear <= year:
+            if hyear < year:
                 if hid not in resultsDocs:
                     resultsDocs.append(hid)
                 # print('%s with year %i returned with score %f' % (

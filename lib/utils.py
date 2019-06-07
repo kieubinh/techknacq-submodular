@@ -7,6 +7,7 @@ from collections import Counter
 import io
 import json
 from pathlib import Path
+import collections
 
 
 from lib.constantvalues import ConstantValues
@@ -56,3 +57,15 @@ class Utils:
         else:
             return 2000+num_year
 
+    def get_top_dict(dict={}, budget=100):
+        # return: sort and return top budget
+        sorted_dict = collections.OrderedDict(dict)
+        index = 0
+        top_dict = {}
+        for k, v in sorted_dict.items():
+            top_dict[k] = v
+            index += 1
+            if index >= budget:
+                return top_dict
+
+        return top_dict

@@ -59,13 +59,13 @@ class Utils:
 
     def get_top_dict(dict={}, budget=100):
         # return: sort and return top budget
-        sorted_dict = collections.OrderedDict(dict)
-        index = 0
         top_dict = {}
-        for k, v in sorted_dict.items():
-            top_dict[k] = v
-            index += 1
-            if index >= budget:
+		index = 0
+		for k, v in sorted(dict.items(), key=lambda x: x[1], reverse=True):
+			top_dict[k] = v
+			index += 1
+			if index >= budget:
                 return top_dict
 
         return top_dict
+             

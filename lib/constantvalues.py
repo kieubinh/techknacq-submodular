@@ -14,9 +14,9 @@ class ConstantValues:
     MAXSIZE = 23000
     BUDGET = 100
     # Lambda = 0.5
-    Alpha = 10.0
-    Beta = 1.0
-    Gamma = 1.0
+    Alpha = 50.0
+    Beta = 5.0
+    Gamma = 25.0
     w_years = 0.5
     TEST_YEAR = 2005
     # score for relations between documents with same authors
@@ -42,6 +42,8 @@ class ConstantValues:
     Diversity_Reward_Function_v2 = "drf_v2"
     Query_Author_Influence_v1 = "qai_v1"
     Query_Author_Influence_v2 = "qai_v2"
+    Query_Author_Influence_v11 = "qai_v11"
+    Query_Author_Influence_v12 = "qai_v12"
     Maximal_Concept_Relevance = "mcr"
     Query_Focused_Relevance = "qfr"
     Update_Relevance = "upr"

@@ -107,6 +107,10 @@ class ElasticsearchSubmodularity:
             result = self.funcQAIv1(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Query_Author_Influence_v2:
             result = self.funcQAIv2(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Query_Author_Influence_v11:
+            result = self.funcQAIv11(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Query_Author_Influence_v12:
+            result = self.funcQAIv12(newId=newId, s=s, Lambda=Lambda)
 
         # print(result)
         return result
@@ -275,6 +279,16 @@ class ElasticsearchSubmodularity:
 
         return ConstantValues.Alpha * delta_fau + Lambda * delta_finf + (1-Lambda) * delta_fq
 
+    def funcQAIv11(self, newId, s=None, Lambda=1.0):
+        # Diversity reward function
+        # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
+
+        delta_finf = self.calInfluenceScore(new_id=newId)
+        delta_fau = self.calAuthorsScore(new_id=newId)
+        delta_fq = self.calDivQuery(new_id=newId, s=s)
+
+        return ConstantValues.Alpha * delta_fau + ConstantValues.Beta * delta_finf + ConstantValues.Gamma * delta_fq
+
     def calCiteNet(self, s=None, new_id=None):
         # return: Sum of (di -> dj) with di in V-S+{new}, dj in S+{new}
         count = 0
@@ -283,7 +297,7 @@ class ElasticsearchSubmodularity:
             if doc_id in self.cite_to[new_id]:
                 count += 1
 
-        return len(self.cite_to[new_id]) - 2 * count
+        return len(self.cite_to[new_id]) - count
 
     def funcQAIv2(self, newId, s=None, Lambda=1.0):
         # Diversity reward function
@@ -295,6 +309,16 @@ class ElasticsearchSubmodularity:
 
         # return ConstantValues.Alpha*delta_fau + ConstantValues.Beta*delta_finf + ConstantValues.Gamma*delta_fq
         return ConstantValues.Alpha * delta_fau + Lambda * delta_finf + (1-Lambda) * delta_fq
+
+    def funcQAIv12(self, newId, s=None, Lambda=1.0):
+        # Diversity reward function
+        # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
+
+        delta_finf = self.calCiteNet(s=s, new_id=newId)
+        delta_fau = self.calAuthorsScore(new_id=newId)
+        delta_fq = self.calDivQuery(new_id=newId, s=s)
+
+        return ConstantValues.Alpha * delta_fau + ConstantValues.Beta * delta_finf + ConstantValues.Gamma * delta_fq
 
     def funcMCR(self, newId, s, alpha=1.0, Lambda=1.0):
         # Vc: 300 concepts (fixed)

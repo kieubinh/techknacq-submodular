@@ -1,8 +1,8 @@
 from lib.submodular.evaluation import Evaluation
 
-lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, -1, -2, -3]
+# lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, -1, -2, -3]
 # lambda_test = None
-# lambda_test = [-1, -2, -3, -4]
+lambda_test = [-1, -2, -3, -4]
 
 # -1 relevance, -2 authors, -3 influence
 
@@ -32,7 +32,8 @@ def main():
     # eva.loadFiles("experiments/ground-truth-sample-v41/")
     eval_folder = "experiments/ground-truth-v41/"
     # output_folder_root = eval_folder + "acl-bm25-selection-12-1-qai_v2-100-1-1/"
-    output_folder_root = "results/laptop/19-06-09/acl-bm25-selection-12-1-qai_v2-100-1-1/"
+    # output_folder_root = "results/laptop/19-06-09/acl-bm25-selection-12-1-qai_v2-100-1results\server\19-06-09-1/"
+    output_folder_root = "results/server/19-06-09/acl-bm25-selection-12-1-qai_v12-100-1-1/"
     answer_folder = eval_folder + "selection-12-1/"
 
     if lambda_test is None:

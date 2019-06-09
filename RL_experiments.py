@@ -23,16 +23,16 @@ from lib.techknacq.readinglist import ReadingList
 
 # lambda_test=[0.0, 0.1, 0.3, 0.6, 1.0, 2.0]
 # lambda_test = [1 - 1.0 * ConstantValues.BUDGET / ConstantValues.MAX_SUBMODULARITY]
-# lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-lambda_test = [-4]
+lambda_test = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+# lambda_test = [-4]
 # lambda_test = [0.0, 0.1, 0.2, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # corpusInputPath = "inputs/selection-5refs/"
 # corpusInputPath = "inputs/sample-12-1/"
 corpusInputPath = "inputs/selection-12-1/"
 # corpusInputPath = "inputs/survey/selected/"
 concept_graph = "concept-graphs/concept-graph-standard.json"
-prefix_folder = "results/server/"
-date_folder = "19-06-09/"
+prefix_folder = "results/laptop/"
+date_folder = "19-06-10/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 # prefix_sim = "acl-bm25-sample-12-1-"
 prefix_sim = "acl-bm25-selection-12-1-"
@@ -46,7 +46,7 @@ conti = True
 lambda_check=1.0
 # v2 for average, v1 for max
 # default_sub_method = ConstantValues.Maximal_Marginal_Relevance_v3
-default_sub_method = ConstantValues.Query_Author_Influence_v12
+default_sub_method = ConstantValues.Query_Author_Influence_v3
 # concept graph
 max_matches = 1
 max_each_matches = 1

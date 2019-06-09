@@ -183,7 +183,7 @@ class ElasticsearchExporter:
         return newV
 
     def getRawDocById(self, id=None):
-        if (id == None):
+        if id == None:
             return ""
         try:
             res = self.es.get(index=self.index, doc_type=self.doc_type, id=id)

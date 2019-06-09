@@ -10,7 +10,7 @@ class ConstantValues:
     TIMEOUT = 10
     MAX_LENGTH_QUERY = 900
 
-    MAX_SUBMODULARITY = 23000
+    MAX_SUBMODULARITY = 500
     MAXSIZE = 23000
     BUDGET = 100
     # Lambda = 0.5
@@ -42,6 +42,7 @@ class ConstantValues:
     Diversity_Reward_Function_v2 = "drf_v2"
     Query_Author_Influence_v1 = "qai_v1"
     Query_Author_Influence_v2 = "qai_v2"
+    Query_Author_Influence_v3 = "qai_v3"
     Query_Author_Influence_v11 = "qai_v11"
     Query_Author_Influence_v12 = "qai_v12"
     Maximal_Concept_Relevance = "mcr"

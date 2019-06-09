@@ -132,9 +132,10 @@ class ElasticsearchSubmodularity:
 
     def calInfluenceScore(self, new_id=None):
         # return number of citations / number of years until test set year (2012)
+        new_year = self.ese.get_year_by_id(new_id)
         if new_id is None:
             return 0.0
-        return len(self.cite_to[new_id])
+        return len(self.cite_to[new_id]) * 1.0 / (ConstantValues.TEST_YEAR - new_year)
 
     def calDivQuery(self, new_id, s=[]):
         # return Sum of Sqrt( Sum of rj) with j in Pi and S
@@ -319,6 +320,17 @@ class ElasticsearchSubmodularity:
         delta_fq = self.calDivQuery(new_id=newId, s=s)
 
         return ConstantValues.Alpha * delta_fau + ConstantValues.Beta * delta_finf + ConstantValues.Gamma * delta_fq
+
+    def funcQAIv3(self, newId, s=None, Lambda=1.0):
+        # Diversity reward function
+        # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
+
+        # delta_finf = self.calCiteNet(s=s, new_id=newId)
+        delta_fau = self.calAuthorsScore(new_id=newId)
+        delta_fq = self.calDivQuery(new_id=newId, s=s)
+
+        # return ConstantValues.Alpha*delta_fau + ConstantValues.Beta*delta_finf + ConstantValues.Gamma*delta_fq
+        return 2.0 * Lambda * delta_fau + (1-Lambda) * delta_fq
 
     def funcMCR(self, newId, s, alpha=1.0, Lambda=1.0):
         # Vc: 300 concepts (fixed)

@@ -332,7 +332,7 @@ class ElasticsearchSubmodularity:
         delta_fq = self.calDivQuery(new_id=newId, s=s)
 
         # return ConstantValues.Alpha*delta_fau + ConstantValues.Beta*delta_finf + ConstantValues.Gamma*delta_fq
-        return 2.0 * Lambda * delta_fau + (1-Lambda) * delta_fq
+        return Lambda * delta_fau + (1-Lambda) * delta_fq
 
     def funcMCR(self, newId, s, alpha=1.0, Lambda=1.0):
         # Vc: 300 concepts (fixed)

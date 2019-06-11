@@ -111,6 +111,8 @@ class ElasticsearchSubmodularity:
             result = self.funcQAIv11(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Query_Author_Influence_v12:
             result = self.funcQAIv12(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Query_Author_Influence_v3:
+            result = self.funcQAIv3(newId=newId, s=s, Lambda=Lambda)
 
         # print(result)
         return result

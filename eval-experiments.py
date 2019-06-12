@@ -32,8 +32,8 @@ def main():
     # eva.loadFiles("experiments/ground-truth-sample-v41/")
     eval_folder = "experiments/ground-truth-v41/"
     # output_folder_root = eval_folder + "acl-bm25-selection-12-1-qai_v2-100-1-1/"
-    # output_folder_root = "results/laptop/19-06-09/acl-bm25-selection-12-1-qai_v2-100-1results\server\19-06-09-1/"
-    output_folder_root = "results/laptop/19-06-11/acl-bm25-selection-12-1-qai_v3-100-1-1/"
+    # output_folder_root = "results/server/19-06-09/acl-bm25-selection-12-1-qai_v12-100-1-1/"
+    output_folder_root = "results/laptop/19-06-12/acl-bm25-selection-12-1-qai_v3-100-1-1/"
     answer_folder = eval_folder + "selection-12-1/"
 
     if lambda_test is None:

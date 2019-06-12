@@ -32,7 +32,7 @@ corpusInputPath = "inputs/selection-12-1/"
 # corpusInputPath = "inputs/survey/selected/"
 concept_graph = "concept-graphs/concept-graph-standard.json"
 prefix_folder = "results/server/"
-date_folder = "19-06-11/"
+date_folder = "19-06-13/"
 # prefix_sim = "acl-tfidf-sample-5refs-"
 # prefix_sim = "acl-bm25-sample-12-1-"
 prefix_sim = "acl-bm25-selection-12-1-"
@@ -46,7 +46,7 @@ conti = True
 lambda_check=1.0
 # v2 for average, v1 for max
 # default_sub_method = ConstantValues.Maximal_Marginal_Relevance_v3
-default_sub_method = ConstantValues.Query_Author_Influence_v3
+default_sub_method = ConstantValues.Query_Focused_Relevance_v1
 # concept graph
 max_matches = 1
 max_each_matches = 1

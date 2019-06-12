@@ -46,7 +46,8 @@ class ConstantValues:
     Query_Author_Influence_v11 = "qai_v11"
     Query_Author_Influence_v12 = "qai_v12"
     Maximal_Concept_Relevance = "mcr"
-    Query_Focused_Relevance = "qfr"
+    Query_Focused_Relevance_v1 = "qfr_v1"
+    Query_Author_NonRedundancy_v1 = "qan_v1"
     Update_Relevance = "upr"
     # similarity method
     More_Like_This  = "mlt"

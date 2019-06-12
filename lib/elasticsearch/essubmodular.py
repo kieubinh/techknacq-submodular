@@ -89,8 +89,10 @@ class ElasticsearchSubmodularity:
     # switch respective method
     def calMethod(self, newId, s, method, Lambda=0.0):
         result = 0.0
-        if method == ConstantValues.Query_Focused_Relevance:
-            result = self.funcQFR(newId=newId, s=s, Lambda=Lambda)
+        if method == ConstantValues.Query_Focused_Relevance_v1:
+            result = self.funcQFRv1(newId=newId, s=s, Lambda=Lambda)
+        if method == ConstantValues.Query_Author_NonRedundancy_v1:
+            result = self.funcQANv1(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Maximal_Concept_Relevance:
             result = self.funcMCR(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Maximal_Marginal_Relevance_v1:
@@ -351,7 +353,7 @@ class ElasticsearchSubmodularity:
 
         return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
 
-    def funcQFR(self, newId, s, Lambda=1.0):
+    def funcQFRv1(self, newId, s, Lambda=1.0):
         # function 3: Query-Focused Relevance
         # only calculate change when add newId
         # ft(S_k) = (1-lambda) * fc(S_k) + alpha * fq(S_k) - lambda * fp(S_k)
@@ -370,12 +372,27 @@ class ElasticsearchSubmodularity:
 
         delta_fc, delta_fp = self.calDeltaCoPen(newId=newId, s=s)
         alpha = ConstantValues.Alpha
-        beta = ConstantValues.Beta * Lambda
-        gamma = ConstantValues.Beta * (1-Lambda)
+        # beta = ConstantValues.Beta
+        # gamma = ConstantValues.Gamma
 
         # print(alpha, beta, gamma)
         # print(delta_fq, delta_fc, delta_fp)
-        return alpha * delta_fq + beta * delta_fc - gamma * delta_fp
+        return alpha * delta_fq + (1 - Lambda) * delta_fc - (2-Lambda) * delta_fp
+
+    def funcQANv1(self, newId, s, Lambda=1.0):
+        # function: Query Author NonRedundancy
+
+        delta_fq = self.calSimQuery(newId)
+
+        delta_fc, delta_fp = self.calDeltaCoPen(newId=newId, s=s)
+        delta_fau = self.calAuthorsScore(new_id=newId)
+        alpha = ConstantValues.Alpha
+        beta = ConstantValues.Beta
+        gamma = ConstantValues.Gamma
+
+        # print(alpha, beta, gamma)
+        # print(delta_fq, delta_fc, delta_fp)
+        return alpha * delta_fau + beta * (delta_fc - 2 * delta_fp) + gamma*delta_fq
 
 
 if __name__ == '__main__':
@@ -385,6 +402,5 @@ if __name__ == '__main__':
         year=2014, budget=1000)
     essub = ElasticsearchSubmodularity(ese=ese,
                                        v=ese.getDocsByAuthors(authors=["Ani Nenkova", "Marine Carpuat"], year=2014,
-                                                              articleId="acl-C14-1055"),
-                                       simq=simq)
+                                                              articleId="acl-C14-1055"), simq=simq)
     essub.greedyAlgByCardinality(Lambda=0.5)

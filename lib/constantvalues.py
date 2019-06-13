@@ -45,6 +45,7 @@ class ConstantValues:
     Query_Author_Influence_v3 = "qai_v3"
     Query_Author_Influence_v11 = "qai_v11"
     Query_Author_Influence_v12 = "qai_v12"
+    Query_Author_Influence_v31 = "qai_v31"
     Maximal_Concept_Relevance = "mcr"
     Query_Focused_Relevance_v1 = "qfr_v1"
     Query_Author_NonRedundancy_v1 = "qan_v1"

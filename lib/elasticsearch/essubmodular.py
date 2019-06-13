@@ -115,6 +115,8 @@ class ElasticsearchSubmodularity:
             result = self.funcQAIv12(newId=newId, s=s, Lambda=Lambda)
         elif method == ConstantValues.Query_Author_Influence_v3:
             result = self.funcQAIv3(newId=newId, s=s, Lambda=Lambda)
+        elif method == ConstantValues.Query_Author_Influence_v31:
+            result = self.funcQAIv31(newId=newId, s=s, Lambda=Lambda)
 
         # print(result)
         return result
@@ -332,6 +334,17 @@ class ElasticsearchSubmodularity:
         # delta_finf = self.calCiteNet(s=s, new_id=newId)
         delta_fau = self.calAuthorsScore(new_id=newId)
         delta_fq = self.calDivQuery(new_id=newId, s=s)
+
+        # return ConstantValues.Alpha*delta_fau + ConstantValues.Beta*delta_finf + ConstantValues.Gamma*delta_fq
+        return Lambda * delta_fau + (1-Lambda) * delta_fq
+
+    def funcQAIv31(self, newId, s=None, Lambda=1.0):
+        # Diversity reward function
+        # Lambda * Sum sqrt(sum rj) (j in Pi and j in S) - (1 - Lambda) * delta_fp
+
+        # delta_finf = self.calCiteNet(s=s, new_id=newId)
+        delta_fau = self.calAuthorsScore(new_id=newId)
+        delta_fq = self.calSimQuery(new_id=newId)
 
         # return ConstantValues.Alpha*delta_fau + ConstantValues.Beta*delta_finf + ConstantValues.Gamma*delta_fq
         return Lambda * delta_fau + (1-Lambda) * delta_fq

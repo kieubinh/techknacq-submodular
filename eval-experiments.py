@@ -32,15 +32,15 @@ def main():
     # eva.loadFiles("experiments/ground-truth-sample-v41/")
     eval_folder = "experiments/ground-truth-v41/"
     # output_folder_root = eval_folder + "acl-bm25-selection-12-1-qai_v2-100-1-1/"
-    # output_folder_root = "results/server/19-06-11/acl-bm25-selection-12-1-qai_v3-100-1-1/"
     output_folder_root = "results/laptop/19-06-13/acl-bm25-selection-12-1-qai_v31-100-1-1/"
+    # output_folder_root = "results/server/19-06-13/acl-bm25-selection-12-1-qai_v31-100-1-1/"
     answer_folder = eval_folder + "selection-12-1/"
 
     if lambda_test is None:
         eval_each_folder(output_folder=output_folder_root, answer_folder=answer_folder)
         return 0
     elif len(lambda_test) == 0:
-        lambda_test.append(-1)
+        lambda_test.append(-1.0)
 
     for Lambda in lambda_test:
         # print(Lambda)

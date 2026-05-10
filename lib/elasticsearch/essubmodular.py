@@ -16,7 +16,7 @@ class ElasticsearchSubmodularity:
     #     else:
     #         self.qsim = {}
 
-    def __init__(self, ese=None, v=None, simq={}, authors_score={}, year=0):
+    def __init__(self, ese=None, v=None, simq=None, authors_score=None, year=0):
         if v is None:
             print("No candidate!")
             return
@@ -32,10 +32,10 @@ class ElasticsearchSubmodularity:
         #     return v
         self.simdocs = ese.calSimDocs(v)
         self.cite_to = ese.cal_cite_net(v, year=year)
-        self.authors_score = authors_score
+        self.authors_score = authors_score or {}
         print("V: " + str(len(v)) + " -> (submodular function) -> BUDGET = " + str(ConstantValues.BUDGET))
         self.ese = ese
-        self.simq = simq
+        self.simq = simq or {}
 
         # def calDocumentSimilarity(self, index="acl2014", doc_type="json"):
         #     docids = getAllDocs(index, doc_type)
@@ -143,8 +143,9 @@ class ElasticsearchSubmodularity:
             return 0.0
         return len(self.cite_to[new_id]) * 1.0 / (ConstantValues.TEST_YEAR - new_year)
 
-    def calDivQuery(self, new_id, s=[]):
+    def calDivQuery(self, new_id, s=None):
         # return Sum of Sqrt( Sum of rj) with j in Pi and S
+        s = s or []
         score_p = {}
         for doc_id in s:
             part_doc = doc_id[4]
@@ -165,7 +166,7 @@ class ElasticsearchSubmodularity:
 
         return sum_div
 
-    def calDeltaCoPen(self, newId=None, s=[]):
+    def calDeltaCoPen(self, newId=None, s=None):
 
         # s, v: list of articleId
         # delta_fcp(S_(k+1))    =   (1-lambda) * Sum_(x_i in V\{x_(k+1)}) sim(d_x_i, d_x_(k+1))
@@ -173,6 +174,7 @@ class ElasticsearchSubmodularity:
 
         if newId is None:
             return 0.0
+        s = s or []
         # get document similarity between one and the rest of documents
         fdck = self.simdocs[newId][ConstantValues.OneVsRest]
         # print(docId1+" : ")
@@ -185,13 +187,14 @@ class ElasticsearchSubmodularity:
             return 0.0
         return self.simdocs[newId][ConstantValues.OneVsRest]
 
-    def calDeltaPenalty(self, newId=None, s=[]):
+    def calDeltaPenalty(self, newId=None, s=None):
         # s, v: list of articleId
         # delta_penalty = Sum of Sim(newId, dxi) with all dxi in s
 
         fdp = 0.0
         if newId is None:
             return 0.0
+        s = s or []
 
         for docId in s:
             if docId in self.simdocs[newId]:
@@ -204,6 +207,7 @@ class ElasticsearchSubmodularity:
         fmp = 0.0
         if newId is None:
             return 0.0
+        s = s or []
         for docId in s:
             if docId in self.simdocs[newId]:
                 fmp = max(fmp, self.simdocs[newId][docId])
@@ -215,6 +219,7 @@ class ElasticsearchSubmodularity:
         fdp = 0.0
         if newId is None:
             return 0.0
+        s = s or []
 
         for docId in s:
             if docId in self.simdocs[newId]:

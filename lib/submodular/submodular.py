@@ -85,11 +85,16 @@ class Submodular:
     # switch respective method
     def calMethod(self, g, v, Lambda, method, type_sim):
         result = 0.0
-        if method == ConstantValues.Maximal_Marginal_Relevance:
+        if method in (
+            "mmr",
+            ConstantValues.Maximal_Marginal_Relevance_v1,
+            ConstantValues.Maximal_Marginal_Relevance_v2,
+            ConstantValues.Maximal_Marginal_Relevance_v3,
+        ):
             result = self.calMMR(g, v, Lambda, type_sim)
-        if method == ConstantValues.Maximal_Concept_Relevance:
+        elif method == ConstantValues.Maximal_Concept_Relevance:
             result = self.calMCR(g, v, Lambda, type_sim)
-        if method == ConstantValues.Query_Focused_Relevance:
+        elif method in ("qfr", ConstantValues.Query_Focused_Relevance_v1):
             result = self.calQFR(g, v, Lambda, type_sim)
         # print(result)
         return result
@@ -192,8 +197,10 @@ class Submodular:
                     jsondoc2 = json.loads(doc2)
                     if ('info' not in jsondoc1) or ('info' not in jsondoc2):
                         continue
-                    fpenalty += SimilarityScore.get_cosine(jsondoc1['info'].get(type_sim, ''),
-                                                jsondoc2['info'].get(type_sim, ''))
+                    fpenalty += SimilarityScore(
+                        jsondoc1['info'].get(type_sim, ''),
+                        jsondoc2['info'].get(type_sim, '')
+                    ).getScore()
 
         return fpenalty
 

@@ -7,17 +7,20 @@ from collections import Counter
 import io
 import json
 from pathlib import Path
-import collections
 
 
 from lib.constantvalues import ConstantValues
 
+WORD_RE = re.compile(r'\w+')
+
+
 class Utils:
+    @staticmethod
     def text_to_vector(text):
-        WORD = re.compile(r'\w+')
-        words = WORD.findall(text)
+        words = WORD_RE.findall(text or "")
         return Counter(words)
 
+    @staticmethod
     def get_cosine(vec1, vec2):
         intersection = set(vec1.keys()) & set(vec2.keys())
         numerator = sum([vec1[x] * vec2[x] for x in intersection])
@@ -31,6 +34,7 @@ class Utils:
         else:
             return float(numerator) / denominator
 
+    @staticmethod
     def getSimDocFromCorpus(doc_id=None, score_folder=ConstantValues.ACL_SCORES):
         if doc_id is None:
             return None
@@ -47,6 +51,7 @@ class Utils:
                 return None
         return None
 
+    @staticmethod
     def getYearFromId(doc_id=None):
         if doc_id is None:
             return 0
@@ -57,8 +62,11 @@ class Utils:
         else:
             return 2000+num_year
 
-    def get_top_dict(dict={}, budget=100):
+    @staticmethod
+    def get_top_dict(dict=None, budget=100):
         # return: sort and return top budget
+        if dict is None:
+            return {}
         top_dict = {}
         index = 0
         for k, v in sorted(dict.items(), key=lambda x: x[1], reverse=True):

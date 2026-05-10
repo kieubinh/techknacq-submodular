@@ -17,10 +17,10 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import gnu.trove.*;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
 
 import cc.mallet.grmm.inference.*;
 import cc.mallet.grmm.types.*;
@@ -1934,7 +1934,9 @@ public class ACRF implements Serializable {
   public void readWeightsFromText (Reader reader) throws IOException
   {
     try {
-      Document d = new SAXBuilder ().build (reader);
+      SAXBuilder builder = new SAXBuilder ();
+      builder.setExpandEntities (false);
+      Document d = builder.build (reader);
       Element root = d.getRootElement ();
       List tmpls = root.getChildren ("TEMPLATE");
       for (Iterator it = tmpls.iterator (); it.hasNext ();) {

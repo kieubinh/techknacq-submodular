@@ -21,10 +21,10 @@ import org._3pq.jgrapht.Graph;
 import org._3pq.jgrapht.Edge;
 import org._3pq.jgrapht.traverse.BreadthFirstIterator;
 import org._3pq.jgrapht.graph.SimpleGraph;
-import org.jdom.Document;
-import org.jdom.JDOMException;
-import org.jdom.Element;
-import org.jdom.input.SAXBuilder;
+import org.jdom2.Document;
+import org.jdom2.JDOMException;
+import org.jdom2.Element;
+import org.jdom2.input.SAXBuilder;
 
 import cc.mallet.grmm.types.*;
 import cc.mallet.util.MalletLogger;
@@ -319,7 +319,9 @@ public class TRP extends AbstractBeliefPropagation {
       for (Iterator it = readerList.iterator (); it.hasNext ();) {
         try {
           Reader reader = (Reader) it.next ();
-          Document doc = new SAXBuilder ().build (reader);
+          SAXBuilder builder = new SAXBuilder ();
+          builder.setExpandEntities (false);
+          Document doc = builder.build (reader);
           Element treeElt = doc.getRootElement ();
           Element rootElt = (Element) treeElt.getChildren ().get (0);
           Tree tree = readTreeRec (fg, rootElt);
@@ -341,7 +343,9 @@ public class TRP extends AbstractBeliefPropagation {
       for (Iterator it = fileList.iterator (); it.hasNext ();) {
         try {
           File treeFile = (File) it.next ();
-          Document doc = new SAXBuilder ().build (treeFile);
+          SAXBuilder builder = new SAXBuilder ();
+          builder.setExpandEntities (false);
+          Document doc = builder.build (treeFile);
           Element treeElt = doc.getRootElement ();
           Element rootElt = (Element) treeElt.getChildren ().get (0);
           treeList. add (readTreeRec (fg, rootElt));

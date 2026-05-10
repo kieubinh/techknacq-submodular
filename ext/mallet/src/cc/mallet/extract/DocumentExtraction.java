@@ -6,11 +6,11 @@
    information, see the file `LICENSE' included with this distribution. */
 package cc.mallet.extract;
 
-import org.jdom.Element;
-import org.jdom.Document;
-import org.jdom.Namespace;
-import org.jdom.Text;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Element;
+import org.jdom2.Document;
+import org.jdom2.Namespace;
+import org.jdom2.Text;
+import org.jdom2.output.XMLOutputter;
 
 import cc.mallet.types.*;
 
@@ -158,7 +158,7 @@ public class DocumentExtraction implements Serializable {
        LabeledSpan span = (LabeledSpan) extractedSpans.get(i);
        Label tag = span.getLabel();
        if (tag == backgroundTag) {
-         org.jdom.Parent p = element.addContent (span.getText ());
+         org.jdom2.Parent p = element.addContent (span.getText ());
        } else {
          Element field = new Element (tag.toString(), ns);
          field.setText (span.getText ());

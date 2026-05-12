@@ -13,6 +13,8 @@ The main ranking signals are:
 
 - `RL_experiments.py` - main experiment runner for Elasticsearch/BM25, author, concept-graph, and submodular variants.
 - `RL_CG_experiments.py` - older concept-graph experiment entry points.
+- `config.example.yaml` - optional experiment configuration template for `RL_experiments.py`.
+- `requirements.txt` - Python dependency list for the research scripts.
 - `lib/elasticsearch/` - Elasticsearch import, export, retrieval, and submodular helpers.
 - `lib/submodular/` - TF-IDF based relevant-document selection, submodular functions, and evaluation metrics.
 - `lib/techknacq/` - corpus parsing, concept-graph, lexicon, and reading-list logic from TechKnAcq.
@@ -25,14 +27,12 @@ The main ranking signals are:
 
 ## Setup
 
-The project does not currently include a pinned dependency file. The code was written as a Python research codebase and uses legacy Elasticsearch APIs such as `doc_type`, so use an Elasticsearch version compatible with those APIs.
-
-Typical Python dependencies observed in the code:
+The code was written as a Python research codebase and uses legacy Elasticsearch APIs such as `doc_type`, plus older NetworkX graph attributes such as `g.node` and `g.edge`. `requirements.txt` keeps those packages on compatible major versions.
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install click flask flask-cors elasticsearch elasticsearch-dsl networkx nltk gensim numpy beautifulsoup4 pyenchant ftfy Unidecode requests wikipedia noaho
+pip install -r requirements.txt
 python -m nltk.downloader punkt
 ```
 
@@ -92,9 +92,10 @@ Run the main experiment driver after Elasticsearch and score files are available
 ```powershell
 python RL_experiments.py es
 python RL_experiments.py es-au-sub
+python RL_experiments.py --config config.example.yaml
 ```
 
-Most experiment defaults are hard-coded near the top of `RL_experiments.py`, including `corpusInputPath`, `concept_graph`, output path, budget, and default submodular method.
+Most historical experiment defaults still live near the top of `RL_experiments.py`, including `corpusInputPath`, `concept_graph`, output path, budget, and default submodular method. `config.example.yaml` can override those values without editing source code. Command-line methods take precedence over methods listed in the config file.
 
 Evaluate result folders:
 
@@ -122,6 +123,12 @@ The code contains these submodular and baseline variants:
 - `mcr` - maximal concept relevance.
 - `qfr_v1` - query-focused relevance.
 - `qai_*` - query-author-influence variants.
+
+## Relationship To NeuSub
+
+This repository is the historical TechKnAcq/submodular experimentation code behind the citation-recommendation line of work that led to NeuSub. It contains the classical retrieval, author-signal, concept-graph, and submodular baselines used to generate and evaluate reading-list/citation recommendation outputs over ACL-style corpora.
+
+The IEEE Access paper introduces the neural submodular approach: it combines deep neural representations, transformer models such as BERT and sentence-BERT, structural or multiclass hinge-loss training, and submodular inference for citation recommendation. This repository should be treated as the research artifact and baseline/prototype codebase rather than a polished standalone implementation of every neural model described in the paper.
 
 ## Citation
 

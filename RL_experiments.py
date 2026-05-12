@@ -11,6 +11,7 @@ import click
 import json
 import os
 import io
+import yaml
 
 from lib.constantvalues import ConstantValues
 from lib.submodular.articleinfo import ArticleInformation
@@ -51,8 +52,71 @@ default_sub_method = ConstantValues.Query_Author_Influence_v31
 # concept graph
 max_matches = 1
 max_each_matches = 1
-default_resultPath = prefix_folder + date_folder + prefix_sim + default_sub_method\
-                     + "-" + str(ConstantValues.BUDGET) + "-" + str(max_matches) + "-" + str(max_each_matches) + "/"
+DEFAULT_METHODS = ("es", "au", "sub", "cg", "continue")
+
+
+def build_default_result_path():
+    return prefix_folder + date_folder + prefix_sim + default_sub_method \
+           + "-" + str(ConstantValues.BUDGET) + "-" + str(max_matches) + "-" + str(max_each_matches) + "/"
+
+
+default_resultPath = build_default_result_path()
+
+
+def load_experiment_config(config_path=None):
+    if config_path is None:
+        return {}
+    with open(config_path, 'r', encoding='utf-8') as fin:
+        return yaml.safe_load(fin) or {}
+
+
+def _as_list(value):
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return value.split()
+    return list(value)
+
+
+def apply_experiment_config(config):
+    global lambda_test
+    global corpusInputPath
+    global concept_graph
+    global prefix_folder
+    global date_folder
+    global prefix_sim
+    global conti
+    global lambda_check
+    global default_sub_method
+    global max_matches
+    global max_each_matches
+    global default_resultPath
+
+    paths = config.get('paths', {})
+    experiment = config.get('experiment', {})
+    limits = config.get('limits', {})
+    elasticsearch = config.get('elasticsearch', {})
+
+    corpusInputPath = paths.get('corpus_input', corpusInputPath)
+    concept_graph = paths.get('concept_graph', concept_graph)
+    prefix_folder = paths.get('prefix_folder', prefix_folder)
+    date_folder = paths.get('date_folder', date_folder)
+    prefix_sim = paths.get('prefix_sim', prefix_sim)
+
+    conti = experiment.get('continue_existing', conti)
+    lambda_check = experiment.get('lambda_check', lambda_check)
+    lambda_test = _as_list(experiment.get('lambda_test')) or lambda_test
+    default_sub_method = experiment.get('default_sub_method', default_sub_method)
+    max_matches = experiment.get('max_matches', max_matches)
+    max_each_matches = experiment.get('max_each_matches', max_each_matches)
+
+    ConstantValues.BUDGET = limits.get('budget', ConstantValues.BUDGET)
+    ConstantValues.MAX_SUBMODULARITY = limits.get('max_submodularity', ConstantValues.MAX_SUBMODULARITY)
+    ConstantValues.MAXSIZE = limits.get('max_size', ConstantValues.MAXSIZE)
+    ConstantValues.ACL_CORPUS_INDEX = elasticsearch.get('index', ConstantValues.ACL_CORPUS_INDEX)
+    ConstantValues.ACL_CORPUS_DOCTYPE = elasticsearch.get('doc_type', ConstantValues.ACL_CORPUS_DOCTYPE)
+
+    default_resultPath = paths.get('result_path', build_default_result_path())
 
 
 # 1.0 - 1.0 * ConstantValues.BUDGET / max(len(v), 1)
@@ -488,6 +552,8 @@ def printResult(article_id=None, result=None, Lambda=-1.0, resultPath=default_re
 # def main(concept_graph=os.getcwd()+"/concept-graph-standard.json", query="statistical parsing"):
 
 @click.command()
+@click.option('--config', 'config_path', type=click.Path(exists=True),
+              help='Optional YAML config file. See config.example.yaml.')
 # @click.argument('resultPath', type=click.Path())
 @click.argument('methods', nargs=-1)
 # parameters:
@@ -497,7 +563,11 @@ def printResult(article_id=None, result=None, Lambda=-1.0, resultPath=default_re
 # es: using elasticsearch similarity score
 # corpusInputPath="inputs/survey/selected/"
 # corpusInputPath="inputs/100-random/"
-def main(methods="es au sub cg continue"):
+def main(config_path=None, methods=None):
+    config = load_experiment_config(config_path)
+    apply_experiment_config(config)
+    if methods is None or len(methods) == 0:
+        methods = tuple(_as_list(config.get('methods'))) or DEFAULT_METHODS
     print(methods)
 
     # es -> au / not au
